@@ -1,0 +1,34 @@
+# ⚠️ Fichiers de configuration sensibles
+.env
+process.env
+
+# ⚠️ Clés d'API & secrets (Shopify)
+src/integrations/shopify/client.ts
+
+# 🛠️ Dépendances & fichiers générés
+node_modules/
+bun.lockb
+package-lock.json
+
+# 🏗️ Fichiers de build
+dist/
+.out/
+.next/
+.vercel/
+build/
+.vite/
+
+# 🗑️ Logs & caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
+.vscode/
+.DS_Store
+Thumbs.db
+.idea/
+
+# 🎨 Configuration temporaire
+*.local
