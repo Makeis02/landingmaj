@@ -1,5 +1,5 @@
 [build]
-  command = "npm install"  # S'assurer que les dépendances sont installées
+  command = "npm build"  # S'assurer que les dépendances sont installées
   functions = "netlify/functions"
 
 [functions]
