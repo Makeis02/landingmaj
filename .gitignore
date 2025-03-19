@@ -1,6 +1,8 @@
 .env
 process.env
 
+
+
 # 🛠️ Dépendances & fichiers générés
 node_modules/
 bun.lockb
