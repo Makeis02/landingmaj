@@ -1,9 +1,9 @@
 [build]
-  command = "npm run build"  # S'assurer que les dépendances sont installées
-  functions = "netlify/functions"
+  command = "npm run build"  # Assure-toi que le build est bien exécuté
+  functions = "functions"  # Ton dossier de fonctions est directement "functions/"
 
 [functions]
-  external_node_modules = ["axios"]
+  external_node_modules = ["axios"]  # Ajout des dépendances nécessaires
 
 [[redirects]]
   from = "/webhook"
