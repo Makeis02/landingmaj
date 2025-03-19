@@ -1,9 +1,5 @@
-# ⚠️ Fichiers de configuration sensibles
 .env
 process.env
-
-# ⚠️ Clés d'API & secrets (Shopify)
-src/integrations/shopify/client.ts
 
 # 🛠️ Dépendances & fichiers générés
 node_modules/
