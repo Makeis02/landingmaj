@@ -1,9 +1,11 @@
 [build]
-  command = "npm run build"  # Assure-toi que le build est bien exécuté
-  functions = "functions"  # Ton dossier de fonctions est directement "functions/"
+  command = "npm install --legacy-peer-deps && npm run build" # Installation propre avant build
+  functions = "functions"  # Dossier où sont stockées les fonctions Netlify
+  node_bundler = "esbuild"  # Assure une meilleure compatibilité
 
 [functions]
-  external_node_modules = ["axios"]  # Ajout des dépendances nécessaires
+  included_files = ["functions/**"]  # Force l'inclusion des fichiers
+  external_node_modules = ["axios"]  # Inclut axios dans les dépendances Netlify
 
 [[redirects]]
   from = "/webhook"
