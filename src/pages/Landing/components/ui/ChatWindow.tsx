@@ -168,9 +168,9 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [userInput, setUserInput] = useState("");
   const [messengerUserId, setMessengerUserId] = useState<string | null>(null);
   const [lastActive, setLastActive] = useState<Date | null>(null);
-  const [wsConnected, setWsConnected] = useState(false);
-  const ws = useRef<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -214,42 +214,59 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
     scrollToBottom();
   }, [messages]);
 
-  // WebSocket connection
+  // Polling pour les nouveaux messages
   useEffect(() => {
-    if (isOpen && !ws.current) {
-      ws.current = new WebSocket('ws://localhost:8080');
+    let intervalId: NodeJS.Timeout;
 
-      ws.current.onopen = () => {
-        console.log('🔌 WebSocket connecté');
-        setWsConnected(true);
-      };
+    const fetchNewMessages = async () => {
+      try {
+        const response = await fetch('https://majemsiteteste.netlify.app/.netlify/functions/webhook/messages');
+        const data = await response.json();
+        
+        if (Array.isArray(data)) {
+          // Filtrer les nouveaux messages
+          const newMessages = data.filter(msg => {
+            if (!lastMessageIdRef.current) return true;
+            return msg.id !== lastMessageIdRef.current;
+          });
 
-      ws.current.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'new_message') {
-          const { message } = data;
-          setMessages(prev => [...prev, {
-            id: message.id,
-            type: 'messenger',
-            content: message.text,
-            timestamp: new Date(message.timestamp),
-            from: message.from
-          }]);
-          setLastActive(new Date(message.timestamp));
+          if (newMessages.length > 0) {
+            // Mettre à jour le dernier ID de message
+            lastMessageIdRef.current = newMessages[newMessages.length - 1].id;
+            
+            // Ajouter les nouveaux messages
+            setMessages(prev => [...prev, ...newMessages.map(msg => ({
+              id: msg.id,
+              type: msg.type,
+              content: msg.content,
+              timestamp: new Date(msg.timestamp),
+              from: msg.from
+            }))]);
+
+            // Mettre à jour la dernière activité
+            setLastActive(new Date());
+          }
         }
-      };
+      } catch (error) {
+        console.error("Erreur lors de la récupération des messages:", error);
+      }
+    };
 
-      ws.current.onclose = () => {
-        console.log('🔌 WebSocket déconnecté');
-        setWsConnected(false);
-        ws.current = null;
-      };
+    if (isOpen) {
+      // Première récupération immédiate
+      fetchNewMessages();
+      
+      // Mettre en place le polling toutes les 5 secondes
+      intervalId = setInterval(fetchNewMessages, 5000);
+      setIsConnected(true);
     }
 
+    // Nettoyage
     return () => {
-      if (ws.current) {
-        ws.current.close();
+      if (intervalId) {
+        clearInterval(intervalId);
       }
+      setIsConnected(false);
     };
   }, [isOpen]);
 
@@ -744,7 +761,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
               Envoyer
             </button>
           </div>
-          {!awaitingEmail && !awaitingQuestion && !wsConnected && (
+          {!awaitingEmail && !awaitingQuestion && !isConnected && (
             <p className="text-xs text-center mt-2 text-gray-500">
               Connexion au chat en cours...
             </p>
