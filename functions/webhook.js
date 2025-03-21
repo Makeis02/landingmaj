@@ -19,6 +19,9 @@ let messages = [
   }
 ];
 
+// Stockage des associations email-ID Messenger
+const messengerLinks = {};
+
 // Fonction utilitaire pour les logs
 const log = {
   request: (event) => {
@@ -86,6 +89,12 @@ const createResponse = (statusCode, body, headers = {}) => {
   return response;
 };
 
+// Fonction pour générer un ID temporaire
+function generateTemporaryId(email) {
+  const hash = require('crypto').createHash('md5').update(email).digest('hex');
+  return `temp_${hash.substring(0, 8)}`;
+}
+
 // Fonction pour envoyer un message à Messenger
 async function sendMessageToMessenger(recipientId, messageText) {
   console.group('📤 Envoi Message Messenger');
@@ -100,9 +109,18 @@ async function sendMessageToMessenger(recipientId, messageText) {
     return false;
   }
 
+  // Vérifier si on a un ID Messenger associé
+  const finalRecipientId = messengerLinks[recipientId] || 
+    (recipientId.startsWith('temp_') ? process.env.PAGE_ID : recipientId);
+
+  console.log('👤 ID final utilisé:', finalRecipientId);
+  if (messengerLinks[recipientId]) {
+    console.log('🔗 Association trouvée:', recipientId, '→', finalRecipientId);
+  }
+
   const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   const payload = {
-    recipient: { id: recipientId },
+    recipient: { id: finalRecipientId },
     message: { text: messageText }
   };
 
@@ -111,7 +129,7 @@ async function sendMessageToMessenger(recipientId, messageText) {
     console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(url, payload);
-    log.success(`Message envoyé avec succès à ${recipientId}`, response.data);
+    log.success(`Message envoyé avec succès à ${finalRecipientId}`, response.data);
     console.groupEnd();
     return true;
   } catch (error) {
@@ -165,7 +183,7 @@ exports.handler = async function (event) {
 
     // Traitement des messages Facebook
     if (event.httpMethod === "POST") {
-      console.group('�� Traitement Message');
+      console.group('📥 Traitement Message');
       const body = JSON.parse(event.body);
 
       // Gestion des messages du frontend
@@ -174,19 +192,24 @@ exports.handler = async function (event) {
         console.log('👤 Recipient ID:', body.recipientId);
         console.log('💬 Message:', body.message);
 
+        // Générer un ID temporaire si nécessaire
+        const messageId = body.recipientId.startsWith('temp_') 
+          ? body.recipientId 
+          : generateTemporaryId(body.recipientId);
+
         const newMessage = {
           id: Date.now().toString(),
           type: "user",
           content: body.message,
           timestamp: new Date().toISOString(),
           from: "chat",
-          messengerUserId: body.recipientId
+          messengerUserId: messageId
         };
 
         console.log('📥 Message enregistré:', JSON.stringify(newMessage, null, 2));
         messages.push(newMessage);
 
-        const success = await sendMessageToMessenger(body.recipientId, body.message);
+        const success = await sendMessageToMessenger(messageId, body.message);
         
         if (!success) {
           log.error(new Error('Échec de l\'envoi du message'), 'Frontend Message');
@@ -209,6 +232,20 @@ exports.handler = async function (event) {
           if (!webhookEvent) {
             console.log('⚠️ Pas de message dans l\'entrée');
             continue;
+          }
+
+          // Traitement des referrals pour l'association email-ID
+          if (webhookEvent.referral && webhookEvent.referral.ref) {
+            const ref = webhookEvent.referral.ref;
+            console.log('🔍 Referral détecté:', ref);
+            
+            if (ref.startsWith("email=")) {
+              const email = ref.split("email=")[1];
+              const tempId = `temp_${require('crypto').createHash('md5').update(email).digest('hex').substring(0, 8)}`;
+              messengerLinks[tempId] = webhookEvent.sender.id;
+              console.log(`🔗 Lien Messenger associé : ${tempId} ↔ ${webhookEvent.sender.id}`);
+              console.log('📧 Email associé:', email);
+            }
           }
 
           const senderId = webhookEvent.sender.id;
@@ -237,7 +274,6 @@ exports.handler = async function (event) {
               messages = messages.slice(-100);
             }
 
-            // Ne plus envoyer de réponse automatique
             log.success('Message traité avec succès');
             console.groupEnd();
             return createResponse(200, "EVENT_RECEIVED");

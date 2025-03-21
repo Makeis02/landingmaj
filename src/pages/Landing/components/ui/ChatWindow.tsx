@@ -161,9 +161,9 @@ const fetchBoxProductsFromSupabase = async (): Promise<BoxDetails | null> => {
 };
 
 // Composant pour gérer l'opt-in Messenger
-const MessengerOptIn = ({ messengerUserId }: { messengerUserId: string | null }) => {
+const MessengerOptIn = ({ messengerUserId, userEmail }: { messengerUserId: string | null, userEmail: string }) => {
   useEffect(() => {
-    if (messengerUserId) {
+    if (messengerUserId && userEmail) {
       // Créer un iframe caché pour l'opt-in Messenger
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
@@ -172,7 +172,12 @@ const MessengerOptIn = ({ messengerUserId }: { messengerUserId: string | null })
       iframe.style.position = 'fixed';
       iframe.style.left = '-9999px';
       iframe.style.top = '-9999px';
-      iframe.src = `https://m.me/${process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID}`;
+      
+      // Ajouter le paramètre ref avec l'email
+      const messengerUrl = `https://m.me/${process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID}?ref=email=${encodeURIComponent(userEmail)}`;
+      console.log('🔗 URL Messenger générée:', messengerUrl);
+      
+      iframe.src = messengerUrl;
       
       // Ajouter l'iframe au document
       document.body.appendChild(iframe);
@@ -182,7 +187,7 @@ const MessengerOptIn = ({ messengerUserId }: { messengerUserId: string | null })
         document.body.removeChild(iframe);
       }, 5000);
     }
-  }, [messengerUserId]);
+  }, [messengerUserId, userEmail]);
 
   return null;
 };
@@ -341,20 +346,11 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
 
   // Send message to Messenger
   const sendToMessenger = async (message: string) => {
-    // Vérification et fallback pour messengerUserId
-    if (!messengerUserId) {
-      const fallback = messages.find(m => m.messengerUserId)?.messengerUserId;
-      if (fallback) {
-        setMessengerUserId(fallback);
-        console.log("⚠️ Messenger ID fallback détecté :", fallback);
-      } else {
-        console.error('❌ Toujours pas d\'ID Messenger disponible');
-        return;
-      }
-    }
-
     console.group('📤 Envoi à Messenger');
-    console.log('👤 ID Messenger:', messengerUserId);
+    
+    // Utiliser l'email comme ID temporaire si pas d'ID Messenger
+    const messageId = messengerUserId || userEmail || `temp_${Date.now()}`;
+    console.log('👤 ID utilisé:', messageId);
     console.log('💬 Message:', message);
     console.log('⏰ Timestamp:', new Date().toISOString());
 
@@ -366,7 +362,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          recipientId: messengerUserId,
+          recipientId: messageId,
           message
         })
       });
@@ -383,7 +379,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
           content: message,
           timestamp: new Date(result.message.timestamp),
           from: 'chat',
-          messengerUserId
+          messengerUserId: messageId
         }]);
       } else {
         console.error('❌ Échec de l\'envoi:', result);
@@ -727,7 +723,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
 
   return (
     <>
-      <MessengerOptIn messengerUserId={messengerUserId} />
+      <MessengerOptIn messengerUserId={messengerUserId} userEmail={userEmail} />
       <div
         className={cn(
           "fixed transition-all duration-500 ease-in-out chat-window",
