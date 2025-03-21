@@ -189,9 +189,11 @@ exports.handler = async function (event) {
               type: "messenger",
               content: messageText,
               timestamp: new Date().toISOString(),
-              from: "messenger"
+              from: "messenger",
+              messengerUserId: senderId
             };
 
+            console.log("📥 Message enregistré avec ID Messenger:", senderId);
             console.log('📦 Nouveau message:', JSON.stringify(newMessage, null, 2));
             messages.push(newMessage);
 

@@ -10,6 +10,7 @@ interface Message {
   choices?: string[];
   timestamp: Date;
   from?: 'chat' | 'messenger';
+  messengerUserId?: string;
 }
 
 interface ChatWindowProps {
@@ -234,13 +235,21 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
             // Mettre à jour le dernier ID de message
             lastMessageIdRef.current = newMessages[newMessages.length - 1].id;
             
+            // Détecter et enregistrer l'ID Messenger
+            const messengerMsg = newMessages.find(msg => msg.messengerUserId);
+            if (messengerMsg && messengerMsg.messengerUserId) {
+              setMessengerUserId(messengerMsg.messengerUserId);
+              console.log("🎯 ID Messenger détecté et enregistré :", messengerMsg.messengerUserId);
+            }
+            
             // Ajouter les nouveaux messages
             setMessages(prev => [...prev, ...newMessages.map(msg => ({
               id: msg.id,
               type: msg.type,
               content: msg.content,
               timestamp: new Date(msg.timestamp),
-              from: msg.from
+              from: msg.from,
+              messengerUserId: msg.messengerUserId
             }))]);
 
             // Mettre à jour la dernière activité
@@ -332,7 +341,8 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
           type: 'user',
           content: message,
           timestamp: new Date(result.message.timestamp),
-          from: 'chat'
+          from: 'chat',
+          messengerUserId
         }]);
       } else {
         console.error('❌ Échec de l\'envoi:', result);
