@@ -240,6 +240,13 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
             if (messengerMsg && messengerMsg.messengerUserId) {
               setMessengerUserId(messengerMsg.messengerUserId);
               console.log("🎯 ID Messenger détecté et enregistré :", messengerMsg.messengerUserId);
+            } else {
+              // Fallback pour récupérer l'ID Messenger
+              const fallbackId = data.find(m => m.messengerUserId)?.messengerUserId;
+              if (fallbackId && !messengerUserId) {
+                setMessengerUserId(fallbackId);
+                console.log("⚠️ ID Messenger fallback appliqué :", fallbackId);
+              }
             }
             
             // Ajouter les nouveaux messages
@@ -307,9 +314,16 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
 
   // Send message to Messenger
   const sendToMessenger = async (message: string) => {
+    // Vérification et fallback pour messengerUserId
     if (!messengerUserId) {
-      console.error('❌ Pas d\'ID Messenger disponible');
-      return;
+      const fallback = messages.find(m => m.messengerUserId)?.messengerUserId;
+      if (fallback) {
+        setMessengerUserId(fallback);
+        console.log("⚠️ Messenger ID fallback détecté :", fallback);
+      } else {
+        console.error('❌ Toujours pas d\'ID Messenger disponible');
+        return;
+      }
     }
 
     console.group('📤 Envoi à Messenger');
