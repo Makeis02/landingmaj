@@ -298,10 +298,19 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
 
   // Send message to Messenger
   const sendToMessenger = async (message: string) => {
-    if (!messengerUserId) return;
+    if (!messengerUserId) {
+      console.error('❌ Pas d\'ID Messenger disponible');
+      return;
+    }
+
+    console.group('📤 Envoi à Messenger');
+    console.log('👤 ID Messenger:', messengerUserId);
+    console.log('💬 Message:', message);
+    console.log('⏰ Timestamp:', new Date().toISOString());
 
     try {
-      const response = await fetch('http://localhost:3000/api/send-message', {
+      console.log('🌐 Envoi à l\'API Netlify...');
+      const response = await fetch('https://majemsiteteste.netlify.app/.netlify/functions/webhook/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -312,8 +321,12 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
         })
       });
 
+      console.log('📥 Réponse reçue:', response.status);
       const result = await response.json();
+      console.log('📦 Données de réponse:', result);
+
       if (result.success) {
+        console.log('✅ Message envoyé avec succès');
         setMessages(prev => [...prev, {
           id: result.message.id,
           type: 'user',
@@ -321,10 +334,13 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
           timestamp: new Date(result.message.timestamp),
           from: 'chat'
         }]);
+      } else {
+        console.error('❌ Échec de l\'envoi:', result);
       }
     } catch (error) {
-      console.error("Erreur lors de l'envoi du message:", error);
+      console.error('❌ Erreur lors de l\'envoi:', error);
     }
+    console.groupEnd();
   };
 
   const formatPrice = (price: number) => {
@@ -334,9 +350,17 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const handleUserInput = async () => {
     if (!userInput.trim()) return;
 
+    console.group('⌨️ Saisie utilisateur');
+    console.log('📝 Texte saisi:', userInput);
+    console.log('⏰ Timestamp:', new Date().toISOString());
+    console.log('🔍 État actuel:', {
+      awaitingEmail,
+      awaitingQuestion,
+      userEmail
+    });
+
     const timestamp = new Date();
     
-    // Ajouter le message de l'utilisateur
     setMessages(prev => [...prev, {
       id: Date.now().toString(),
       type: 'user',
@@ -346,7 +370,10 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
     }]);
 
     if (awaitingEmail) {
+      console.log('📧 Validation de l\'email');
+      
       if (!userInput.includes("@") || !userInput.includes(".")) {
+        console.log('❌ Email invalide');
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           type: 'bot',
@@ -354,9 +381,11 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
           timestamp: new Date()
         }]);
         setUserInput("");
+        console.groupEnd();
         return;
       }
 
+      console.log('✅ Email valide:', userInput);
       setUserEmail(userInput);
       setAwaitingEmail(false);
       setAwaitingQuestion(true);
@@ -373,13 +402,20 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
         `,
         timestamp: new Date()
       }]);
+      console.groupEnd();
       return;
     }
 
     if (awaitingQuestion) {
+      console.log('📩 Envoi de la question');
       const userQuestion = userInput;
       setAwaitingQuestion(false);
       setUserInput("");
+
+      console.log('📤 Envoi à Messenger:', {
+        question: userQuestion,
+        email: userEmail
+      });
 
       // Envoyer à Messenger
       await sendToMessenger(userQuestion);
@@ -404,9 +440,14 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
       // Mettre à jour la dernière activité
       setLastActive(new Date());
     }
+    console.groupEnd();
   };
 
   const handleChoice = async (choice: string) => {
+    console.group('🎯 Choix utilisateur');
+    console.log('🔍 Choix sélectionné:', choice);
+    console.log('⏰ Timestamp:', new Date().toISOString());
+
     const timestamp = new Date();
     
     setMessages(prev => [...prev, {
@@ -418,6 +459,13 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
 
     setTimeout(() => {
       if (choice === "📩 Contactez-nous") {
+        console.log('📧 Activation du mode contact');
+        console.log('🔍 État actuel:', {
+          awaitingEmail: true,
+          awaitingQuestion: false,
+          userEmail: null
+        });
+        
         setMessages(prev => [...prev, {
           id: (Date.now() + 1).toString(),
           type: 'bot',
@@ -623,6 +671,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
         }]);
       }
     }, 500);
+    console.groupEnd();
   };
 
   return (

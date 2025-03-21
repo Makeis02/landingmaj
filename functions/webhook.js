@@ -29,7 +29,21 @@ const log = {
     console.log('📋 Headers:', JSON.stringify(event.headers, null, 2));
     if (event.body) {
       try {
-        console.log('📥 Body:', JSON.stringify(JSON.parse(event.body), null, 2));
+        const parsedBody = JSON.parse(event.body);
+        console.log('📥 Body:', JSON.stringify(parsedBody, null, 2));
+        
+        // Log spécifique pour les messages Facebook
+        if (parsedBody.object === 'page') {
+          console.group('📱 Message Facebook');
+          console.log('📦 Type:', parsedBody.object);
+          console.log('📥 Entrées:', parsedBody.entry.length);
+          parsedBody.entry.forEach((entry, index) => {
+            console.log(`\n📥 Entrée ${index + 1}:`);
+            console.log('⏰ Timestamp:', entry.time);
+            console.log('💬 Messaging:', entry.messaging[0]);
+          });
+          console.groupEnd();
+        }
       } catch (e) {
         console.log('📥 Body (raw):', event.body);
       }
@@ -44,6 +58,7 @@ const log = {
     if (error.response) {
       console.log('📊 Status:', error.response.status);
       console.log('📦 Data:', JSON.stringify(error.response.data, null, 2));
+      console.log('🔍 Headers:', JSON.stringify(error.response.headers, null, 2));
     }
     console.log('🔍 Stack:', error.stack);
     console.groupEnd();
@@ -166,6 +181,7 @@ exports.handler = async function (event) {
 
           console.log('👤 Sender ID:', senderId);
           console.log('💬 Message reçu:', messageText);
+          console.log('📦 Événement complet:', JSON.stringify(webhookEvent, null, 2));
 
           if (messageText) {
             const newMessage = {
