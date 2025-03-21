@@ -165,9 +165,44 @@ exports.handler = async function (event) {
 
     // Traitement des messages Facebook
     if (event.httpMethod === "POST") {
-      console.group('📩 Traitement Message Facebook');
+      console.group('�� Traitement Message');
       const body = JSON.parse(event.body);
 
+      // Gestion des messages du frontend
+      if (body.recipientId && body.message) {
+        console.log('📤 Message du frontend reçu');
+        console.log('👤 Recipient ID:', body.recipientId);
+        console.log('💬 Message:', body.message);
+
+        const newMessage = {
+          id: Date.now().toString(),
+          type: "user",
+          content: body.message,
+          timestamp: new Date().toISOString(),
+          from: "chat",
+          messengerUserId: body.recipientId
+        };
+
+        console.log('📥 Message enregistré:', JSON.stringify(newMessage, null, 2));
+        messages.push(newMessage);
+
+        const success = await sendMessageToMessenger(body.recipientId, body.message);
+        
+        if (!success) {
+          log.error(new Error('Échec de l\'envoi du message'), 'Frontend Message');
+          console.groupEnd();
+          return createResponse(500, { success: false, error: "Erreur lors de l'envoi du message" });
+        }
+
+        log.success('Message du frontend traité avec succès');
+        console.groupEnd();
+        return createResponse(200, { 
+          success: true, 
+          message: newMessage 
+        });
+      }
+
+      // Gestion des messages Facebook
       if (body.object === "page") {
         for (const entry of body.entry) {
           const webhookEvent = entry.messaging[0];
@@ -202,14 +237,7 @@ exports.handler = async function (event) {
               messages = messages.slice(-100);
             }
 
-            const success = await sendMessageToMessenger(senderId, `Tu as dit : ${messageText}`);
-            
-            if (!success) {
-              log.error(new Error('Échec de l\'envoi de la réponse'), 'Traitement Message');
-              console.groupEnd();
-              return createResponse(500, "Erreur lors de l'envoi du message");
-            }
-
+            // Ne plus envoyer de réponse automatique
             log.success('Message traité avec succès');
             console.groupEnd();
             return createResponse(200, "EVENT_RECEIVED");

@@ -160,6 +160,33 @@ const fetchBoxProductsFromSupabase = async (): Promise<BoxDetails | null> => {
   }
 };
 
+// Composant pour gérer l'opt-in Messenger
+const MessengerOptIn = ({ messengerUserId }: { messengerUserId: string | null }) => {
+  useEffect(() => {
+    if (messengerUserId) {
+      // Créer un iframe caché pour l'opt-in Messenger
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.src = `https://m.me/${process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID}`;
+      
+      // Ajouter l'iframe au document
+      document.body.appendChild(iframe);
+      
+      // Nettoyer après 5 secondes
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 5000);
+    }
+  }, [messengerUserId]);
+
+  return null;
+};
+
 const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [boxDetails, setBoxDetails] = useState<BoxDetails | null>(null);
@@ -699,149 +726,152 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   };
 
   return (
-    <div
-      className={cn(
-        "fixed transition-all duration-500 ease-in-out chat-window",
-        "md:left-24 md:bottom-32 md:w-[400px] md:h-[600px]",
-        "left-0 bottom-0 w-[calc(100%-16px)] mx-2 h-[80vh]",
-        isOpen 
-          ? "opacity-100 translate-y-0" 
-          : "opacity-0 translate-y-[120%] pointer-events-none"
-      )}
-    >
-      {/* Backdrop sur mobile */}
-      <div 
+    <>
+      <MessengerOptIn messengerUserId={messengerUserId} />
+      <div
         className={cn(
-          "fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity md:hidden",
-          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+          "fixed transition-all duration-500 ease-in-out chat-window",
+          "md:left-24 md:bottom-32 md:w-[400px] md:h-[600px]",
+          "left-0 bottom-0 w-[calc(100%-16px)] mx-2 h-[80vh]",
+          isOpen 
+            ? "opacity-100 translate-y-0" 
+            : "opacity-0 translate-y-[120%] pointer-events-none"
         )}
-        onClick={onClose}
-      />
-
-      {/* Chat Container */}
-      <div className="relative w-full h-full bg-white rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="bg-primary p-4 flex items-center justify-between sticky top-0 z-10">
-          <h3 className="text-white font-semibold flex items-center gap-2">
-            <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
-              🐟
-            </span>
-            Chat avec AquaBot
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
-            aria-label="Fermer le chat"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={cn(
-                "flex items-start gap-2 animate-fadeIn",
-                (message.type === 'user' || message.from === 'chat') && "flex-row-reverse"
-              )}
-            >
-              {(message.type === 'bot' || message.type === 'messenger') && (
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-sm">
-                    {message.type === 'messenger' ? '💬' : '🐟'}
-                  </span>
-                </div>
-              )}
-              
-              <div className={cn(
-                "rounded-2xl p-3 max-w-[80%] shadow-sm",
-                message.type === 'bot' || message.type === 'messenger' 
-                  ? "bg-white rounded-tl-none" 
-                  : "bg-primary text-white rounded-tr-none"
-              )}>
-                {message.type === 'bot' ? (
-                  <div 
-                    className="text-sm [&_ul]:pl-4 [&_li]:flex [&_li]:items-center [&_li]:gap-2"
-                    dangerouslySetInnerHTML={{ __html: message.content }}
-                  />
-                ) : (
-                  <div className="text-sm">
-                    <p>{message.content}</p>
-                  </div>
-                )}
-
-                {/* Affichage de l'heure sous chaque message */}
-                {((message.type === 'messenger' || message.from === 'messenger' || 
-                   (userEmail && (message.type === 'user' || message.type === 'bot'))) && message.timestamp) && (
-                  <p className={cn(
-                    "text-xs mt-1",
-                    message.type === 'user' || message.from === 'chat' 
-                      ? "text-white/90" 
-                      : "text-primary/90"
-                  )}>
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                )}
-                
-                {message.choices && !awaitingEmail && !awaitingQuestion && (
-                  <div className="mt-4 space-y-2">
-                    {message.choices.map((choice) => (
-                      <button
-                        key={choice}
-                        onClick={() => handleChoice(choice)}
-                        className={cn(
-                          "w-full text-left px-4 py-2 rounded-xl transition-colors text-sm font-medium border",
-                          choice === "📩 Contactez-nous"
-                            ? "bg-primary text-white border-primary hover:bg-primary/90"
-                            : "bg-white text-primary border-primary/20 hover:bg-primary/5"
-                        )}
-                      >
-                        👉 {choice}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Container */}
-        <div className="border-t p-4 bg-white shadow-lg sticky bottom-0">
-          {lastActive && (
-            <p className="text-xs text-center text-gray-500 mb-2">
-              Dernière activité : {lastActive.toLocaleTimeString()}
-            </p>
+      >
+        {/* Backdrop sur mobile */}
+        <div 
+          className={cn(
+            "fixed inset-0 bg-black/20 backdrop-blur-sm transition-opacity md:hidden",
+            isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           )}
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder={awaitingEmail ? "Entrez votre email..." : awaitingQuestion ? "Posez votre question..." : "Écrivez votre message..."}
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              disabled={!awaitingEmail && !awaitingQuestion}
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleUserInput()}
-            />
+          onClick={onClose}
+        />
+
+        {/* Chat Container */}
+        <div className="relative w-full h-full bg-white rounded-t-2xl md:rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="bg-primary p-4 flex items-center justify-between sticky top-0 z-10">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <span className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                🐟
+              </span>
+              Chat avec AquaBot
+            </h3>
             <button
-              className="bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 flex-shrink-0"
-              disabled={!awaitingEmail && !awaitingQuestion}
-              onClick={handleUserInput}
+              onClick={onClose}
+              className="text-white/80 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+              aria-label="Fermer le chat"
             >
-              Envoyer
+              <X className="h-5 w-5" />
             </button>
           </div>
-          {!awaitingEmail && !awaitingQuestion && !isConnected && (
-            <p className="text-xs text-center mt-2 text-gray-500">
-              Connexion au chat en cours...
-            </p>
-          )}
+
+          {/* Messages Container */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex items-start gap-2 animate-fadeIn",
+                  (message.type === 'user' || message.from === 'chat') && "flex-row-reverse"
+                )}
+              >
+                {(message.type === 'bot' || message.type === 'messenger') && (
+                  <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
+                    <span className="text-white text-sm">
+                      {message.type === 'messenger' ? '💬' : '🐟'}
+                    </span>
+                  </div>
+                )}
+                
+                <div className={cn(
+                  "rounded-2xl p-3 max-w-[80%] shadow-sm",
+                  message.type === 'bot' || message.type === 'messenger' 
+                    ? "bg-white rounded-tl-none" 
+                    : "bg-primary text-white rounded-tr-none"
+                )}>
+                  {message.type === 'bot' ? (
+                    <div 
+                      className="text-sm [&_ul]:pl-4 [&_li]:flex [&_li]:items-center [&_li]:gap-2"
+                      dangerouslySetInnerHTML={{ __html: message.content }}
+                    />
+                  ) : (
+                    <div className="text-sm">
+                      <p>{message.content}</p>
+                    </div>
+                  )}
+
+                  {/* Affichage de l'heure sous chaque message */}
+                  {((message.type === 'messenger' || message.from === 'messenger' || 
+                     (userEmail && (message.type === 'user' || message.type === 'bot'))) && message.timestamp) && (
+                    <p className={cn(
+                      "text-xs mt-1",
+                      message.type === 'user' || message.from === 'chat' 
+                        ? "text-white/90" 
+                        : "text-primary/90"
+                    )}>
+                      {message.timestamp.toLocaleTimeString()}
+                    </p>
+                  )}
+                  
+                  {message.choices && !awaitingEmail && !awaitingQuestion && (
+                    <div className="mt-4 space-y-2">
+                      {message.choices.map((choice) => (
+                        <button
+                          key={choice}
+                          onClick={() => handleChoice(choice)}
+                          className={cn(
+                            "w-full text-left px-4 py-2 rounded-xl transition-colors text-sm font-medium border",
+                            choice === "📩 Contactez-nous"
+                              ? "bg-primary text-white border-primary hover:bg-primary/90"
+                              : "bg-white text-primary border-primary/20 hover:bg-primary/5"
+                          )}
+                        >
+                          👉 {choice}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input Container */}
+          <div className="border-t p-4 bg-white shadow-lg sticky bottom-0">
+            {lastActive && (
+              <p className="text-xs text-center text-gray-500 mb-2">
+                Dernière activité : {lastActive.toLocaleTimeString()}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                placeholder={awaitingEmail ? "Entrez votre email..." : awaitingQuestion ? "Posez votre question..." : "Écrivez votre message..."}
+                className="flex-1 rounded-xl border border-gray-200 px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                disabled={!awaitingEmail && !awaitingQuestion}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleUserInput()}
+              />
+              <button
+                className="bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50 flex-shrink-0"
+                disabled={!awaitingEmail && !awaitingQuestion}
+                onClick={handleUserInput}
+              >
+                Envoyer
+              </button>
+            </div>
+            {!awaitingEmail && !awaitingQuestion && !isConnected && (
+              <p className="text-xs text-center mt-2 text-gray-500">
+                Connexion au chat en cours...
+              </p>
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
