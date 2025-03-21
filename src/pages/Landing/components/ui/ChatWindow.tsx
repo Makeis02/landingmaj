@@ -204,6 +204,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
+  const processedMessagesRef = useRef<Set<string>>(new Set());
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -257,11 +258,8 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          // Filtrer les nouveaux messages
-          const newMessages = data.filter(msg => {
-            if (!lastMessageIdRef.current) return true;
-            return msg.id !== lastMessageIdRef.current;
-          });
+          // Filtrer les nouveaux messages non traités
+          const newMessages = data.filter(msg => !processedMessagesRef.current.has(msg.id));
 
           if (newMessages.length > 0) {
             // Mettre à jour le dernier ID de message
@@ -272,24 +270,22 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
             if (messengerMsg && messengerMsg.messengerUserId) {
               setMessengerUserId(messengerMsg.messengerUserId);
               console.log("🎯 ID Messenger détecté et enregistré :", messengerMsg.messengerUserId);
-            } else {
-              // Fallback pour récupérer l'ID Messenger
-              const fallbackId = data.find(m => m.messengerUserId)?.messengerUserId;
-              if (fallbackId && !messengerUserId) {
-                setMessengerUserId(fallbackId);
-                console.log("⚠️ ID Messenger fallback appliqué :", fallbackId);
-              }
             }
             
-            // Ajouter les nouveaux messages
-            setMessages(prev => [...prev, ...newMessages.map(msg => ({
+            // Ajouter les nouveaux messages et marquer comme traités
+            const formattedMessages = newMessages.map(msg => ({
               id: msg.id,
               type: msg.type,
               content: msg.content,
               timestamp: new Date(msg.timestamp),
               from: msg.from,
               messengerUserId: msg.messengerUserId
-            }))]);
+            }));
+
+            // Marquer les messages comme traités
+            newMessages.forEach(msg => processedMessagesRef.current.add(msg.id));
+            
+            setMessages(prev => [...prev, ...formattedMessages]);
 
             // Mettre à jour la dernière activité
             setLastActive(new Date());
@@ -315,6 +311,8 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
         clearInterval(intervalId);
       }
       setIsConnected(false);
+      // Réinitialiser les messages traités lors de la fermeture
+      processedMessagesRef.current.clear();
     };
   }, [isOpen]);
 
@@ -406,13 +404,14 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
       userEmail
     });
 
-    const timestamp = new Date();
-    
+    const messageId = Date.now().toString();
+    processedMessagesRef.current.add(messageId);
+
     setMessages(prev => [...prev, {
-      id: Date.now().toString(),
+      id: messageId,
       type: 'user',
       content: userInput,
-      timestamp,
+      timestamp: new Date(),
       from: 'chat'
     }]);
 
@@ -495,13 +494,14 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
     console.log('🔍 Choix sélectionné:', choice);
     console.log('⏰ Timestamp:', new Date().toISOString());
 
-    const timestamp = new Date();
-    
+    const messageId = Date.now().toString();
+    processedMessagesRef.current.add(messageId);
+
     setMessages(prev => [...prev, {
-      id: Date.now().toString(),
+      id: messageId,
       type: 'user',
       content: choice,
-      timestamp
+      timestamp: new Date()
     }]);
 
     setTimeout(() => {
