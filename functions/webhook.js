@@ -99,23 +99,34 @@ function generateTemporaryId(email) {
 async function sendMessageToMessenger(recipientId, messageText) {
   console.group('📤 Envoi Message Messenger');
   console.log('👤 Recipient ID:', recipientId);
-  console.log('💬 Message:', messageText);
+  console.log('💬 Message à envoyer:', messageText);
 
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-  
+  const PAGE_ID = process.env.PAGE_ID;
+
   if (!PAGE_ACCESS_TOKEN) {
     log.error(new Error('PAGE_ACCESS_TOKEN manquant'), 'Configuration');
     console.groupEnd();
     return false;
   }
 
-  // Vérifier si on a un ID Messenger associé
-  const finalRecipientId = messengerLinks[recipientId] || 
-    (recipientId.startsWith('temp_') ? process.env.PAGE_ID : recipientId);
+  if (!PAGE_ID) {
+    console.warn('⚠️ PAGE_ID non défini dans les variables d\'environnement');
+  }
 
-  console.log('👤 ID final utilisé:', finalRecipientId);
+  console.log('🔒 PAGE_ACCESS_TOKEN défini ? →', !!PAGE_ACCESS_TOKEN);
+  console.log('🆔 PAGE_ID défini ? →', !!PAGE_ID);
+
+  // Vérifie l'association email-tempID avec sender ID
+  const finalRecipientId = messengerLinks[recipientId] || 
+    (recipientId.startsWith('temp_') ? PAGE_ID : recipientId);
+
+  console.log('🧭 ID final utilisé pour envoi :', finalRecipientId);
+
   if (messengerLinks[recipientId]) {
-    console.log('🔗 Association trouvée:', recipientId, '→', finalRecipientId);
+    console.log(`🔗 Mapping trouvé pour ${recipientId} → ${finalRecipientId}`);
+  } else if (recipientId.startsWith('temp_')) {
+    console.warn(`⚠️ Aucun mapping trouvé pour ${recipientId}, fallback sur PAGE_ID`);
   }
 
   const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
@@ -124,16 +135,28 @@ async function sendMessageToMessenger(recipientId, messageText) {
     message: { text: messageText }
   };
 
-  try {
-    console.log('🔗 URL:', url);
-    console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+  console.log('🌐 Requête POST Facebook Messenger API');
+  console.log('🔗 URL:', url);
+  console.log('📦 Payload:', JSON.stringify(payload, null, 2));
 
+  try {
     const response = await axios.post(url, payload);
-    log.success(`Message envoyé avec succès à ${finalRecipientId}`, response.data);
+    console.log('📥 Réponse brute:', response.status, response.statusText);
+    console.log('📦 Réponse data:', JSON.stringify(response.data, null, 2));
+
+    log.success(`Message envoyé à ${finalRecipientId}`);
     console.groupEnd();
     return true;
   } catch (error) {
-    log.error(error, 'Envoi Message Messenger');
+    console.error('❌ Axios POST a échoué');
+    if (error.response) {
+      console.log('📊 Code HTTP:', error.response.status);
+      console.log('📦 Réponse d\'erreur:', JSON.stringify(error.response.data, null, 2));
+    } else {
+      console.log('❌ Erreur inconnue (pas de réponse)');
+    }
+
+    log.error(error, 'sendMessageToMessenger');
     console.groupEnd();
     return false;
   }
