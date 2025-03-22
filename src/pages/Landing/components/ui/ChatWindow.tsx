@@ -202,6 +202,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [messengerUserId, setMessengerUserId] = useState<string | null>(null);
   const [lastActive, setLastActive] = useState<Date | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [shouldPoll, setShouldPoll] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
   const processedMessagesRef = useRef<Set<string>>(new Set());
@@ -226,53 +227,27 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      setMessages([
-        {
-          id: '1',
-          type: 'bot',
-          content: "Bonjour ! 😊 Je suis AquaBot, ton assistant. Comment puis-je t'aider ?",
-          choices: [
-            "En quoi consiste l'abonnement mensuel ?",
-            "Quels avantages ce mois-ci ?",
-            "📩 Contactez-nous"
-          ],
-          timestamp: new Date()
-        }
-      ]);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   // Polling pour les nouveaux messages
   useEffect(() => {
     let intervalId: NodeJS.Timeout;
 
     const fetchNewMessages = async () => {
+      if (!shouldPoll || !messengerUserId) return;
+
       try {
         const response = await fetch('https://majemsiteteste.netlify.app/.netlify/functions/webhook/messages');
         const data = await response.json();
         
         if (Array.isArray(data)) {
-          // Filtrer les nouveaux messages non traités
-          const newMessages = data.filter(msg => !processedMessagesRef.current.has(msg.id));
+          // Filtrer les messages par ID local et non traités
+          const newMessages = data.filter(msg => 
+            !processedMessagesRef.current.has(msg.id) && 
+            msg.messengerUserId === messengerUserId
+          );
 
           if (newMessages.length > 0) {
-            // Mettre à jour le dernier ID de message
             lastMessageIdRef.current = newMessages[newMessages.length - 1].id;
             
-            // Détecter et enregistrer l'ID Messenger
-            const messengerMsg = newMessages.find(msg => msg.messengerUserId);
-            if (messengerMsg && messengerMsg.messengerUserId) {
-              setMessengerUserId(messengerMsg.messengerUserId);
-              console.log("🎯 ID Messenger détecté et enregistré :", messengerMsg.messengerUserId);
-            }
-            
-            // Ajouter les nouveaux messages et marquer comme traités
             const formattedMessages = newMessages.map(msg => ({
               id: msg.id,
               type: msg.type,
@@ -282,12 +257,8 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
               messengerUserId: msg.messengerUserId
             }));
 
-            // Marquer les messages comme traités
             newMessages.forEach(msg => processedMessagesRef.current.add(msg.id));
-            
             setMessages(prev => [...prev, ...formattedMessages]);
-
-            // Mettre à jour la dernière activité
             setLastActive(new Date());
           }
         }
@@ -296,51 +267,350 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
       }
     };
 
-    if (isOpen) {
-      // Première récupération immédiate
+    if (isOpen && shouldPoll) {
       fetchNewMessages();
-      
-      // Mettre en place le polling toutes les 5 secondes
       intervalId = setInterval(fetchNewMessages, 5000);
       setIsConnected(true);
     }
 
-    // Nettoyage
     return () => {
       if (intervalId) {
         clearInterval(intervalId);
       }
       setIsConnected(false);
-      // Réinitialiser les messages traités lors de la fermeture
-      processedMessagesRef.current.clear();
     };
+  }, [isOpen, shouldPoll, messengerUserId]);
+
+  // Initialisation du chat
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      const initialMessage: Message = {
+        id: '1',
+        type: 'bot',
+        content: "Bonjour ! 😊 Je suis AquaBot, ton assistant. Comment puis-je t'aider ?",
+        choices: [
+          "En quoi consiste l'abonnement mensuel ?",
+          "Quels avantages ce mois-ci ?",
+          "📩 Contactez-nous"
+        ],
+        timestamp: new Date()
+      };
+      setMessages([initialMessage]);
+      processedMessagesRef.current.add(initialMessage.id);
+    }
   }, [isOpen]);
 
-  // Fetch message history
-  useEffect(() => {
-    const fetchMessageHistory = async () => {
-      if (messengerUserId) {
-        try {
-          const response = await fetch(`http://localhost:3000/api/messages/${messengerUserId}`);
-          const history = await response.json();
-          
-          const formattedMessages = history.map((msg: any) => ({
-            id: msg.id,
-            type: msg.from === 'messenger' ? 'messenger' : 'user',
-            content: msg.text,
-            timestamp: new Date(msg.timestamp),
-            from: msg.from
-          }));
+  // Gestion de l'email et démarrage du polling
+  const handleEmailSubmission = (email: string) => {
+    const tempId = `temp_${require('crypto').createHash('md5').update(email).digest('hex').substring(0, 8)}`;
+    setMessengerUserId(tempId);
+    setShouldPoll(true);
+  };
 
-          setMessages(prev => [...prev, ...formattedMessages]);
-        } catch (error) {
-          console.error("Erreur lors de la récupération de l'historique:", error);
-        }
+  const handleUserInput = async () => {
+    if (!userInput.trim()) return;
+
+    console.group('⌨️ Saisie utilisateur');
+    console.log('📝 Texte saisi:', userInput);
+
+    const messageId = Date.now().toString();
+    processedMessagesRef.current.add(messageId);
+
+    if (awaitingEmail) {
+      if (!userInput.includes("@") || !userInput.includes(".")) {
+        setMessages(prev => [...prev, {
+          id: messageId,
+          type: 'bot',
+          content: "❌ L'adresse email semble incorrecte. Veuillez entrer une adresse valide.",
+          timestamp: new Date()
+        }]);
+        setUserInput("");
+        return;
       }
-    };
 
-    fetchMessageHistory();
-  }, [messengerUserId]);
+      setUserEmail(userInput);
+      handleEmailSubmission(userInput);
+      setAwaitingEmail(false);
+      setAwaitingQuestion(true);
+      setUserInput("");
+
+      setMessages(prev => [...prev, {
+        id: messageId,
+        type: 'bot',
+        content: `
+          <div class="space-y-2">
+            <p>✅ Merci ! Votre email a été enregistré.</p>
+            <p>✍️ Vous pouvez maintenant poser votre question. Nous vous répondrons directement ici et un email vous sera envoyé à <strong>${userInput}</strong> lorsque nous aurons répondu.</p>
+          </div>
+        `,
+        timestamp: new Date()
+      }]);
+      return;
+    }
+
+    if (awaitingQuestion) {
+      console.log('📩 Envoi de la question');
+      const userQuestion = userInput;
+      setAwaitingQuestion(false);
+      setUserInput("");
+
+      console.log('📤 Envoi à Messenger:', {
+        question: userQuestion,
+        email: userEmail
+      });
+
+      // Envoyer à Messenger
+      await sendToMessenger(userQuestion);
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `
+          <div class="space-y-2">
+            <p>✅ Merci pour votre message !</p>
+            <p>Un email vous sera envoyé à <strong>${userEmail}</strong> lorsque nous aurons répondu.</p>
+            <p>📲 Vous pouvez continuer la conversation ici en direct.</p>
+          </div>
+        `,
+        choices: [
+          "En quoi consiste l'abonnement mensuel ?",
+          "Quels avantages ce mois-ci ?"
+        ],
+        timestamp: new Date()
+      }]);
+
+      // Mettre à jour la dernière activité
+      setLastActive(new Date());
+    }
+    console.groupEnd();
+  };
+
+  const handleChoice = async (choice: string) => {
+    console.group('🎯 Choix utilisateur');
+    console.log('🔍 Choix sélectionné:', choice);
+
+    const messageId = Date.now().toString();
+    processedMessagesRef.current.add(messageId);
+
+    setMessages(prev => [...prev, {
+      id: messageId,
+      type: 'user',
+      content: choice,
+      timestamp: new Date()
+    }]);
+
+    if (choice === "📩 Contactez-nous") {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `
+          <div class="space-y-2">
+            <p><strong>📩 Pour vous contacter, nous avons besoin de votre adresse email.</strong></p>
+            <p>Veuillez entrer votre email ci-dessous :</p>
+          </div>
+        `,
+        timestamp: new Date()
+      }]);
+      setAwaitingEmail(true);
+      setShouldPoll(false); // S'assurer que le polling est désactivé jusqu'à la saisie de l'email
+      processedMessagesRef.current.clear(); // Réinitialiser les messages traités
+    } else if (choice === "En quoi consiste l'abonnement mensuel ?") {
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `
+          <div class="space-y-2">
+            <p><strong>L'abonnement mensuel Aqua Rêve, c'est :</strong></p>
+            <ul class="space-y-1 list-inside">
+              <li>🎁 Une sélection mensuelle de nourritures adaptées</li>
+              <li>🧪 Des produits d'entretien essentiels</li>
+              <li>✨ Une surprise exclusive (version Premium)</li>
+              <li>⭐ Des récompenses en Rêve Points</li>
+            </ul>
+            <p class="mt-2"><strong>Les avantages :</strong></p>
+            <ul class="space-y-1 list-inside">
+              <li>🔄 Sans engagement</li>
+              <li>🚚 Livraison rapide incluse</li>
+              <li>💙 Une expérience simple et sereine</li>
+            </ul>
+          </div>
+        `,
+        choices: [
+          "Quels avantages ce mois-ci ?",
+          "📩 Contactez-nous"
+        ],
+        timestamp: new Date()
+      }]);
+    } else if (choice === "Quels avantages ce mois-ci ?") {
+      if (!boxDetails) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          type: 'bot',
+          content: `
+            <div class="space-y-3">
+              <p class="text-red-500">Désolé, je ne parviens pas à récupérer les informations des box pour le moment. Veuillez réessayer plus tard.</p>
+            </div>
+          `,
+          choices: [
+            "En quoi consiste l'abonnement mensuel ?",
+            "📩 Contactez-nous"
+          ],
+          timestamp: new Date()
+        }]);
+        return;
+      }
+
+      const { basic, premium } = boxDetails;
+      const shippingCost = 5.99;
+      const savingsBasic = Math.max(0, basic.totalValue - basic.price + shippingCost);
+      const savingsPremium = Math.max(0, premium.totalValue - premium.price + shippingCost);
+
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        type: 'bot',
+        content: `
+          <style>
+            .product-item {
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+            }
+            .product-title {
+              flex: 1;
+              font-size: 0.875rem;
+              line-height: 1.5;
+            }
+            .product-price {
+              font-weight: 600;
+              color: rgb(0, 113, 235);
+              font-size: 0.875rem;
+              margin-left: auto;
+            }
+            .product-bullet {
+              flex-shrink: 0;
+              font-size: 1.25rem;
+              line-height: 1;
+            }
+            .total-value {
+              color: rgb(0, 113, 235);
+              font-weight: 600;
+            }
+          </style>
+          <div class="space-y-3">
+            <div>
+              <p><strong>📦 Box Basic (${formatPrice(basic.price)}) :</strong></p>
+              <p class="text-sm text-gray-600 mb-2">${basic.description}</p>
+              <p class="mt-2"><em>Valeur réelle des produits : <span class="text-primary font-semibold">${formatPrice(basic.totalValue)}</span></em></p>
+              <p class="text-green-500 font-bold">✨ Économie réalisée : ${formatPrice(savingsBasic)} (${formatPrice(basic.totalValue - basic.price)} + ${formatPrice(shippingCost)} de livraison gratuite)</p>
+              <ul class="space-y-2 list-inside mt-2">
+                ${basic.products.filter(p => !p.title.includes("Un prélèvement lors de la souscription")).map(p => `
+                  <li class="product-item">
+                    ${p.image ? `
+                      <img src="${p.image}" alt="${p.title}" class="w-8 h-8 rounded-lg object-cover bg-gray-50" />
+                    ` : '<span class="product-bullet">•</span>'}
+                    <span class="product-title">${p.title}</span>
+                    <strong class="text-primary">${formatPrice(p.price)}</strong>
+                  </li>
+                `).join('')}
+              </ul>
+
+              <div class="bg-primary/5 rounded-xl p-3 mt-4">
+                <p class="font-medium">🎉 Avantages Box Basic ce mois-ci :</p>
+                <ul class="space-y-2 mt-2">
+                  <li class="flex items-center gap-2">
+                    <span>🎯</span>
+                    <span>Valeur totale des produits : <strong class="text-primary">${formatPrice(basic.totalValue)}</strong></span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>💰</span>
+                    <span>Tu économises : <strong class="text-primary">${formatPrice(savingsBasic)}</strong></span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🚚</span>
+                    <span>Livraison incluse (au lieu de <strong class="text-primary">${formatPrice(shippingCost)}</strong> si acheté séparément)</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🔄</span>
+                    <span>Sans engagement</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>💙</span>
+                    <span>Idéal pour bien nourrir ses poissons sans prise de tête !</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <p><strong>💎 Box Premium (${formatPrice(premium.price)}) :</strong></p>
+              <p class="text-sm text-gray-600 mb-2">${premium.description}</p>
+              <p class="mt-2"><em>Valeur réelle des produits : <span class="text-primary font-semibold">${formatPrice(premium.totalValue)}</span></em></p>
+              <p class="text-green-500 font-bold">✨ Économie réalisée : ${formatPrice(savingsPremium)} (${formatPrice(premium.totalValue - premium.price)} + ${formatPrice(shippingCost)} de livraison gratuite)</p>
+              <ul class="space-y-2 list-inside mt-2">
+                ${premium.products.map(p => `
+                  <li class="product-item">
+                    ${p.image ? `
+                      <img src="${p.image}" alt="${p.title}" class="w-8 h-8 rounded-lg object-cover bg-gray-50" />
+                    ` : premium.exclusive.includes(p.title) ? '<span class="product-bullet">✨</span>' : '<span class="product-bullet">•</span>'}
+                    <span class="product-title">
+                      ${p.title}
+                      ${premium.exclusive.includes(p.title) ? 
+                        '<span class="text-primary font-medium ml-1">(Exclusif)</span>' : 
+                        ''}
+                    </span>
+                    <strong class="text-primary">${formatPrice(p.price)}</strong>
+                  </li>
+                `).join('')}
+              </ul>
+
+              <div class="bg-primary/5 rounded-xl p-3 mt-4">
+                <p class="font-medium">🎉 Avantages Box Premium ce mois-ci :</p>
+                <ul class="space-y-2 mt-2">
+                  <li class="flex items-center gap-2">
+                    <span>🎯</span>
+                    <span>Valeur totale des produits : <strong class="text-primary">${formatPrice(premium.totalValue)}</strong></span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>💰</span>
+                    <span>Tu économises : <strong class="text-primary">${formatPrice(savingsPremium)}</strong></span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🚚</span>
+                    <span>Livraison incluse (au lieu de <strong class="text-primary">${formatPrice(shippingCost)}</strong> si acheté séparément)</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🎁</span>
+                    <span>Surprise exclusive collector</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>⭐</span>
+                    <span>Produit exclusif pour les abonnés premium</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🔄</span>
+                    <span>Sans engagement</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span>🔥</span>
+                    <span>Le must pour des poissons en pleine forme !</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        `,
+        choices: [
+          "En quoi consiste l'abonnement mensuel ?",
+          "📩 Contactez-nous"
+        ],
+        timestamp: new Date()
+      }]);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return price.toFixed(2).replace('.', ',') + '€';
+  };
 
   // Send message to Messenger
   const sendToMessenger = async (message: string) => {
@@ -385,339 +655,6 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
     } catch (error) {
       console.error('❌ Erreur lors de l\'envoi:', error);
     }
-    console.groupEnd();
-  };
-
-  const formatPrice = (price: number) => {
-    return price.toFixed(2).replace('.', ',') + '€';
-  };
-
-  const handleUserInput = async () => {
-    if (!userInput.trim()) return;
-
-    console.group('⌨️ Saisie utilisateur');
-    console.log('📝 Texte saisi:', userInput);
-    console.log('⏰ Timestamp:', new Date().toISOString());
-    console.log('🔍 État actuel:', {
-      awaitingEmail,
-      awaitingQuestion,
-      userEmail
-    });
-
-    const messageId = Date.now().toString();
-    processedMessagesRef.current.add(messageId);
-
-    setMessages(prev => [...prev, {
-      id: messageId,
-      type: 'user',
-      content: userInput,
-      timestamp: new Date(),
-      from: 'chat'
-    }]);
-
-    if (awaitingEmail) {
-      console.log('📧 Validation de l\'email');
-      
-      if (!userInput.includes("@") || !userInput.includes(".")) {
-        console.log('❌ Email invalide');
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: "❌ L'adresse email semble incorrecte. Veuillez entrer une adresse valide.",
-          timestamp: new Date()
-        }]);
-        setUserInput("");
-        console.groupEnd();
-        return;
-      }
-
-      console.log('✅ Email valide:', userInput);
-      setUserEmail(userInput);
-      setAwaitingEmail(false);
-      setAwaitingQuestion(true);
-      setUserInput("");
-
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: `
-          <div class="space-y-2">
-            <p>✅ Merci ! Votre email a été enregistré.</p>
-            <p>✍️ Vous pouvez maintenant poser votre question. Nous vous répondrons directement ici et un email vous sera envoyé à <strong>${userInput}</strong> lorsque nous aurons répondu.</p>
-          </div>
-        `,
-        timestamp: new Date()
-      }]);
-      console.groupEnd();
-      return;
-    }
-
-    if (awaitingQuestion) {
-      console.log('📩 Envoi de la question');
-      const userQuestion = userInput;
-      setAwaitingQuestion(false);
-      setUserInput("");
-
-      console.log('📤 Envoi à Messenger:', {
-        question: userQuestion,
-        email: userEmail
-      });
-
-      // Envoyer à Messenger
-      await sendToMessenger(userQuestion);
-
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(),
-        type: 'bot',
-        content: `
-          <div class="space-y-2">
-            <p>✅ Merci pour votre message !</p>
-            <p>Un email vous sera envoyé à <strong>${userEmail}</strong> lorsque nous aurons répondu.</p>
-            <p>📲 Vous pouvez continuer la conversation ici en direct.</p>
-          </div>
-        `,
-        choices: [
-          "En quoi consiste l'abonnement mensuel ?",
-          "Quels avantages ce mois-ci ?"
-        ],
-        timestamp: new Date()
-      }]);
-
-      // Mettre à jour la dernière activité
-      setLastActive(new Date());
-    }
-    console.groupEnd();
-  };
-
-  const handleChoice = async (choice: string) => {
-    console.group('🎯 Choix utilisateur');
-    console.log('🔍 Choix sélectionné:', choice);
-    console.log('⏰ Timestamp:', new Date().toISOString());
-
-    const messageId = Date.now().toString();
-    processedMessagesRef.current.add(messageId);
-
-    setMessages(prev => [...prev, {
-      id: messageId,
-      type: 'user',
-      content: choice,
-      timestamp: new Date()
-    }]);
-
-    setTimeout(() => {
-      if (choice === "📩 Contactez-nous") {
-        console.log('📧 Activation du mode contact');
-        console.log('🔍 État actuel:', {
-          awaitingEmail: true,
-          awaitingQuestion: false,
-          userEmail: null
-        });
-        
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: `
-            <div class="space-y-2">
-              <p><strong>📩 Pour vous contacter, nous avons besoin de votre adresse email.</strong></p>
-              <p>Veuillez entrer votre email ci-dessous :</p>
-            </div>
-          `,
-          timestamp: new Date()
-        }]);
-        setAwaitingEmail(true);
-      } else if (choice === "En quoi consiste l'abonnement mensuel ?") {
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: `
-            <div class="space-y-2">
-              <p><strong>L'abonnement mensuel Aqua Rêve, c'est :</strong></p>
-              <ul class="space-y-1 list-inside">
-                <li>🎁 Une sélection mensuelle de nourritures adaptées</li>
-                <li>🧪 Des produits d'entretien essentiels</li>
-                <li>✨ Une surprise exclusive (version Premium)</li>
-                <li>⭐ Des récompenses en Rêve Points</li>
-              </ul>
-              <p class="mt-2"><strong>Les avantages :</strong></p>
-              <ul class="space-y-1 list-inside">
-                <li>🔄 Sans engagement</li>
-                <li>🚚 Livraison rapide incluse</li>
-                <li>💙 Une expérience simple et sereine</li>
-              </ul>
-            </div>
-          `,
-          choices: [
-            "Quels avantages ce mois-ci ?",
-            "📩 Contactez-nous"
-          ],
-          timestamp: new Date()
-        }]);
-      } else if (choice === "Quels avantages ce mois-ci ?") {
-        if (!boxDetails) {
-          setMessages(prev => [...prev, {
-            id: (Date.now() + 1).toString(),
-            type: 'bot',
-            content: `
-              <div class="space-y-3">
-                <p class="text-red-500">Désolé, je ne parviens pas à récupérer les informations des box pour le moment. Veuillez réessayer plus tard.</p>
-              </div>
-            `,
-            choices: [
-              "En quoi consiste l'abonnement mensuel ?",
-              "📩 Contactez-nous"
-            ],
-            timestamp: new Date()
-          }]);
-          return;
-        }
-
-        const { basic, premium } = boxDetails;
-        const shippingCost = 5.99;
-        const savingsBasic = Math.max(0, basic.totalValue - basic.price + shippingCost);
-        const savingsPremium = Math.max(0, premium.totalValue - premium.price + shippingCost);
-
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          type: 'bot',
-          content: `
-            <style>
-              .product-item {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-              }
-              .product-title {
-                flex: 1;
-                font-size: 0.875rem;
-                line-height: 1.5;
-              }
-              .product-price {
-                font-weight: 600;
-                color: rgb(0, 113, 235);
-                font-size: 0.875rem;
-                margin-left: auto;
-              }
-              .product-bullet {
-                flex-shrink: 0;
-                font-size: 1.25rem;
-                line-height: 1;
-              }
-              .total-value {
-                color: rgb(0, 113, 235);
-                font-weight: 600;
-              }
-            </style>
-            <div class="space-y-3">
-              <div>
-                <p><strong>📦 Box Basic (${formatPrice(basic.price)}) :</strong></p>
-                <p class="text-sm text-gray-600 mb-2">${basic.description}</p>
-                <p class="mt-2"><em>Valeur réelle des produits : <span class="text-primary font-semibold">${formatPrice(basic.totalValue)}</span></em></p>
-                <p class="text-green-500 font-bold">✨ Économie réalisée : ${formatPrice(savingsBasic)} (${formatPrice(basic.totalValue - basic.price)} + ${formatPrice(shippingCost)} de livraison gratuite)</p>
-                <ul class="space-y-2 list-inside mt-2">
-                  ${basic.products.filter(p => !p.title.includes("Un prélèvement lors de la souscription")).map(p => `
-                    <li class="product-item">
-                      ${p.image ? `
-                        <img src="${p.image}" alt="${p.title}" class="w-8 h-8 rounded-lg object-cover bg-gray-50" />
-                      ` : '<span class="product-bullet">•</span>'}
-                      <span class="product-title">${p.title}</span>
-                      <strong class="text-primary">${formatPrice(p.price)}</strong>
-                    </li>
-                  `).join('')}
-                </ul>
-
-                <div class="bg-primary/5 rounded-xl p-3 mt-4">
-                  <p class="font-medium">🎉 Avantages Box Basic ce mois-ci :</p>
-                  <ul class="space-y-2 mt-2">
-                    <li class="flex items-center gap-2">
-                      <span>🎯</span>
-                      <span>Valeur totale des produits : <strong class="text-primary">${formatPrice(basic.totalValue)}</strong></span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>💰</span>
-                      <span>Tu économises : <strong class="text-primary">${formatPrice(savingsBasic)}</strong></span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🚚</span>
-                      <span>Livraison incluse (au lieu de <strong class="text-primary">${formatPrice(shippingCost)}</strong> si acheté séparément)</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🔄</span>
-                      <span>Sans engagement</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>💙</span>
-                      <span>Idéal pour bien nourrir ses poissons sans prise de tête !</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div class="mt-6">
-                <p><strong>💎 Box Premium (${formatPrice(premium.price)}) :</strong></p>
-                <p class="text-sm text-gray-600 mb-2">${premium.description}</p>
-                <p class="mt-2"><em>Valeur réelle des produits : <span class="text-primary font-semibold">${formatPrice(premium.totalValue)}</span></em></p>
-                <p class="text-green-500 font-bold">✨ Économie réalisée : ${formatPrice(savingsPremium)} (${formatPrice(premium.totalValue - premium.price)} + ${formatPrice(shippingCost)} de livraison gratuite)</p>
-                <ul class="space-y-2 list-inside mt-2">
-                  ${premium.products.map(p => `
-                    <li class="product-item">
-                      ${p.image ? `
-                        <img src="${p.image}" alt="${p.title}" class="w-8 h-8 rounded-lg object-cover bg-gray-50" />
-                      ` : premium.exclusive.includes(p.title) ? '<span class="product-bullet">✨</span>' : '<span class="product-bullet">•</span>'}
-                      <span class="product-title">
-                        ${p.title}
-                        ${premium.exclusive.includes(p.title) ? 
-                          '<span class="text-primary font-medium ml-1">(Exclusif)</span>' : 
-                          ''}
-                      </span>
-                      <strong class="text-primary">${formatPrice(p.price)}</strong>
-                    </li>
-                  `).join('')}
-                </ul>
-
-                <div class="bg-primary/5 rounded-xl p-3 mt-4">
-                  <p class="font-medium">🎉 Avantages Box Premium ce mois-ci :</p>
-                  <ul class="space-y-2 mt-2">
-                    <li class="flex items-center gap-2">
-                      <span>🎯</span>
-                      <span>Valeur totale des produits : <strong class="text-primary">${formatPrice(premium.totalValue)}</strong></span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>💰</span>
-                      <span>Tu économises : <strong class="text-primary">${formatPrice(savingsPremium)}</strong></span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🚚</span>
-                      <span>Livraison incluse (au lieu de <strong class="text-primary">${formatPrice(shippingCost)}</strong> si acheté séparément)</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🎁</span>
-                      <span>Surprise exclusive collector</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>⭐</span>
-                      <span>Produit exclusif pour les abonnés premium</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🔄</span>
-                      <span>Sans engagement</span>
-                    </li>
-                    <li class="flex items-center gap-2">
-                      <span>🔥</span>
-                      <span>Le must pour des poissons en pleine forme !</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          `,
-          choices: [
-            "En quoi consiste l'abonnement mensuel ?",
-            "📩 Contactez-nous"
-          ],
-          timestamp: new Date()
-        }]);
-      }
-    }, 500);
     console.groupEnd();
   };
 
