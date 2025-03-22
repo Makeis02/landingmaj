@@ -213,8 +213,24 @@ exports.handler = async function (event) {
     // Traitement des messages Facebook
     if (event.httpMethod === "POST") {
       console.log("POST: Starting message processing");
-      const body = JSON.parse(event.body);
-      console.log("POST: Body parsed successfully");
+      console.log("POST: Raw body:", event.body);
+      
+      let body;
+      try {
+        body = JSON.parse(event.body);
+        console.log("POST: Body parsed successfully");
+        console.log("POST: Parsed body:", JSON.stringify(body, null, 2));
+        console.log("POST: Body type:", typeof body);
+        console.log("POST: Body keys:", Object.keys(body));
+        console.log("POST: recipientId present:", !!body.recipientId);
+        console.log("POST: message present:", !!body.message);
+        console.log("POST: recipientId value:", body.recipientId);
+        console.log("POST: message value:", body.message);
+      } catch (parseError) {
+        console.error("POST: Error parsing body:", parseError);
+        console.error("POST: Raw body that failed:", event.body);
+        return createResponse(400, { error: "Invalid JSON body" });
+      }
 
       // Gestion des messages du frontend
       if (body.recipientId && body.message) {
