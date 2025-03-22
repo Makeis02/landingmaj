@@ -192,6 +192,16 @@ const MessengerOptIn = ({ messengerUserId, userEmail }: { messengerUserId: strin
   return null;
 };
 
+// Fonction utilitaire pour générer un ID temporaire
+const generateTempId = async (email: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(email);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return `temp_${hashHex.substring(0, 8)}`;
+};
+
 const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [boxDetails, setBoxDetails] = useState<BoxDetails | null>(null);
@@ -301,8 +311,8 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
   }, [isOpen]);
 
   // Gestion de l'email et démarrage du polling
-  const handleEmailSubmission = (email: string) => {
-    const tempId = `temp_${require('crypto').createHash('md5').update(email).digest('hex').substring(0, 8)}`;
+  const handleEmailSubmission = async (email: string) => {
+    const tempId = await generateTempId(email);
     setMessengerUserId(tempId);
     setShouldPoll(true);
   };
@@ -329,7 +339,7 @@ const ChatWindow = ({ isOpen, onClose }: ChatWindowProps) => {
       }
 
       setUserEmail(userInput);
-      handleEmailSubmission(userInput);
+      await handleEmailSubmission(userInput);
       setAwaitingEmail(false);
       setAwaitingQuestion(true);
       setUserInput("");
