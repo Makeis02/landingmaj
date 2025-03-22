@@ -132,6 +132,18 @@ async function sendMessageToMessenger(recipientId, messageText) {
   console.log("URL:", url);
   console.log("Payload:", JSON.stringify(payload, null, 2));
 
+  // Debug logs pour les variables d'environnement et données
+  console.log('🔐 PAGE_ACCESS_TOKEN:', process.env.PAGE_ACCESS_TOKEN);
+  console.log('📘 PAGE_ID (NEXT_PUBLIC_FACEBOOK_PAGE_ID):', process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID);
+  console.log('🎯 Recipient utilisé (finalRecipientId):', finalRecipientId);
+  console.log('📦 Payload envoyé à l\'API Messenger:', JSON.stringify(payload, null, 2));
+
+  // Logs de débogage supplémentaires
+  console.log('🧪 DEBUG: PAGE_ACCESS_TOKEN:', PAGE_ACCESS_TOKEN);
+  console.log('🧪 DEBUG: PAGE_ID:', PAGE_ID);
+  console.log('🧪 DEBUG: Final recipient ID:', finalRecipientId);
+  console.log('🧪 DEBUG: Payload:', JSON.stringify(payload, null, 2));
+
   try {
     const response = await axios.post(url, payload);
     console.log("Response status:", response.status, response.statusText);
