@@ -92,34 +92,37 @@ function generateTemporaryId(email) {
 // Fonction pour envoyer un message à Messenger
 async function sendMessageToMessenger(recipientId, messageText) {
   console.log("Messenger: Starting message send");
-  console.log("Recipient ID:", recipientId);
-  console.log("Message:", messageText);
+  console.log("Messenger: Recipient ID:", recipientId);
+  console.log("Messenger: Message:", messageText);
 
   const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
   const PAGE_ID = process.env.NEXT_PUBLIC_FACEBOOK_PAGE_ID;
 
+  console.log("Messenger: Environment variables check");
+  console.log("Messenger: PAGE_ACCESS_TOKEN present:", !!PAGE_ACCESS_TOKEN);
+  console.log("Messenger: PAGE_ID present:", !!PAGE_ID);
+
   if (!PAGE_ACCESS_TOKEN) {
+    console.error("Messenger: PAGE_ACCESS_TOKEN is missing!");
     log.error(new Error('PAGE_ACCESS_TOKEN missing'), 'Configuration');
     return false;
   }
 
   if (!PAGE_ID) {
-    console.log("WARNING: PAGE_ID not defined in environment variables");
+    console.error("Messenger: PAGE_ID is missing!");
+    console.log("Messenger: WARNING: PAGE_ID not defined in environment variables");
   }
-
-  console.log("PAGE_ACCESS_TOKEN defined:", !!PAGE_ACCESS_TOKEN);
-  console.log("PAGE_ID defined:", !!PAGE_ID);
 
   // Vérifie l'association email-tempID avec sender ID
   const finalRecipientId = messengerLinks[recipientId] || 
     (recipientId.startsWith('temp_') ? PAGE_ID : recipientId);
 
-  console.log("Final recipient ID:", finalRecipientId);
+  console.log("Messenger: Final recipient ID:", finalRecipientId);
 
   if (messengerLinks[recipientId]) {
-    console.log(`Mapping found: ${recipientId} → ${finalRecipientId}`);
+    console.log(`Messenger: Mapping found: ${recipientId} → ${finalRecipientId}`);
   } else if (recipientId.startsWith('temp_')) {
-    console.log(`WARNING: No mapping found for ${recipientId}, falling back to PAGE_ID`);
+    console.log(`Messenger: WARNING: No mapping found for ${recipientId}, falling back to PAGE_ID`);
   }
 
   const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
@@ -128,9 +131,9 @@ async function sendMessageToMessenger(recipientId, messageText) {
     message: { text: messageText }
   };
 
-  console.log("Facebook Messenger API Request:");
-  console.log("URL:", url);
-  console.log("Payload:", JSON.stringify(payload, null, 2));
+  console.log("Messenger: Preparing API request");
+  console.log("Messenger: URL:", url);
+  console.log("Messenger: Payload:", JSON.stringify(payload, null, 2));
 
   // Debug logs pour les variables d'environnement et données
   console.log('🔐 PAGE_ACCESS_TOKEN:', process.env.PAGE_ACCESS_TOKEN);
@@ -145,19 +148,22 @@ async function sendMessageToMessenger(recipientId, messageText) {
   console.log('🧪 DEBUG: Payload:', JSON.stringify(payload, null, 2));
 
   try {
+    console.log("Messenger: Sending request to Facebook API...");
     const response = await axios.post(url, payload);
-    console.log("Response status:", response.status, response.statusText);
-    console.log("Response data:", JSON.stringify(response.data, null, 2));
+    console.log("Messenger: Response received");
+    console.log("Messenger: Status:", response.status, response.statusText);
+    console.log("Messenger: Data:", JSON.stringify(response.data, null, 2));
 
     log.success(`Message sent to ${finalRecipientId}`);
     return true;
   } catch (error) {
-    console.error("Axios POST failed");
+    console.error("Messenger: Axios POST failed");
     if (error.response) {
-      console.error("HTTP Code:", error.response.status);
-      console.error("Error response:", JSON.stringify(error.response.data, null, 2));
+      console.error("Messenger: HTTP Code:", error.response.status);
+      console.error("Messenger: Error response:", JSON.stringify(error.response.data, null, 2));
+      console.error("Messenger: Error headers:", JSON.stringify(error.response.headers, null, 2));
     } else {
-      console.error("Unknown error (no response)");
+      console.error("Messenger: Unknown error (no response)");
     }
 
     log.error(error, 'sendMessageToMessenger');
@@ -206,19 +212,22 @@ exports.handler = async function (event) {
 
     // Traitement des messages Facebook
     if (event.httpMethod === "POST") {
-      console.log("Processing incoming message");
+      console.log("POST: Starting message processing");
       const body = JSON.parse(event.body);
+      console.log("POST: Body parsed successfully");
 
       // Gestion des messages du frontend
       if (body.recipientId && body.message) {
-        console.log("Frontend message received");
-        console.log("Recipient ID:", body.recipientId);
-        console.log("Message:", body.message);
+        console.log("POST: Frontend message detected");
+        console.log("POST: Recipient ID:", body.recipientId);
+        console.log("POST: Message content:", body.message);
 
         // Générer un ID temporaire si nécessaire
         const messageId = body.recipientId.startsWith('temp_') 
           ? body.recipientId 
           : generateTemporaryId(body.recipientId);
+
+        console.log("POST: Generated/Using message ID:", messageId);
 
         const newMessage = {
           id: Date.now().toString(),
@@ -229,16 +238,20 @@ exports.handler = async function (event) {
           messengerUserId: messageId
         };
 
-        console.log("Message stored:", JSON.stringify(newMessage, null, 2));
+        console.log("POST: Storing message:", JSON.stringify(newMessage, null, 2));
         messages.push(newMessage);
 
+        console.log("POST: Calling sendMessageToMessenger...");
         const success = await sendMessageToMessenger(messageId, body.message);
+        console.log("POST: sendMessageToMessenger completed. Success:", success);
         
         if (!success) {
+          console.error("POST: Message send failed");
           log.error(new Error('Message send failed'), 'Frontend Message');
           return createResponse(500, { success: false, error: "Error sending message" });
         }
 
+        console.log("POST: Message processed successfully");
         log.success('Frontend message processed successfully');
         return createResponse(200, { 
           success: true, 
