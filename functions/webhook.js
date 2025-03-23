@@ -91,6 +91,7 @@ function generateTemporaryId(email) {
 
 // Fonction pour envoyer un message à Messenger
 async function sendMessageToMessenger(recipientId, messageText) {
+  console.log("🧪 === Envoi Messenger INIT ===");
   console.log("Messenger: Starting message send");
   console.log("Messenger: Recipient ID:", recipientId);
   console.log("Messenger: Message:", messageText);
@@ -125,6 +126,12 @@ async function sendMessageToMessenger(recipientId, messageText) {
     console.log(`Messenger: WARNING: No mapping found for ${recipientId}, falling back to PAGE_ID`);
   }
 
+  // Blocage explicite si finalRecipientId === PAGE_ID
+  if (finalRecipientId === PAGE_ID) {
+    console.error("❌ ERREUR: tentative d'envoi de message vers PAGE_ID (invalid). Aucun PSID trouvé pour ce tempId.");
+    return false;
+  }
+
   const url = `https://graph.facebook.com/v13.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
   const payload = {
     recipient: { id: finalRecipientId },
@@ -155,6 +162,7 @@ async function sendMessageToMessenger(recipientId, messageText) {
     console.log("Messenger: Data:", JSON.stringify(response.data, null, 2));
 
     log.success(`Message sent to ${finalRecipientId}`);
+    console.log("✅ Envoi terminé sans erreur.");
     return true;
   } catch (error) {
     console.error("Messenger: Axios POST failed");
@@ -164,8 +172,10 @@ async function sendMessageToMessenger(recipientId, messageText) {
       console.error("Messenger: Error headers:", JSON.stringify(error.response.headers, null, 2));
     } else {
       console.error("Messenger: Unknown error (no response)");
+      console.error("Messenger: Error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
     }
 
+    console.error("🧨 Messenger: Échec d'envoi. Payload utilisé:", JSON.stringify(payload, null, 2));
     log.error(error, 'sendMessageToMessenger');
     return false;
   }
