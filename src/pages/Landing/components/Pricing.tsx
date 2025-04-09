@@ -721,7 +721,7 @@ const Pricing = () => {
         <img 
           src={initialUrl || "https://via.placeholder.com/150?text=Image+non+disponible"} 
           alt="" 
-          className="w-full h-[90px] md:h-[110px] object-cover aspect-square rounded-lg shadow-md transition-transform duration-500"
+          className="w-full aspect-[1/1] object-cover rounded-lg shadow-md transition-transform duration-500"
         />
       );
     }
@@ -731,7 +731,7 @@ const Pricing = () => {
         <img
           src={initialUrl || "https://via.placeholder.com/150?text=Ajouter+une+image"}
           alt=""
-          className="w-full h-[90px] md:h-[110px] object-cover aspect-square rounded-lg shadow-md transition-transform duration-500"
+          className="w-full aspect-[1/1] object-cover rounded-lg shadow-md transition-transform duration-500"
           onError={(e) => {
             if (initialUrl) {
               console.error("Image failed to load:", initialUrl);
@@ -1261,13 +1261,13 @@ const Pricing = () => {
                     pack.name === "Pack Survie" ? "grid-cols-2" :
                     pack.name === "Pack Premium" ? "grid-cols-3" :
                     "grid-cols-2 md:grid-cols-3"
-                  } gap-2 md:gap-4 mb-6 md:mb-8 h-[190px] md:h-[240px]`}>
+                  } gap-2 md:gap-4 mb-6 md:mb-8 auto-rows-fr`}>
                     {pack.name === "Pack Survie" ? (
                       // Pack Survie - 2 images en 2 colonnes
                       [...Array(2)].map((_, index) => (
                         <div
                           key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
                         >
                           <BoxEditableImage
                             imageKey={`box_mois_pack_survie_image_${index + 1}`}
@@ -1281,7 +1281,7 @@ const Pricing = () => {
                       [...Array(3)].map((_, index) => (
                         <div
                           key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
                         >
                           <BoxEditableImage
                             imageKey={`box_mois_pack_premium_image_${index + 1}`}
@@ -1295,7 +1295,7 @@ const Pricing = () => {
                       [...Array(6)].map((_, index) => (
                         <div
                           key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
                         >
                           <BoxEditableImage
                             imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
