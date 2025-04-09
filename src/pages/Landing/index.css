@@ -36,6 +36,10 @@
   }
 }
 
+html {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
 .hero-gradient {
   background: linear-gradient(109.6deg, rgba(223,234,247,1) 11.2%, rgba(244,248,252,1) 91.1%);
 }

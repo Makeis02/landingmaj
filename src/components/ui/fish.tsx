@@ -98,7 +98,7 @@ const Fish = () => {
               handleFishClick();
             }}
             className={cn(
-              "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer",
+              "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer pointer-events-auto",
               "md:-top-20 md:left-0 md:translate-x-1/4",
               "left-0 -top-16 min-w-[140px] max-w-[220px] sm:min-w-[160px]",
               "mobile-invite-bubble",
