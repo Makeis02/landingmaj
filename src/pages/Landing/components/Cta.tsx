@@ -252,25 +252,25 @@ const Cta = () => {
   // Define the buttons array for cleaner rendering
   const ctaButtons = [
     {
-      key: "cta_button_text_basix",
+      key: "cta_button_text_survie",
       urlKey: "pricing_button_1_url",
-      defaultText: "Choisir Pack Basix",
-      testid: "subscribe-button-basix",
-      logText: "Pack Basix"
+      defaultText: "Choisir Pack Survie",
+      testid: "subscribe-button-survie",
+      logText: "Pack Survie"
+    },
+    {
+      key: "cta_button_text_basic",
+      urlKey: "pricing_button_2_url",
+      defaultText: "Choisir Pack Basic",
+      testid: "subscribe-button-basic",
+      logText: "Pack Basic"
     },
     {
       key: "cta_button_text_premium",
-      urlKey: "pricing_button_2_url",
+      urlKey: "pricing_button_3_url",
       defaultText: "Choisir Pack Premium",
       testid: "subscribe-button-premium",
       logText: "Pack Premium"
-    },
-    {
-      key: "cta_button_text_discovery",
-      urlKey: "pricing_button_3_url",
-      defaultText: "Choisir Pack Découverte",
-      testid: "subscribe-button-discovery",
-      logText: "Pack Découverte"
     }
   ];
 
