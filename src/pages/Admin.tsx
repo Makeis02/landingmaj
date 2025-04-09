@@ -1,4 +1,3 @@
-
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -7,6 +6,7 @@ import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { ThresholdsList } from "@/components/admin/thresholds/ThresholdsList";
 import { GiftSettingsForm } from "@/components/admin/GiftSettingsForm";
 import { SuggestionsPanel } from "@/components/admin/suggestions/SuggestionsPanel";
+import { MessagesPanel } from "@/components/admin/MessagesPanel";
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -55,6 +55,8 @@ const Admin = () => {
         <div className="mt-8">
           <SuggestionsPanel />
         </div>
+
+        <MessagesPanel />
       </main>
     </div>
   );

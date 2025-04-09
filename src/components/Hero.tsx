@@ -31,18 +31,21 @@ const Hero = () => {
           "hero_button_2_url"
         ]);
 
-      const { data: imageData } = await supabase
+      const { data: imageRows } = await supabase
         .from("site_content_images")
         .select("*")
         .eq("key_name", "hero_background")
-        .maybeSingle();
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const backgroundImage = imageRows?.[0]?.image_url;
 
       const combinedData: HeroContent & { backgroundImage?: string } = {
         ...contentData?.reduce((acc, item) => {
           acc[item.content_key as keyof HeroContent] = item.content;
           return acc;
         }, {} as HeroContent),
-        backgroundImage: imageData?.image_url
+        backgroundImage
       };
 
       return combinedData;

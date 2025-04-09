@@ -10,6 +10,20 @@ const Fish = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   
+  // Effet pour détecter les paramètres URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const urlEmail = params.get("email");
+    const urlChatId = params.get("chat_id");
+
+    if (urlEmail && urlChatId) {
+      console.log('🔗 Paramètres de chat trouvés dans l\'URL:', { email: urlEmail, chatId: urlChatId });
+      setIsChatOpen(true);
+      setInviteClicked(true);
+      setShowInvite(false);
+    }
+  }, []);
+  
   // Gérer le scroll
   useEffect(() => {
     const handleScroll = () => {

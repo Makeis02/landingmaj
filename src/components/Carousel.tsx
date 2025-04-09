@@ -5,14 +5,15 @@ import { ChevronLeft, ChevronRight, Upload, Trash2, ArrowUp, ArrowDown, Menu } f
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 interface CarouselProps {
-  packName: any;
-  images?: any[];
-  speed: any;
-  onImagesUpdate: any;
+  packName: string;
+  images?: string[];
+  speed: number;
+  onImagesUpdate: (newImages: string[]) => void;
   isEditMode?: boolean;
+  contentKey: string;
 }
 
-const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000, onImagesUpdate, isEditMode }) => {
+const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000, onImagesUpdate, isEditMode, contentKey }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
@@ -113,74 +114,44 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        // Générer la clé de contenu en fonction du nom du pack
-        const packNameLower = packName.toLowerCase().replace(/\s+/g, '_');
+        console.log(`🔍 Récupération des images pour ${contentKey}`);
         
-        // Récupérer les images avec les deux formats de clé possibles
-        console.log("🔍 Tentative de récupération des images pour le pack:", packName);
-        console.log("🔑 Format de clé 1:", `pack_${packNameLower}_images`);
-        console.log("🔑 Format de clé 2:", `pack_${packNameLower.replace('_', '-')}-image-%`);
-        
-        // Première requête avec le format pack_basix_images
-        const { data: data1, error: error1 } = await supabase
+        const { data: images, error } = await supabase
           .from("site_content_images")
           .select("image_url")
-          .eq("key_name", `pack_${packNameLower}_images`);
-          
-        // Deuxième requête avec le format pack_basix-image-X
-        const { data: data2, error: error2 } = await supabase
-          .from("site_content_images")
-          .select("image_url")
-          .like("key_name", `pack_${packNameLower.replace('_', '-')}-image-%`);
-          
-        console.log("📊 Résultats format 1:", data1?.length || 0, "images");
-        console.log("📊 Résultats format 2:", data2?.length || 0, "images");
+          .eq("key_name", contentKey)
+          .order('created_at', { ascending: true });
 
-        // Gérer les erreurs de récupération
-        if (error1) console.error("❌ Erreur lors de la récupération des images (format 1):", error1);
-        if (error2) console.error("❌ Erreur lors de la récupération des images (format 2):", error2);
-        
-        if (error1 && error2) {
-          console.error("❌ Échec de récupération des images avec les deux formats");
+        if (error) {
+          console.error(`❌ Erreur lors de la récupération des images pour ${contentKey}:`, error);
           return;
         }
 
-        // Combiner les résultats des deux requêtes
-        const allData = [...(data1 || []), ...(data2 || [])];
-        
-        // Vérifier si des images ont été récupérées
-        if (allData.length > 0) {
-          const imageUrls = allData.map((item) => item.image_url);
-          console.log("🖼️ Images récupérées:", imageUrls);
+        if (images && images.length > 0) {
+          const imageUrls = images.map(item => item.image_url);
+          console.log(`✅ ${imageUrls.length} images récupérées pour ${contentKey}`);
           
-          // Vérifier si les images sont différentes de celles déjà affichées
           const currentUrls = new Set(displayedImages);
           const hasNewImages = imageUrls.some(url => !currentUrls.has(url)) || 
-                              displayedImages.length !== imageUrls.length;
+                             displayedImages.length !== imageUrls.length;
                               
           if (hasNewImages) {
-            console.log("🔄 Mise à jour des images affichées avec les nouvelles images");
-            setDisplayedImages(imageUrls); // Mettre à jour les images affichées
-            onImagesUpdate(imageUrls);      // Mettre à jour le parent si nécessaire
-          } else {
-            console.log("ℹ️ Aucune nouvelle image à afficher");
+            console.log(`🔄 Mise à jour des images pour ${contentKey}`);
+            setDisplayedImages(imageUrls);
+            onImagesUpdate(imageUrls);
           }
         } else {
-          console.log("⚠️ Aucune image trouvée pour ce pack.");
+          console.log(`ℹ️ Aucune image trouvée pour ${contentKey}`);
         }
       } catch (err) {
-        console.error("❌ Erreur inattendue lors de la récupération des images:", err);
+        console.error(`❌ Erreur inattendue pour ${contentKey}:`, err);
       }
     };
 
-    // Exécuter la récupération des images seulement si displayedImages est vide
     if (displayedImages.length === 0) {
-      console.log("🔍 Démarrage de la récupération des images car displayedImages est vide");
       fetchImages();
-    } else {
-      console.log("ℹ️ Récupération des images ignorée car displayedImages contient déjà", displayedImages.length, "images");
     }
-  }, [packName, onImagesUpdate, displayedImages]);
+  }, [contentKey, onImagesUpdate, displayedImages]);
 
   const goToPrevious = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -297,17 +268,20 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
 
   const handleUpload = async (files: File[]) => {
     const newImageUrls: string[] = [];
+    console.log(`🚀 Démarrage de l'upload multiple pour ${packName} avec key_name: ${contentKey}`);
+    console.log("📦 Nombre de fichiers à uploader:", files.length);
 
     for (const file of files) {
       try {
-        const packNameLower = packName.toLowerCase().replace(/\s+/g, '-');
-        const filePath = `${packNameLower}/${Date.now()}-${file.name}`;
+        const filePath = `carousel/${contentKey}/${Date.now()}-${file.name}`;
+        console.log("📸 Upload du fichier:", filePath);
+
         const { data, error } = await supabase.storage
           .from('images')
           .upload(filePath, file);
 
         if (error) {
-          console.error('Error uploading image:', error);
+          console.error('❌ Erreur lors de l\'upload:', error);
           continue;
         }
 
@@ -317,29 +291,9 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
 
         if (urlData && urlData.publicUrl) {
           newImageUrls.push(urlData.publicUrl);
-          
-          // Trouver le prochain index disponible pour ce pack
-          const { data: existingImages } = await supabase
-            .from("site_content_images")
-            .select("key_name")
-            .like("key_name", `pack_${packNameLower}-image-%`);
-            
-          const existingIndexes = existingImages
-            ? existingImages.map(item => {
-                const match = item.key_name.match(/pack_.*-image-(\d+)/);
-                return match ? parseInt(match[1]) : -1;
-              }).filter(index => index !== -1)
-            : [];
-            
-          const nextIndex = existingIndexes.length > 0 
-            ? Math.max(...existingIndexes) + 1 
-            : 0;
-            
-          // Utiliser le format de clé pack_basix-image-X
-          const contentKey = `pack_${packNameLower}-image-${nextIndex}`;
-          console.log("🔑 Enregistrement de l'image avec la clé:", contentKey);
-          
-          // Enregistrer l'image dans la table site_content_images
+          console.log("✅ URL générée:", urlData.publicUrl);
+
+          // Utilisation du contentKey spécifique au pack
           const { error: insertError } = await supabase
             .from("site_content_images")
             .insert({
@@ -349,17 +303,18 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
             });
 
           if (insertError) {
-            console.error('Error saving image to site_content_images:', insertError);
+            console.error('❌ Erreur lors de l\'enregistrement dans la base:', insertError);
           } else {
-            console.log('Image successfully saved to site_content_images with key:', contentKey);
+            console.log(`✅ Image enregistrée avec succès pour ${contentKey}`);
           }
         }
       } catch (error) {
-        console.error('Error in upload process:', error);
+        console.error('❌ Erreur pendant le processus d\'upload:', error);
       }
     }
 
     if (newImageUrls.length > 0) {
+      console.log(`✅ ${newImageUrls.length} images uploadées avec succès pour ${contentKey}`);
       const updatedImages = [...displayedImages, ...newImageUrls];
       setDisplayedImages(updatedImages);
       onImagesUpdate(updatedImages);
@@ -401,45 +356,25 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
     setDisplayedImages(newImages);
     onImagesUpdate(newImages);
     
-    // Supprimer l'image de la table site_content_images
     if (imageToDelete) {
-      const packNameLower = packName.toLowerCase().replace(/\s+/g, '-');
+      console.log(`🗑️ Suppression de l'image pour ${contentKey}:`, imageToDelete);
       
-      // Rechercher l'entrée correspondant à cette URL d'image
       supabase
         .from("site_content_images")
-        .select("key_name")
-        .eq("image_url", imageToDelete)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('Erreur lors de la recherche de l\'image à supprimer:', error);
-            return;
-          }
-          
-          if (data && data.length > 0) {
-            const keyToDelete = data[0].key_name;
-            console.log("🗑️ Suppression de l'image avec la clé:", keyToDelete);
-            
-            // Supprimer l'entrée
-            supabase
-              .from("site_content_images")
-              .delete()
-              .eq("key_name", keyToDelete)
-              .eq("image_url", imageToDelete)
-              .then(({ error: deleteError }) => {
-                if (deleteError) {
-                  console.error('Erreur lors de la suppression de l\'image:', deleteError);
-                } else {
-                  console.log('✅ Image supprimée avec succès de site_content_images');
-                }
-              });
+        .delete()
+        .match({ 
+          image_url: imageToDelete,
+          key_name: contentKey
+        })
+        .then(({ error: deleteError }) => {
+          if (deleteError) {
+            console.error('❌ Erreur lors de la suppression:', deleteError);
           } else {
-            console.log("⚠️ Aucune entrée trouvée pour cette URL d'image:", imageToDelete);
+            console.log(`✅ Image supprimée avec succès de ${contentKey}`);
           }
         });
     }
     
-    // Reset currentIndex if needed
     if (currentIndex >= newImages.length) {
       setCurrentIndex(Math.max(0, newImages.length - 1));
     }
@@ -460,68 +395,54 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
     setDisplayedImages(newImages);
     onImagesUpdate(newImages);
     
-    // Mettre à jour l'ordre des images dans la base de données
-    const packNameLower = packName.toLowerCase().replace(/\s+/g, '-');
-    
-    // Approche: récupérer toutes les entrées, les supprimer, puis les réinsérer dans le nouvel ordre
+    // Update the order of images in the database
     const updateImagesOrder = async () => {
       try {
-        // 1. Récupérer toutes les entrées pour ce pack
+        // 1. Get all entries for these images
         const { data: existingEntries, error: fetchError } = await supabase
           .from("site_content_images")
           .select("*")
-          .like("key_name", `pack_${packNameLower}-image-%`);
+          .in("image_url", newImages);
           
         if (fetchError) {
-          console.error('Erreur lors de la récupération des entrées pour réorganisation:', fetchError);
+          console.error('❌ Error fetching entries for reordering:', fetchError);
           return;
         }
         
         if (!existingEntries || existingEntries.length === 0) {
-          console.log('Aucune entrée trouvée pour réorganisation');
+          console.log('⚠️ No entries found for reordering');
           return;
         }
         
-        console.log('Entrées existantes récupérées pour réorganisation:', existingEntries.length);
+        console.log('✅ Existing entries retrieved for reordering:', existingEntries.length);
         
-        // 2. Trier les entrées par URL d'image pour correspondre à l'ordre actuel
-        const sortedEntries = [];
-        for (const imageUrl of newImages) {
-          const entry = existingEntries.find(e => e.image_url === imageUrl);
-          if (entry) {
-            sortedEntries.push(entry);
+        // 2. Sort entries to match new order
+        const sortedEntries = newImages.map(imageUrl => 
+          existingEntries.find(entry => entry.image_url === imageUrl)
+        ).filter(Boolean);
+        
+        // 3. Update timestamps to reflect new order
+        const now = new Date();
+        const updates = sortedEntries.map((entry, index) => ({
+          id: entry.id,
+          created_at: new Date(now.getTime() + index).toISOString() // Increment timestamps by 1ms each
+        }));
+        
+        // 4. Update entries with new timestamps
+        for (const update of updates) {
+          const { error: updateError } = await supabase
+            .from("site_content_images")
+            .update({ created_at: update.created_at })
+            .eq("id", update.id);
+            
+          if (updateError) {
+            console.error('❌ Error updating entry order:', updateError);
           }
         }
         
-        // 3. Supprimer toutes les entrées existantes
-        const { error: deleteError } = await supabase
-          .from("site_content_images")
-          .delete()
-          .like("key_name", `pack_${packNameLower}-image-%`);
-          
-        if (deleteError) {
-          console.error('Erreur lors de la suppression des entrées pour réorganisation:', deleteError);
-          return;
-        }
-        
-        // 4. Réinsérer les entrées dans le nouvel ordre avec des clés mises à jour
-        const entriesToInsert = sortedEntries.map((entry, index) => ({
-          key_name: `pack_${packNameLower}-image-${index}`,
-          image_url: entry.image_url,
-          created_at: new Date().toISOString()
-        }));
-        
-        const { error: insertError } = await supabase
-          .from("site_content_images")
-          .insert(entriesToInsert);
-          
-        if (insertError) {
-          console.error('Erreur lors de la réinsertion des entrées après réorganisation:', insertError);
-        } else {
-          console.log('Images réorganisées avec succès dans la base de données');
-        }
+        console.log('✅ Images reordered successfully in database');
       } catch (error) {
-        console.error('Erreur lors de la mise à jour de l\'ordre des images:', error);
+        console.error('❌ Error updating image order:', error);
       }
     };
     

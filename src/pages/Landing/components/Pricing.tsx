@@ -91,6 +91,7 @@ const MobileTooltip = ({ content, children }: MobileTooltipProps) => {
 interface ImagesData {
   pack_basix_images: string[];
   pack_premium_images: string[];
+  pack_discovery_images: string[];
   image_carousel_speed: number;
 }
 
@@ -101,17 +102,15 @@ interface BoxImagesData {
 
 const monthlyPacks = [
   {
-    name: "Pack Basix",
+    name: "Pack Survie",
     type: "DOUBLE BOX FÉVRIER/MARS",
-    basePrice: "14,99",
-    promoPrice: "5,99",
-    description: "2 box regroupées en une (février + mars)",
-    shipping: "Expédition rapide : livraison sous 72h* en lettre suivie (5 €)",
+    basePrice: "29,99",
+    promoPrice: "24,99",
+    description: "Des flocons et chips de haute qualité, accompagnés d'Artemia naturel, pour assurer une nutrition variée.",
+    shipping: "Expédition rapide : livraison sous 72h*",
     notes: [
-      "Nous serons fermés pour congés en mars",
-      "En février : 2 box regroupées en une (février + mars)",
-      "Un prélèvement le mois suivant pour la box de mars",
-      "Aucun envoi en mars"
+      "JBL Spirulina 250 ml",
+      "Amtra Clean Procult 50 ml"
     ],
     images: [],
     itemCount: 4
@@ -124,20 +123,30 @@ const monthlyPacks = [
     description: "2 box regroupées en une (février + mars)",
     shipping: "Expédition rapide : livraison sous 72h* en lettre suivie (5 €)",
     notes: [
-      "Nous serons fermés pour congés en mars",
-      "En février : 2 box regroupées en une (février + mars)",
-      "Un prélèvement le mois suivant pour la box de mars",
-      "Aucun envoi en mars"
+      "Amtra Pro soft stick feed 250 ml",
+      "Amtra Clean procult 50 ml",
+      "Amtra Pro Color Flake 100 ml"
     ],
-    images: [
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png",
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png",
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png",
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png",
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png",
-      "/public/lovable-uploads/dd2ef217-a321-430d-890b-a706fa49905a.png"
-    ],
+    images: [],
     itemCount: 6
+  },
+  {
+    name: "Pack Découverte",
+    type: "ÉDITION SPÉCIALE AVRIL",
+    basePrice: "19,99",
+    promoPrice: "7,99",
+    description: "Une sélection inédite pour avril",
+    shipping: "Livraison rapide offerte",
+    notes: [
+      "Contient des produits exclusifs non récurrents",
+      "Quantités limitées !",
+      "Livraison en lettre suivie",
+      "Surprise incluse dans chaque pack",
+      "Offre valable uniquement en avril",
+      "Contient une notice illustrée"
+    ],
+    images: [],
+    itemCount: 4
   }
 ];
 
@@ -146,10 +155,10 @@ const Pricing = () => {
   const [pricingData, setPricingData] = useState<any>({});
   const [basixImages, setBasixImages] = useState<string[]>([]);
   const [premiumImages, setPremiumImages] = useState<string[]>([]);
+  const [discoveryImages, setDiscoveryImages] = useState<string[]>([]);
   const [carouselSpeed, setCarouselSpeed] = useState<number>(5000);
   const [boxImages, setBoxImages] = useState<BoxImagesData>({});
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
-
   const { data, refetch } = useQuery({
     queryKey: ["pricing-content"],
     queryFn: async () => {
@@ -162,14 +171,26 @@ const Pricing = () => {
           "pack_premium_name", "pack_premium_price",
           "pack_basix_features_1", "pack_basix_features_2", "pack_basix_features_3", "pack_basix_features_4",
           "pack_basix_no_features_1", "pack_basix_no_features_2",
-          "pack_premium_features_1", "pack_premium_features_2", "pack_premium_features_3", "pack_premium_features_4",
+          "pack_premium_features_1", "pack_premium_features_2", "pack_premium_features_4",
+          "pack_premium_features_5", "pack_premium_features_6",
+          "pack_premium_no_features_1",
+          "pack_discovery_name", "pack_discovery_price",
+          "pack_discovery_features_1", "pack_discovery_features_2", "pack_discovery_features_3", "pack_discovery_features_4",
+          "pack_discovery_features_5",
+          "pack_discovery_features_6",
           "monthly_box_title", "monthly_box_subtitle", "monthly_box_shipping",
           "monthly_pack_pack_basix_name", "monthly_pack_pack_basix_description", "monthly_pack_pack_basix_price", "monthly_pack_pack_basix_shipping",
           "monthly_pack_pack_premium_name", "monthly_pack_pack_premium_description", "monthly_pack_pack_premium_price", "monthly_pack_pack_premium_shipping",
           "monthly_pack_pack_basix_type", "monthly_pack_pack_premium_type",
+          "monthly_pack_pack_basix_note_0", "monthly_pack_pack_basix_note_1", "monthly_pack_pack_basix_note_2",
+          "monthly_pack_pack_premium_note_0", "monthly_pack_pack_premium_note_1", "monthly_pack_pack_premium_note_2",
+          "monthly_pack_pack_survie_note_0", "monthly_pack_pack_survie_note_1",
+          "monthly_pack_pack_survie_type", "monthly_pack_pack_survie_description", "monthly_pack_pack_survie_price", "monthly_pack_pack_survie_base_price", "monthly_pack_pack_survie_shipping",
+          "box_mois_pack_survie_image_1", "box_mois_pack_survie_image_2",
+          "box_mois_pack_premium_image_1", "box_mois_pack_premium_image_2", "box_mois_pack_premium_image_3",
+          "box_mois_pack_decouverte_image_1", "box_mois_pack_decouverte_image_2", "box_mois_pack_decouverte_image_3",
+          "box_mois_pack_decouverte_image_4", "box_mois_pack_decouverte_image_5", "box_mois_pack_decouverte_image_6",
           "offer_validity",
-          "pricing_button_1_text", "pricing_button_1_url",
-          "pricing_button_2_text", "pricing_button_2_url"
         ]);
       return contentData?.reduce((acc, item) => {
         acc[item.content_key] = item.content;
@@ -189,6 +210,8 @@ const Pricing = () => {
           "pricing_button_1_url",
           "pricing_button_2_text",
           "pricing_button_2_url",
+          "pricing_button_3_text",
+          "pricing_button_3_url",
         ]);
 
       if (error) {
@@ -212,13 +235,15 @@ const Pricing = () => {
         const { data: siteImages, error: siteImagesError } = await supabase
           .from("site_content_images")
           .select("*")
-          .in("key_name", ["pack_basix_images", "pack_premium_images"]);
+          .in("key_name", ["pack_basix_images", "pack_premium_images", "pack_discovery_images"])
+          .order('created_at', { ascending: true }); // Order by creation date to maintain order
 
         if (siteImagesError) {
           console.error("❌ Erreur de récupération des images:", siteImagesError);
           return {
             pack_basix_images: [],
             pack_premium_images: [],
+            pack_discovery_images: [],
             image_carousel_speed: 5000
           };
         }
@@ -228,22 +253,26 @@ const Pricing = () => {
         const imagesMap: ImagesData = {
           pack_basix_images: [],
           pack_premium_images: [],
+          pack_discovery_images: [],
           image_carousel_speed: 5000
         };
 
         if (siteImages && siteImages.length > 0) {
-          // Grouper les images par key_name
+          // Group images by key_name
           siteImages.forEach(item => {
             if (item.key_name === "pack_basix_images" && item.image_url) {
               imagesMap.pack_basix_images.push(item.image_url);
             } else if (item.key_name === "pack_premium_images" && item.image_url) {
               imagesMap.pack_premium_images.push(item.image_url);
+            } else if (item.key_name === "pack_discovery_images" && item.image_url) {
+              imagesMap.pack_discovery_images.push(item.image_url);
             }
           });
           
           console.log("📸 Images groupées par pack:", {
             basix: imagesMap.pack_basix_images.length,
-            premium: imagesMap.pack_premium_images.length
+            premium: imagesMap.pack_premium_images.length,
+            discovery: imagesMap.pack_discovery_images.length
           });
         } else {
           console.log("⚠️ Aucune image trouvée dans site_content_images");
@@ -256,6 +285,7 @@ const Pricing = () => {
         return {
           pack_basix_images: [],
           pack_premium_images: [],
+          pack_discovery_images: [],
           image_carousel_speed: 5000
         };
       }
@@ -278,11 +308,13 @@ const Pricing = () => {
       console.log("📸 Mise à jour des états locaux avec:", {
         basix: imagesData.pack_basix_images,
         premium: imagesData.pack_premium_images,
+        discovery: imagesData.pack_discovery_images,
         speed: imagesData.image_carousel_speed
       });
       
       setBasixImages(imagesData.pack_basix_images || []);
       setPremiumImages(imagesData.pack_premium_images || []);
+      setDiscoveryImages(imagesData.pack_discovery_images || []);
       setCarouselSpeed(imagesData.image_carousel_speed || 5000);
     }
   }, [imagesData]);
@@ -293,6 +325,7 @@ const Pricing = () => {
 
   const plans = [
     {
+      id: "basix",
       name: pricingData?.pack_basix_name || "Pack Basix",
       price: pricingData?.pack_basix_price || "29,99",
       image: "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9",
@@ -307,22 +340,52 @@ const Pricing = () => {
         pricingData?.pack_basix_no_features_2 || "Support prioritaire"
       ],
       ideal: "Débutants",
+      buttonTextKey: "pricing_button_1_text",
+      buttonUrlKey: "pricing_button_1_url",
+      defaultButtonText: "Choisir ce pack",
+      imageContentKey: "pack_basix_images",
     },
     {
+      id: "premium",
       name: pricingData?.pack_premium_name || "Pack Premium",
       price: pricingData?.pack_premium_price || "49,99",
       image: "https://images.unsplash.com/photo-1582562124811-c09040d0a901",
       features: [
         pricingData?.pack_premium_features_1 || "4 variétés exclusives",
         pricingData?.pack_premium_features_2 || "1 produit d'entretien premium",
-        pricingData?.pack_premium_features_3 || "Produit surprise mensuel",
         pricingData?.pack_premium_features_4 || "4 € offerts en rêve points chaque mois",
-        "Livraison mensuelle",
-        "Support prioritaire",
+        pricingData?.pack_premium_features_5 || "Livraison mensuelle",
+        pricingData?.pack_premium_features_6 || "Support prioritaire",
+      ],
+      noFeatures: [
+        pricingData?.pack_premium_no_features_1 || "Produit surprise mensuel"
+      ],
+      ideal: "Passionnés",
+      buttonTextKey: "pricing_button_2_text",
+      buttonUrlKey: "pricing_button_2_url",
+      defaultButtonText: "Choisir ce pack",
+      imageContentKey: "pack_premium_images",
+    },
+    {
+      id: "discovery",
+      name: pricingData?.pack_discovery_name || "Pack Découverte",
+      price: pricingData?.pack_discovery_price || "39,99",
+      image: "https://images.unsplash.com/photo-1589897059239-4d2a7d0476a1",
+      features: [
+        pricingData?.pack_discovery_features_1 || "2 variétés mystère",
+        pricingData?.pack_discovery_features_2 || "Mini surprise offerte",
+        pricingData?.pack_discovery_features_3 || "Livraison en avril uniquement",
+        pricingData?.pack_discovery_features_4 || "Quantité limitée",
+        pricingData?.pack_discovery_features_5 || "Support prioritaire",
+        pricingData?.pack_discovery_features_6 || "Nouvelle fonctionnalité"
       ],
       noFeatures: [],
-      ideal: "Passionnés",
-    },
+      ideal: "Curieux",
+      buttonTextKey: "pricing_button_3_text",
+      buttonUrlKey: "pricing_button_3_url",
+      defaultButtonText: "Choisir ce pack",
+      imageContentKey: "pack_discovery_images",
+    }
   ];
 
   const handleMouseUp = (setText: React.Dispatch<React.SetStateAction<string>>) => {
@@ -348,23 +411,58 @@ const Pricing = () => {
     }
   };
 
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, packName: string) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, packId: string) => {
     const files = event.target.files;
     if (!files || files.length === 0) {
       console.log("❌ Aucun fichier sélectionné");
       return;
     }
 
+    const plan = plans.find(p => p.id === packId);
+    if (!plan) {
+      console.error("❌ Plan non trouvé pour l'ID:", packId);
+      return;
+    }
+    const packName = plan.name;
+    const contentKey = plan.imageContentKey;
+
     console.log("🚀 Démarrage de l'upload pour", packName, "avec", files.length, "fichiers");
     try {
+      // Supprimer les anciennes images du pack
+      const { data: oldImages } = await supabase
+        .from("site_content_images")
+        .select("image_url")
+        .eq("key_name", contentKey);
+
+      if (oldImages?.length) {
+        console.log(`🗑️ Suppression de ${oldImages.length} anciennes images pour ${packName}`);
+        for (const img of oldImages) {
+          try {
+            const url = new URL(img.image_url);
+            const path = url.pathname.split('/').slice(6).join('/');
+            await supabase.storage.from("images").remove([path]);
+          } catch (error) {
+            console.error("❌ Erreur lors de la suppression d'une ancienne image:", error);
+          }
+        }
+
+        // Supprimer les entrées dans la table
+        const { error: deleteError } = await supabase
+          .from("site_content_images")
+          .delete()
+          .eq("key_name", contentKey);
+
+        if (deleteError) {
+          console.error("❌ Erreur lors de la suppression des entrées:", deleteError);
+        }
+      }
+
       let uploadedUrls: string[] = [];
-      const contentKey = `pack_${packName.toLowerCase().replace(" ", "_")}_images`;
-      console.log("📝 Content key généré:", contentKey);
 
       // Upload des nouvelles images
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const filePath = `carousel/${packName.toLowerCase().replace(" ", "_")}/${Date.now()}-${file.name}`;
+        const filePath = `carousel/${packId}/${Date.now()}-${file.name}`;
         
         console.log(`📸 Upload de l'image ${i + 1}/${files.length}:`, filePath);
 
@@ -386,7 +484,7 @@ const Pricing = () => {
           uploadedUrls.push(publicUrl);
           console.log("🔗 URL publique générée:", publicUrl);
 
-          // Ajouter l'image à site_content_images
+          // Insert into site_content_images
           const { error: insertError } = await supabase
             .from("site_content_images")
             .insert({
@@ -400,16 +498,21 @@ const Pricing = () => {
           } else {
             console.log("✅ Image ajoutée à site_content_images");
           }
+        } else {
+           console.error("❌ URL publique non générée pour:", filePath);
         }
       }
 
       // Mettre à jour l'état local
-      if (packName === "Pack Basix") {
+      if (packId === "basix") {
         console.log("🔄 Mise à jour des images Basix:", uploadedUrls);
-        setBasixImages(prev => [...prev, ...uploadedUrls]);
-      } else if (packName === "Pack Premium") {
+        setBasixImages(uploadedUrls);
+      } else if (packId === "premium") {
         console.log("🔄 Mise à jour des images Premium:", uploadedUrls);
-        setPremiumImages(prev => [...prev, ...uploadedUrls]);
+        setPremiumImages(uploadedUrls);
+      } else {
+        console.log("🔄 Mise à jour des images Discovery:", uploadedUrls);
+        setDiscoveryImages(uploadedUrls);
       }
 
       // Forcer le rechargement des données
@@ -425,119 +528,6 @@ const Pricing = () => {
       console.error("❌ Erreur générale lors de l'upload:", error);
     }
   };
-
-  // Fonction spécifique pour l'upload des images de la section Box du mois en cours
-  const handleBoxImageUpload = async (file: File, imageKey: string) => {
-    console.log("=== Démarrage de l'upload d'image pour la Box du mois ===");
-    console.log("Image key:", imageKey);
-    console.log("File details:", {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
-
-    try {
-      // Vérifier l'authentification
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        console.log("Aucune session active trouvée");
-        throw new Error("Utilisateur non authentifié");
-      }
-      console.log("Utilisateur authentifié:", session.user.id);
-
-      // Vérifier la taille du fichier
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("L'image ne doit pas dépasser 5MB");
-      }
-
-      // Récupérer l'ancienne image pour la supprimer du stockage
-      const { data: oldImageData } = await supabase
-        .from('site_content_images')
-        .select('image_url')
-        .eq('key_name', imageKey)
-        .single();
-
-      if (oldImageData?.image_url) {
-        // Extraire le chemin du fichier à partir de l'URL
-        const oldUrl = new URL(oldImageData.image_url);
-        const oldFilePath = oldUrl.pathname.split('/').pop();
-        
-        if (oldFilePath) {
-          // Supprimer l'ancienne image du stockage
-          const { error: deleteError } = await supabase.storage
-            .from('public-images')
-            .remove([`box_du_mois/${imageKey.split('_').slice(0, 3).join('_')}/${oldFilePath}`]);
-          
-          if (deleteError) {
-            console.error("Erreur lors de la suppression de l'ancienne image:", deleteError);
-          } else {
-            console.log("✅ Ancienne image supprimée avec succès.");
-          }
-        }
-      }
-
-      // Générer un nom de fichier unique
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
-      const filePath = `box_du_mois/${imageKey.split('_').slice(0, 3).join('_')}/${fileName}.${fileExt}`;
-      console.log("Chemin du fichier généré:", filePath);
-
-      // Upload du fichier vers Supabase Storage
-      console.log("Démarrage de l'upload vers storage...");
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('public-images')
-        .upload(filePath, file);
-
-      if (uploadError) {
-        console.error("Erreur d'upload:", uploadError);
-        throw uploadError;
-      }
-
-      console.log("Fichier uploadé avec succès:", uploadData);
-
-      // Récupérer l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('public-images')
-        .getPublicUrl(filePath);
-
-      console.log("URL publique générée:", publicUrl);
-
-      // Utiliser upsert au lieu de insert/delete
-      const { error: upsertError } = await supabase
-        .from('site_content_images')
-        .upsert({
-          key_name: imageKey,
-          image_url: publicUrl,
-          created_at: new Date().toISOString()
-        }, { 
-          onConflict: 'key_name' 
-        });
-
-      if (upsertError) {
-        console.error("Erreur d'upsert dans la base de données:", upsertError);
-        throw upsertError;
-      }
-
-      console.log("Base de données mise à jour avec succès");
-      
-      // Forcer le rechargement des images
-      refetchBoxImages();
-      
-      return publicUrl;
-    } catch (error: any) {
-      console.error('Détails de l\'erreur:', error);
-      console.error('Stack d\'erreur:', error.stack);
-      throw error;
-    }
-  };
-
-  const { data: packImages, refetch: refetchPackImages } = useQuery({
-    queryKey: ["pack-images"],
-    queryFn: async () => {
-      const { data } = await supabase.from("site_content_images").select("*").in("key_name", ["pack_basix", "pack_premium"]);
-      return data || [];
-    },
-  });
 
   const handleTextUpdate = async (newText: string, contentKey: string) => {
     const { error } = await supabase
@@ -555,25 +545,12 @@ const Pricing = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const { data } = await supabase
-        .from("editable_content")
-        .select("content_key, content")
-        .in("content_key", ["pricing_title", "pricing_subtitle"]);
-      const pricingData = data?.reduce((acc, item) => {
-        acc[item.content_key] = item.content;
-        return acc;
-      }, {});
-      setPricingData(pricingData);
+      if (data) {
+         setPricingData(data);
+      }
     };
-
     fetchData();
-  }, []);
-
-  useEffect(() => {
-    if (isEditMode) {
-      refetch();
-    }
-  }, [isEditMode, refetch]);
+  }, [data]);
 
   const monthlyPacksWithSurprise = monthlyPacks.map(pack => {
     if (pack.name === "Pack Premium") {
@@ -596,9 +573,10 @@ const Pricing = () => {
     console.log("🔍 État actuel des images:", {
       basixImages,
       premiumImages,
+      discoveryImages,
       carouselSpeed
     });
-  }, [basixImages, premiumImages, carouselSpeed]);
+  }, [basixImages, premiumImages, discoveryImages, carouselSpeed]);
 
   // Requête pour récupérer les images de la section Box du mois en cours
   const { data: boxImagesData, refetch: refetchBoxImages } = useQuery({
@@ -755,7 +733,9 @@ const Pricing = () => {
           alt=""
           className="w-full h-[90px] md:h-[110px] object-cover aspect-square rounded-lg shadow-md transition-transform duration-500"
           onError={(e) => {
-            console.error("Image failed to load:", initialUrl);
+            if (initialUrl) {
+              console.error("Image failed to load:", initialUrl);
+            }
             // Remplacer par une image par défaut en cas d'erreur
             (e.target as HTMLImageElement).src = "https://via.placeholder.com/150?text=Image+non+disponible";
           }}
@@ -799,10 +779,10 @@ const Pricing = () => {
             .from("editable_content")
             .select("content")
             .eq("content_key", `${contentKey}_product_price`)
-            .single();
+            .limit(1);
 
-          if (!error && data) {
-            setPrice(data.content);
+          if (!error && data?.[0]) {
+            setPrice(data[0].content);
           }
           setIsInitialized(true);
         } catch (error) {
@@ -841,7 +821,7 @@ const Pricing = () => {
           .from("editable_content")
           .select("content_key")
           .eq("content_key", priceKey)
-          .single();
+          .limit(1);
 
         // Si la valeur est vide ou invalide, ne pas sauvegarder
         if (formattedValue === "" || formattedValue === ",") {
@@ -942,6 +922,129 @@ const Pricing = () => {
     );
   };
 
+  // Fonction spécifique pour l'upload des images de la section Box du mois en cours
+  const handleBoxImageUpload = async (file: File, imageKey: string) => {
+    console.log("=== Démarrage de l'upload d'image pour la Box du mois ===");
+    console.log("Image key:", imageKey);
+    console.log("File details:", {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
+
+    try {
+      // Vérifier l'authentification
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        console.log("Aucune session active trouvée");
+        throw new Error("Utilisateur non authentifié");
+      }
+      console.log("Utilisateur authentifié:", session.user.id);
+
+      // Vérifier la taille du fichier
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error("L'image ne doit pas dépasser 5MB");
+      }
+
+      // Récupérer l'ancienne image pour la supprimer du stockage
+      const { data: oldImageData } = await supabase
+        .from('site_content_images')
+        .select('image_url')
+        .eq('key_name', imageKey)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const oldImageUrl = oldImageData?.[0]?.image_url;
+
+      if (oldImageUrl) {
+        // Extraire le chemin du fichier à partir de l'URL
+        try {
+          const oldUrl = new URL(oldImageUrl);
+          // Assuming path like /storage/v1/object/public/public-images/box_du_mois/.../image.jpg
+          const pathSegments = oldUrl.pathname.split('/');
+          const oldFilePath = pathSegments.slice(6).join('/'); // Get the path after bucket name
+
+          if (oldFilePath) {
+            console.log("Tentative de suppression de l'ancienne image:", oldFilePath);
+            const { error: deleteError } = await supabase.storage
+              .from('public-images') // Use the correct bucket name
+              .remove([oldFilePath]);
+
+            if (deleteError && deleteError.message !== 'The resource was not found') {
+              console.error("Erreur lors de la suppression de l'ancienne image:", deleteError);
+              // Optional: Decide if you want to proceed despite deletion error
+            } else if (deleteError?.message === 'The resource was not found'){
+              console.log("⚠️ Ancienne image non trouvée dans le stockage, suppression ignorée.");
+            } else {
+              console.log("✅ Ancienne image supprimée avec succès.");
+            }
+          } else {
+             console.log("⚠️ Impossible d'extraire le chemin de l'ancienne image:", oldImageUrl);
+          }
+        } catch (urlError) {
+          console.error("Erreur lors du traitement de l'URL de l'ancienne image:", urlError);
+        }
+      }
+
+      // Générer un nom de fichier unique
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}`;
+      // Adjusted file path structure
+      const filePath = `box_du_mois/${imageKey}/${fileName}.${fileExt}`;
+      console.log("Chemin du fichier généré:", filePath);
+
+      // Upload du fichier vers Supabase Storage
+      console.log("Démarrage de l'upload vers storage...");
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('public-images') // Ensure this is your public bucket for these images
+        .upload(filePath, file);
+
+      if (uploadError) {
+        console.error("Erreur d'upload:", uploadError);
+        throw uploadError;
+      }
+
+      console.log("Fichier uploadé avec succès:", uploadData?.path);
+
+      // Récupérer l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('public-images')
+        .getPublicUrl(filePath);
+
+       if (!publicUrl) {
+         console.error("❌ Impossible de générer l'URL publique pour:", filePath);
+         throw new Error("URL publique non générée");
+       }
+
+      console.log("URL publique générée:", publicUrl);
+
+      // Utiliser insert au lieu de upsert
+      const { error: insertError } = await supabase
+        .from('site_content_images')
+        .insert({
+          key_name: imageKey,
+          image_url: publicUrl,
+          created_at: new Date().toISOString()
+        });
+
+      if (insertError) {
+        console.error("Erreur d'insertion dans site_content_images:", insertError);
+        throw insertError;
+      }
+
+      console.log("Base de données mise à jour avec succès");
+
+      // Forcer le rechargement des images
+      refetchBoxImages(); // Make sure refetchBoxImages is defined in scope
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error('Détails de l\'erreur:', error);
+      console.error('Stack d\'erreur:', error.stack);
+      throw error;
+    }
+  };
+
   return (
     <>
       <section className="py-16 px-4 sm:px-6 overflow-hidden bg-slate-50">
@@ -962,136 +1065,159 @@ const Pricing = () => {
               />
             </p>
           </div>
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {plans.map((plan) => (
-              <div key={plan.name} className="pricing-card flex flex-col">
-                <Carousel
-                  packName={plan.name}
-                  images={(plan.name === "Pack Basix" ? basixImages : premiumImages) || []}
-                  speed={carouselSpeed}
-                  isEditMode={isEditMode}
-                  onImagesUpdate={(newImages) => {
-                    console.log("🔄 Mise à jour des images du carousel:", {
-                      pack: plan.name,
-                      newImages
-                    });
-                    
-                    if (plan.name === "Pack Basix") {
-                      setBasixImages(newImages);
-                    } else {
-                      setPremiumImages(newImages);
-                    }
-                    
-                    refetchImages();
-                  }}
-                />
-                {isEditMode && (
-                  <div className="flex justify-center mt-2">
-                    <button
-                      onClick={() => fileInputRefs.current[plan.name]?.click()}
-                      className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
-                    >
-                      Ajouter des images
-                    </button>
-                    <input
-                      type="file"
-                      ref={el => fileInputRefs.current[plan.name] = el}
-                      className="hidden"
-                      accept="image/*"
-                      multiple
-                      onChange={(e) => handleImageUpload(e, plan.name)}
-                    />
-                  </div>
-                )}
-                <h3 className="text-2xl font-bold mb-2 min-h-[40px] flex items-center justify-center">
-                  <EditableText
-                    contentKey={plan.name === "Pack Basix" ? "pack_basix_name" : "pack_premium_name"}
-                    initialContent={plan.name}
-                    onUpdate={(newText) => handleTextUpdate(newText, plan.name === "Pack Basix" ? "pack_basix_name" : "pack_premium_name")}
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {plans.map((plan) => {
+              let currentImages: string[];
+              if (plan.id === "basix") {
+                currentImages = basixImages;
+              } else if (plan.id === "premium") {
+                currentImages = premiumImages;
+              } else {
+                currentImages = discoveryImages;
+              }
+
+              const nameKey = `pack_${plan.id}_name`;
+              const priceKey = `pack_${plan.id}_price`;
+
+              return (
+                <div key={plan.id} className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
+                  plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
+                }`}>
+                  <Carousel
+                    packName={plan.name}
+                    images={currentImages}
+                    speed={carouselSpeed}
+                    isEditMode={isEditMode}
+                    contentKey={plan.imageContentKey}
+                    onImagesUpdate={(newImages) => {
+                      console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
+                      if (plan.id === "basix") {
+                        setBasixImages(newImages);
+                      } else if (plan.id === "premium") {
+                        setPremiumImages(newImages);
+                      } else {
+                        setDiscoveryImages(newImages);
+                      }
+                      refetchImages();
+                    }}
                   />
-                </h3>
-                <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
-                  <EditableText
-                    contentKey={plan.name === "Pack Basix" ? "pack_basix_price" : "pack_premium_price"}
-                    initialContent={plan.price}
-                    onUpdate={(newText) => handleTextUpdate(newText, plan.name === "Pack Basix" ? "pack_basix_price" : "pack_premium_price")}
-                  />
-                  <span className="text-base font-normal text-slate-600">/mois</span>
-                </div>
-                <div className="space-y-4 mb-8 flex-grow">
-                  {plan.features.map((feature, index) => (
-                    <div key={`${feature}-${index}`} className="flex items-start gap-3">
-                      <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                      <div className="flex items-center gap-1">
-                        <EditableText
-                          contentKey={plan.name === "Pack Basix" ? `pack_basix_features_${index + 1}` : `pack_premium_features_${index + 1}`}
-                          initialContent={feature}
-                          onUpdate={(newText) => handleTextUpdate(newText, plan.name === "Pack Basix" ? `pack_basix_features_${index + 1}` : `pack_premium_features_${index + 1}`)}
-                        />
-                        {containsRevePoints(feature) && (
-                          <MobileTooltip
-                            content={
-                              <EditableText
-                                contentKey="reve_points_tooltip"
-                                initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
-                                onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
-                              />
-                            }
-                          >
-                            <span className="cursor-help">
-                              <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
-                            </span>
-                          </MobileTooltip>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                  {plan.noFeatures.map((feature) => (
-                    <div key={feature} className="flex items-start gap-3 text-slate-400">
-                      <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                      <EditableText
-                        contentKey={plan.name === "Pack Basix" ? `pack_basix_no_features_${plan.noFeatures.indexOf(feature) + 1}` : `pack_premium_no_features_${plan.noFeatures.indexOf(feature) + 1}`}
-                        initialContent={feature}
-                        onUpdate={(newText) => handleTextUpdate(newText, plan.name === "Pack Basix" ? `pack_basix_no_features_${plan.noFeatures.indexOf(feature) + 1}` : `pack_premium_no_features_${plan.noFeatures.indexOf(feature) + 1}`)}
+                  {isEditMode && (
+                    <div className="flex justify-center mt-4 mb-2">
+                      <button
+                        onClick={() => fileInputRefs.current[plan.id]?.click()}
+                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm"
+                      >
+                        Ajouter des images
+                      </button>
+                      <input
+                        type="file"
+                        ref={el => fileInputRefs.current[plan.id] = el}
+                        className="hidden"
+                        accept="image/*"
+                        multiple
+                        onChange={(e) => handleImageUpload(e, plan.id)}
                       />
                     </div>
-                  ))}
-                </div>
-                <div className="text-sm text-slate-600 mb-6">
-                  Idéal pour : <span className="font-semibold">{plan.ideal}</span>
-                </div>
-                <div className="mt-auto">
-                  {isEditMode ? (
-                    <div className="flex flex-col items-center">
-                      <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all">
-                        <EditableText
-                          contentKey={plan.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text"}
-                          initialContent={buttonData?.[plan.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text"] || "Choisir ce pack"}
-                          onUpdate={(newText) => handleTextUpdate(newText, plan.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text")}
-                        />
-                      </Button>
-                      <EditableURL
-                        contentKey={plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"}
-                        initialContent={buttonData?.[plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"] || "#"}
-                        onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url")}
-                      />
-                    </div>
-                  ) : (
-                    <a
-                      href={buttonData?.[plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"]?.startsWith("http") 
-                        ? buttonData[plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"]
-                        : `http://${buttonData?.[plan.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"] || "#"}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all">
-                        {buttonData?.[plan.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text"] || "Choisir ce pack"}
-                      </Button>
-                    </a>
                   )}
+                  <h3 className="text-2xl font-bold mb-2 mt-4 min-h-[40px] flex items-center justify-center text-center">
+                    <EditableText
+                      contentKey={nameKey}
+                      initialContent={plan.name}
+                      onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
+                    />
+                  </h3>
+                  <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
+                    <EditableText
+                      contentKey={priceKey}
+                      initialContent={plan.price}
+                      onUpdate={(newText) => handleTextUpdate(newText, priceKey)}
+                    />
+                    <span className="text-base font-normal text-slate-600 ml-1">/mois</span>
+                  </div>
+                  <div className="space-y-4 mb-8 flex-grow">
+                    {plan.features.map((feature, index) => {
+                      const featureKey = `pack_${plan.id}_features_${index + 1}`;
+                      let supabaseFeatureIndex = index + 1;
+                      if (plan.id === 'premium' && supabaseFeatureIndex >= 3) {
+                        supabaseFeatureIndex++;
+                      }
+                      const actualFeatureKey = `pack_${plan.id}_features_${supabaseFeatureIndex}`;
+
+                      return (
+                        <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-3">
+                          <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                          <div className="flex items-center gap-1">
+                            <EditableText
+                              contentKey={actualFeatureKey}
+                              initialContent={feature}
+                              onUpdate={(newText) => handleTextUpdate(newText, actualFeatureKey)}
+                            />
+                            {containsRevePoints(feature) && (
+                              <MobileTooltip
+                                content={
+                                  <EditableText
+                                    contentKey="reve_points_tooltip"
+                                    initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
+                                    onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
+                                  />
+                                }
+                              >
+                                <span className="cursor-help">
+                                  <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
+                                </span>
+                              </MobileTooltip>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {plan.noFeatures.map((feature, index) => (
+                      <div key={`${plan.id}-nofeature-${index}`} className="flex items-start gap-3 text-slate-400">
+                        <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                        <EditableText
+                          contentKey={`pack_${plan.id}_no_features_${index + 1}`}
+                          initialContent={feature}
+                          onUpdate={(newText) => handleTextUpdate(newText, `pack_${plan.id}_no_features_${index + 1}`)}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-sm text-slate-600 mb-6 text-center">
+                    Idéal pour : <span className="font-semibold">{plan.ideal}</span>
+                  </div>
+                  <div className="mt-auto">
+                    {isEditMode ? (
+                      <div className="flex flex-col items-center">
+                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                          <EditableText
+                            contentKey={plan.buttonTextKey}
+                            initialContent={buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                            onUpdate={(newText) => handleTextUpdate(newText, plan.buttonTextKey)}
+                          />
+                        </Button>
+                        <EditableURL
+                          contentKey={plan.buttonUrlKey}
+                          initialContent={buttonData?.[plan.buttonUrlKey] || "#"}
+                          onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.buttonUrlKey)}
+                        />
+                      </div>
+                    ) : (
+                      <a
+                        href={buttonData?.[plan.buttonUrlKey]?.startsWith("http")
+                          ? buttonData[plan.buttonUrlKey]
+                          : `http://${buttonData?.[plan.buttonUrlKey] || "#"}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                          {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -1114,167 +1240,208 @@ const Pricing = () => {
               />
             </p>
           </div>
-          <div 
-            className="grid md:grid-cols-2 gap-6 md:gap-8" 
-            style={{ animationDelay: '0.3s' }}
-          >
+          <div className="grid md:grid-cols-3 gap-6 md:gap-8 items-stretch">
             {monthlyPacksWithSurprise.map((pack, packIndex) => (
               <div 
                 key={pack.name}
-                className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl transition-all duration-500 transform hover:-translate-y-2 animate-scale-in min-h-[450px] flex flex-col"
+                className="h-full flex flex-col min-h-[660px]"
               >
-                <div className="bg-primary text-white px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold w-fit mx-auto mb-4 md:mb-6 hover:scale-105 transition-transform duration-300">
-                  <EditableText 
-                    contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_type`}
-                    initialContent={pack.type}
-                    onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_type`)}
-                  />
-                </div>
-
-                <div className={`grid ${pack.name === "Pack Basix" ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"} gap-2 md:gap-4 mb-6 md:mb-8`}>
-                  {pack.name === "Pack Basix" ? (
-                    // Pack Basix - 4 images en 2x2
-                    [...Array(4)].map((_, index) => (
-                      <div
-                        key={`${pack.name}-image-${index}`}
-                        className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
-                      >
-                        <BoxEditableImage
-                          imageKey={`box_mois_pack_basix_image_${index + 1}`}
-                          initialUrl={boxImages[`box_mois_pack_basix_image_${index + 1}`] || ""}
-                          onUpdate={() => refetchBoxImages()}
-                        />
-                      </div>
-                    ))
-                  ) : (
-                    // Pack Premium - 6 images en 2x3 sur mobile, 3x2 sur desktop
-                    [...Array(6)].map((_, index) => (
-                      <div
-                        key={`${pack.name}-image-${index}`}
-                        className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
-                      >
-                        <BoxEditableImage
-                          imageKey={`box_mois_pack_premium_image_${index + 1}`}
-                          initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
-                          onUpdate={() => refetchBoxImages()}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <h3 className="text-lg md:text-2xl font-bold mb-4 min-h-[40px] md:min-h-[50px] text-center">
-                  <EditableText 
-                    contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`}
-                    initialContent={pack.name}
-                    onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`)}
-                  />
-                </h3>
-                <div className="flex justify-center items-baseline gap-3 mb-4 md:mb-5">
-                  <div className="flex items-baseline animate-pulse">
-                    <span className="text-2xl md:text-4xl font-bold text-primary">
-                      <EditableText 
-                        contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`}
-                        initialContent={pack.promoPrice || "0"}
-                        onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`)}
-                      />
-                    </span>
-                    <span className="text-xl md:text-2xl font-bold text-primary ml-1">€</span>
-                  </div>
-                  <div className="flex items-baseline">
-                    <span className="text-sm md:text-base line-through text-slate-400">
-                      <EditableText 
-                        contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_base_price`}
-                        initialContent={pack.basePrice || "0"}
-                        onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_base_price`)}
-                      />
-                    </span>
-                    <span className="text-sm md:text-base line-through text-slate-400 ml-1">€</span>
-                  </div>
-                </div>
-                <p className="text-slate-600 text-center text-xs md:text-sm flex items-center justify-center px-3 md:px-6 mb-6 md:mb-8">
-                  <EditableText 
-                    contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`}
-                    initialContent={pack.description.replace("?", ".")}
-                    onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`)}
-                  />
-                </p>
-                <div className="bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl p-3 md:p-4 mb-4 md:mb-6 min-h-[180px] md:min-h-[200px]">
-                  <p className="text-xs md:text-sm text-slate-600 mb-2 md:mb-4">
+                <div className={`bg-gradient-to-br ${pack.name === "Pack Découverte" ? "from-yellow-50 to-yellow-100" : "from-blue-50 to-blue-100"} rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl h-full flex flex-col`}>
+                  {/* Badge */}
+                  <div className="bg-primary text-white px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-semibold w-fit mx-auto mb-4 md:mb-6">
                     <EditableText 
-                      contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`}
-                      initialContent={pack.shipping}
-                      onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`)}
+                      contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_type`}
+                      initialContent={pack.type}
+                      onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_type`)}
                     />
-                  </p>
-                  <ul className="space-y-1.5 md:space-y-2">
-                    {pack.notes.map((note, index) => {
-                      const showGiftIcon = note.includes("Bambou Amtra");
-                      const isSecondToLast = index === pack.notes.length - 2;
-                      const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
+                  </div>
 
-                      return (
-                        <li key={index} className="text-xs md:text-sm flex flex-col">
-                          <div className="flex items-start gap-2">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
-                            <div className="flex flex-col gap-1 flex-grow">
-                              <span className="flex items-center gap-1">
-                                {showGiftIcon && <Gift className="h-3 w-3 text-primary mr-1 flex-shrink-0" />}
-                                <EditableText 
-                                  contentKey={noteKey}
-                                  initialContent={note}
-                                  onUpdate={(newText) => handleTextUpdate(newText, noteKey)}
-                                />
-                                {isSecondToLast && !note.includes("JBL Pronova") && pack.name !== "Pack Basix" && (
-                                  <MobileTooltip
-                                    content={
-                                      <EditableText
-                                        contentKey="monthly_pack_help_tooltip"
-                                        initialContent="Information importante concernant votre commande"
-                                        onUpdate={(newText) => handleTextUpdate(newText, "monthly_pack_help_tooltip")}
-                                      />
-                                    }
-                                  >
-                                    <span className="cursor-help">
-                                      <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
-                                    </span>
-                                  </MobileTooltip>
-                                )}
-                              </span>
-                              <EditableProductPrice
-                                contentKey={noteKey}
-                                onUpdate={async (newValue) => {
-                                  await handleTextUpdate(newValue, `${noteKey}_product_price`);
-                                }}
-                              />
-                            </div>
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-                <div className="mt-auto">
-                  <a
-                    href={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"]?.startsWith("http") 
-                      ? buttonData[pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"]
-                      : `http://${buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"] || "#"}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all">
+                  {/* Grille d'images (on garde la hauteur fixe pour stabiliser) */}
+                  <div className={`grid ${
+                    pack.name === "Pack Survie" ? "grid-cols-2" :
+                    pack.name === "Pack Premium" ? "grid-cols-3" :
+                    "grid-cols-2 md:grid-cols-3"
+                  } gap-2 md:gap-4 mb-6 md:mb-8 h-[190px] md:h-[240px]`}>
+                    {pack.name === "Pack Survie" ? (
+                      // Pack Survie - 2 images en 2 colonnes
+                      [...Array(2)].map((_, index) => (
+                        <div
+                          key={`${pack.name}-image-${index}`}
+                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                        >
+                          <BoxEditableImage
+                            imageKey={`box_mois_pack_survie_image_${index + 1}`}
+                            initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
+                            onUpdate={() => refetchBoxImages()}
+                          />
+                        </div>
+                      ))
+                    ) : pack.name === "Pack Premium" ? (
+                      // Pack Premium - 3 images en 3 colonnes
+                      [...Array(3)].map((_, index) => (
+                        <div
+                          key={`${pack.name}-image-${index}`}
+                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                        >
+                          <BoxEditableImage
+                            imageKey={`box_mois_pack_premium_image_${index + 1}`}
+                            initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
+                            onUpdate={() => refetchBoxImages()}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      // Pack Découverte - 6 images en 2x3 sur mobile, 3x2 sur desktop
+                      [...Array(6)].map((_, index) => (
+                        <div
+                          key={`${pack.name}-image-${index}`}
+                          className="relative overflow-hidden rounded-lg flex items-center transform transition-all duration-500 hover:scale-105"
+                        >
+                          <BoxEditableImage
+                            imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
+                            initialUrl={boxImages[`box_mois_pack_decouverte_image_${index + 1}`] || ""}
+                            onUpdate={() => refetchBoxImages()}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Contenu principal - Retour à Flexbox */}
+                  <div className="flex flex-col flex-grow">
+                    {/* Titre */}
+                    <h3 className="text-lg md:text-2xl font-bold mb-4 text-center">
                       <EditableText 
-                        contentKey={pack.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text"}
-                        initialContent={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text"] || "Commander maintenant"}
-                        onUpdate={(newText) => handleTextUpdate(newText, pack.name === "Pack Basix" ? "pricing_button_1_text" : "pricing_button_2_text")}
+                        contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`}
+                        initialContent={pack.name}
+                        onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`)}
                       />
-                    </Button>
-                  </a>
-                  <EditableURL
-                    contentKey={pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"}
-                    initialContent={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url"] || "#"}
-                    onUpdate={(newUrl) => handleTextUpdate(newUrl, pack.name === "Pack Basix" ? "pricing_button_1_url" : "pricing_button_2_url")}
-                  />
+                    </h3>
+
+                    {/* Prix */}
+                    <div className="flex justify-center items-baseline gap-3 mb-4 md:mb-5">
+                      <div className="flex items-baseline animate-pulse">
+                        <span className="text-2xl md:text-4xl font-bold text-primary">
+                          <EditableText 
+                            contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`}
+                            initialContent={pack.promoPrice || "0"}
+                            onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`)}
+                          />
+                        </span>
+                        <span className="text-xl md:text-2xl font-bold text-primary ml-1">€</span>
+                      </div>
+                      <div className="flex items-baseline">
+                        <span className="text-sm md:text-base line-through text-slate-400">
+                          <EditableText 
+                            contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_base_price`}
+                            initialContent={pack.basePrice || "0"}
+                            onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_base_price`)}
+                          />
+                        </span>
+                        <span className="text-sm md:text-base line-through text-slate-400 ml-1">€</span>
+                      </div>
+                    </div>
+
+                    {/* Description - Ajout hauteur minimale */}
+                    <p className="text-slate-600 text-center text-xs md:text-sm mb-6 md:mb-8 min-h-[60px]">
+                      <EditableText 
+                        contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`}
+                        initialContent={pack.description.replace("?", ".")}
+                        onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`)}
+                      />
+                    </p>
+                    {/* Bloc blanc avec liste */}
+                    <div className={`bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl px-4 py-3 md:px-5 md:py-4 mb-4 md:mb-6`}>
+                      <p className="text-xs md:text-sm text-slate-600 mb-2">
+                        <EditableText 
+                          contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`}
+                          initialContent={pack.shipping}
+                          onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`)}
+                        />
+                      </p>
+                      <ul className="space-y-1.5 [&>li:last-child]:mb-0">
+                        {pack.name === "Pack Premium" 
+                          ? pack.notes
+                              .filter(note => typeof note === "string" && note.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "")
+                              .slice(0, 3)
+                              .map((note, index) => {
+                                const showGiftIcon = note.includes("Bambou Amtra");
+                                const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
+
+                                return (
+                                  <li key={index} className="text-xs md:text-sm">
+                                    <div className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
+                                      <div className="flex items-center gap-1">
+                                        {showGiftIcon && <Gift className="h-3 w-3 text-primary mr-1 flex-shrink-0" />}
+                                        <EditableText 
+                                          contentKey={noteKey}
+                                          initialContent={note}
+                                          onUpdate={(newText) => handleTextUpdate(newText, noteKey)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })
+                          : pack.notes
+                              .filter(note => typeof note === "string" && note.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "")
+                              .map((note, index) => {
+                                const showGiftIcon = note.includes("Bambou Amtra");
+                                const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
+
+                                return (
+                                  <li key={index} className="text-xs md:text-sm">
+                                    <div className="flex items-start gap-2">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
+                                      <div className="flex items-center gap-1">
+                                        {showGiftIcon && <Gift className="h-3 w-3 text-primary mr-1 flex-shrink-0" />}
+                                        <EditableText 
+                                          contentKey={noteKey}
+                                          initialContent={note}
+                                          onUpdate={(newText) => handleTextUpdate(newText, noteKey)}
+                                        />
+                                      </div>
+                                    </div>
+                                  </li>
+                                );
+                              })
+                        }
+                      </ul>
+                    </div>
+
+                    {/* Bouton - avec mt-auto */}
+                    <div className="mt-auto">
+                      {isEditMode ? (
+                        <div className="flex flex-col items-center">
+                          <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">
+                             <EditableText
+                              contentKey={pack.name === "Pack Basix" ? "pricing_button_1_text" : pack.name === "Pack Premium" ? "pricing_button_2_text" : "pricing_button_3_text"}
+                              initialContent={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_text" : pack.name === "Pack Premium" ? "pricing_button_2_text" : "pricing_button_3_text"] || "Choisir ce pack"}
+                              onUpdate={(newText) => handleTextUpdate(newText, pack.name === "Pack Basix" ? "pricing_button_1_text" : pack.name === "Pack Premium" ? "pricing_button_2_text" : "pricing_button_3_text")}
+                            />
+                          </Button>
+                          <EditableURL
+                            contentKey={pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url"}
+                            initialContent={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url"] || "#"}
+                            onUpdate={(newUrl) => handleTextUpdate(newUrl, pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url")}
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url"]?.startsWith("http")
+                            ? buttonData[pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url"]
+                            : `http://${buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_url" : pack.name === "Pack Premium" ? "pricing_button_2_url" : "pricing_button_3_url"] || "#"}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">
+                            {buttonData?.[pack.name === "Pack Basix" ? "pricing_button_1_text" : pack.name === "Pack Premium" ? "pricing_button_2_text" : "pricing_button_3_text"] || "Choisir ce pack"}
+                          </Button>
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1305,3 +1472,4 @@ const Pricing = () => {
 };
 
 export default Pricing;
+

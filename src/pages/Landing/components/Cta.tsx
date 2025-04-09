@@ -34,6 +34,8 @@ const Cta = () => {
           "pricing_button_1_url",
           "pricing_button_2_text",
           "pricing_button_2_url",
+          "cta_button_text_discovery",
+          "pricing_button_3_url"
         ]);
 
       if (error) {
@@ -247,6 +249,31 @@ const Cta = () => {
     setPromoCode(newPromoCode);
   };
 
+  // Define the buttons array for cleaner rendering
+  const ctaButtons = [
+    {
+      key: "cta_button_text_basix",
+      urlKey: "pricing_button_1_url",
+      defaultText: "Choisir Pack Basix",
+      testid: "subscribe-button-basix",
+      logText: "Pack Basix"
+    },
+    {
+      key: "cta_button_text_premium",
+      urlKey: "pricing_button_2_url",
+      defaultText: "Choisir Pack Premium",
+      testid: "subscribe-button-premium",
+      logText: "Pack Premium"
+    },
+    {
+      key: "cta_button_text_discovery",
+      urlKey: "pricing_button_3_url",
+      defaultText: "Choisir Pack Découverte",
+      testid: "subscribe-button-discovery",
+      logText: "Pack Découverte"
+    }
+  ];
+
   return (
     <section className="py-20 px-4 bg-primary text-white" id="subscribe">
       <div className="container mx-auto max-w-4xl text-center">
@@ -339,52 +366,33 @@ const Cta = () => {
                 className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
               />
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
-              <Button 
-                size="default" 
-                variant="secondary" 
-                className="inline-flex items-center justify-center px-4 py-2 text-base whitespace-nowrap hover:scale-105 transition-transform duration-300"
-                onClick={() => {
-                  if (!isEditMode) {
-                    console.log(`🔗 Navigation vers Pack Basix`);
-                    const url = buttonData?.["pricing_button_1_url"]?.startsWith("http") 
-                      ? buttonData["pricing_button_1_url"]
-                      : `http://${buttonData?.["pricing_button_1_url"] || "#"}`;
-                    window.location.href = url;
-                  }
-                }}
-                data-testid="subscribe-button-basix"
-              >
-                <EditableText
-                  contentKey="cta_button_text_basix"
-                  initialContent="Choisir Pack Basix"
-                  className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
-                />
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-
-              <Button 
-                size="default" 
-                variant="secondary" 
-                className="inline-flex items-center justify-center px-4 py-2 text-base whitespace-nowrap hover:scale-105 transition-transform duration-300"
-                onClick={() => {
-                  if (!isEditMode) {
-                    console.log(`🔗 Navigation vers Pack Premium`);
-                    const url = buttonData?.["pricing_button_2_url"]?.startsWith("http") 
-                      ? buttonData["pricing_button_2_url"]
-                      : `http://${buttonData?.["pricing_button_2_url"] || "#"}`;
-                    window.location.href = url;
-                  }
-                }}
-                data-testid="subscribe-button-premium"
-              >
-                <EditableText
-                  contentKey="cta_button_text_premium"
-                  initialContent="Choisir Pack Premium"
-                  className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
-                />
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            {/* Use map to render buttons dynamically and add flex-wrap */}
+            <div className="flex flex-wrap justify-center gap-3 w-full animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+              {ctaButtons.map(({ key, urlKey, defaultText, testid, logText }) => (
+                <Button
+                  key={key}
+                  size="default"
+                  variant="secondary"
+                  className="inline-flex items-center justify-center px-4 py-2 text-base whitespace-nowrap hover:scale-105 transition-transform duration-300"
+                  onClick={() => {
+                    if (!isEditMode) {
+                      console.log(`🔗 Navigation vers ${logText}`);
+                      const url = buttonData?.[urlKey]?.startsWith("http")
+                        ? buttonData[urlKey]
+                        : `http://${buttonData?.[urlKey] || "#"}`;
+                      window.location.href = url;
+                    }
+                  }}
+                  data-testid={testid}
+                >
+                  <EditableText
+                    contentKey={key}
+                    initialContent={defaultText}
+                    className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
+                  />
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              ))}
             </div>
             
             {/* Option pour revenir en arrière en mode dev - uniquement visible en mode édition */}

@@ -22,6 +22,9 @@ let messages = [
 // Stockage des associations email-ID Messenger
 const messengerLinks = {};
 
+// PSID de test pour la simulation
+const FALLBACK_PSID_DEV = "1234567890123456";
+
 // Fonction utilitaire pour les logs
 const log = {
   request: (event) => {
@@ -112,6 +115,13 @@ async function sendMessageToMessenger(recipientId, messageText) {
   if (!PAGE_ID) {
     console.error("Messenger: PAGE_ID is missing!");
     console.log("Messenger: WARNING: PAGE_ID not defined in environment variables");
+  }
+
+  // Simulation de liaison avec PSID par défaut si nécessaire
+  if (recipientId.startsWith('temp_') && !messengerLinks[recipientId]) {
+    console.log("🔄 Simulation: Création d'une liaison temporaire avec PSID de test");
+    console.log(`🔗 Association simulée: ${recipientId} → ${FALLBACK_PSID_DEV}`);
+    messengerLinks[recipientId] = FALLBACK_PSID_DEV;
   }
 
   // Vérifie l'association email-tempID avec sender ID
@@ -254,6 +264,13 @@ exports.handler = async function (event) {
           : generateTemporaryId(body.recipientId);
 
         console.log("POST: Generated/Using message ID:", messageId);
+
+        // Simulation de liaison avec PSID par défaut pour les nouveaux tempId
+        if (messageId.startsWith('temp_') && !messengerLinks[messageId]) {
+          console.log("🎭 POST: Premier message détecté pour ce tempId");
+          console.log(`🔗 POST: Création liaison temporaire ${messageId} → ${FALLBACK_PSID_DEV}`);
+          messengerLinks[messageId] = FALLBACK_PSID_DEV;
+        }
 
         const newMessage = {
           id: Date.now().toString(),
