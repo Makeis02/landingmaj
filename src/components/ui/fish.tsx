@@ -63,6 +63,18 @@ const Fish = () => {
     return false;
   };
 
+  const isSafariMobile = () => {
+    if (typeof window !== 'undefined') {
+      const ua = navigator.userAgent;
+      return (
+        /iP(ad|od|hone)/i.test(ua) && 
+        /Safari/i.test(ua) && 
+        !/Chrome|CriOS|FxiOS|OPiOS/.test(ua)
+      );
+    }
+    return false;
+  };
+
   return (
     <>
       <ChatWindow isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
@@ -70,16 +82,11 @@ const Fish = () => {
       <div 
         className={cn(
           "fixed transition-all duration-500 ease-in-out",
-          // Z-index management
           isChatOpen ? "z-40" : "z-50",
-          // Desktop positioning
           "md:bottom-16 md:left-8",
-          // Mobile positioning - ajusté pour être toujours visible
-          `${isIos() ? 'bottom-28' : 'bottom-20'} left-4 sm:bottom-8`,
-          // Scroll behavior
+          `${isSafariMobile() ? 'bottom-[90px]' : isIos() ? 'bottom-28' : 'bottom-20'} left-4 sm:bottom-8`,
           isScrolled && !isChatOpen ? "translate-y-[60%] opacity-50 hover:translate-y-0 hover:opacity-100" : "",
           isChatOpen ? "md:translate-x-12 translate-y-8" : "",
-          // Ajout d'une classe pour gérer la position initiale sur mobile
           "initial-position"
         )}
       >
