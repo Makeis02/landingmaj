@@ -86,7 +86,10 @@ const Fish = () => {
         {/* Invitation Bubble */}
         {showInvite && !isChatOpen && (
           <div
-            onClick={handleFishClick}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleFishClick();
+            }}
             className={cn(
               "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer",
               "md:-top-20 md:left-0 md:translate-x-1/4",
@@ -97,7 +100,6 @@ const Fish = () => {
           >
             <p
               className="text-sm font-medium text-gray-800 whitespace-normal"
-              onClick={handleFishClick}
             >
               Besoin d'aide ? 🐟
             </p>
