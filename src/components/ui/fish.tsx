@@ -49,6 +49,7 @@ const Fish = () => {
   };
   
   const handleFishClick = () => {
+    console.log("✅ Bulle cliquée");
     setInviteClicked(true);
     setShowInvite(false);
     setIsChatOpen(!isChatOpen);
@@ -84,24 +85,30 @@ const Fish = () => {
       >
         {/* Invitation Bubble */}
         {showInvite && !isChatOpen && (
-          <button
+          <div
             onClick={handleFishClick}
             className={cn(
-              "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer focus:outline-none",
+              "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer",
               "md:-top-20 md:left-0 md:translate-x-1/4",
               "left-0 -top-16 min-w-[140px] max-w-[220px] sm:min-w-[160px]",
-              "mobile-invite-bubble"
+              "mobile-invite-bubble",
+              "z-[9999]"
             )}
           >
-            <p className="text-sm font-medium text-gray-800 whitespace-normal">
+            <p
+              className="text-sm font-medium text-gray-800 whitespace-normal"
+              onClick={handleFishClick}
+            >
               Besoin d'aide ? 🐟
             </p>
-            <div className={cn(
-              "absolute w-4 h-4 bg-white transform rotate-45",
-              "md:-bottom-2 md:left-4",
-              "-bottom-2 left-4"
-            )}></div>
-          </button>
+            <div
+              className={cn(
+                "absolute w-4 h-4 bg-white transform rotate-45",
+                "md:-bottom-2 md:left-4",
+                "-bottom-2 left-4"
+              )}
+            ></div>
+          </div>
         )}
         
         <div 
