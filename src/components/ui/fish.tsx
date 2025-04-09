@@ -84,14 +84,15 @@ const Fish = () => {
       >
         {/* Invitation Bubble */}
         {showInvite && !isChatOpen && (
-          <div className={cn(
-            "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble",
-            // Desktop positioning
-            "md:-top-20 md:left-0 md:translate-x-1/4",
-            // Mobile positioning - ajusté pour être toujours visible
-            "left-0 -top-16 min-w-[140px] max-w-[220px] sm:min-w-[160px]",
-            "mobile-invite-bubble"
-          )}>
+          <div
+            onClick={handleFishClick}
+            className={cn(
+              "absolute transform bg-white rounded-xl p-3 shadow-lg invitation-bubble cursor-pointer",
+              "md:-top-20 md:left-0 md:translate-x-1/4",
+              "left-0 -top-16 min-w-[140px] max-w-[220px] sm:min-w-[160px]",
+              "mobile-invite-bubble"
+            )}
+          >
             <p className="text-sm font-medium text-gray-800 whitespace-normal">
               Besoin d'aide ? 🐟
             </p>
