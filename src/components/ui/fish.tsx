@@ -55,6 +55,13 @@ const Fish = () => {
     setIsHovered(false);
   };
 
+  const isIos = () => {
+    if (typeof window !== "undefined") {
+      return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+    return false;
+  };
+
   return (
     <>
       <ChatWindow isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
@@ -67,7 +74,7 @@ const Fish = () => {
           // Desktop positioning
           "md:bottom-16 md:left-8",
           // Mobile positioning - ajusté pour être toujours visible
-          "bottom-24 left-4 sm:bottom-8",
+          `${isIos() ? 'bottom-28' : 'bottom-20'} left-4 sm:bottom-8`,
           // Scroll behavior
           isScrolled && !isChatOpen ? "translate-y-[60%] opacity-50 hover:translate-y-0 hover:opacity-100" : "",
           isChatOpen ? "md:translate-x-12 translate-y-8" : "",
@@ -82,7 +89,7 @@ const Fish = () => {
             // Desktop positioning
             "md:-top-20 md:left-0 md:translate-x-1/4",
             // Mobile positioning - ajusté pour être toujours visible
-            "left-0 -top-16 min-w-max max-w-[200px]",
+            "left-0 -top-16 min-w-[140px] max-w-[220px] sm:min-w-[160px]",
             "mobile-invite-bubble"
           )}>
             <p className="text-sm font-medium text-gray-800 whitespace-normal">
