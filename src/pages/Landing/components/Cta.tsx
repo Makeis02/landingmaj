@@ -250,8 +250,8 @@ const Cta = () => {
   };
 
   const copyPromoCode = () => {
-    // S'assurer que seul le texte brut est copié
-    const cleanPromoCode = promoCode.replace(/<[^>]*>/g, '').trim();
+    // Nettoyer complètement le code de toute balise HTML
+    const cleanPromoCode = promoCode.replace(/<\/?[^>]+(>|$)/g, "").trim();
     navigator.clipboard.writeText(cleanPromoCode);
     setCopied(true);
     toast({
@@ -402,16 +402,18 @@ const Cta = () => {
             <p className="text-lg mb-2">Votre code promo :</p>
             <div className="flex items-center justify-center space-x-2 mb-4">
               <div className="bg-[#4BA3D3] py-3 px-6 rounded-lg text-2xl font-bold tracking-wider text-center">
-                {isEditMode ? (
-                  <EditableText
-                    contentKey="promo_code"
-                    initialContent="AQUA10"
-                    className="inline"
-                    onUpdate={handlePromoCodeUpdate}
-                  />
-                ) : (
-                  promoCode
-                )}
+                <span className="inline-block">
+                  {isEditMode ? (
+                    <EditableText
+                      contentKey="promo_code"
+                      initialContent="AQUA10"
+                      className="inline"
+                      onUpdate={handlePromoCodeUpdate}
+                    />
+                  ) : (
+                    promoCode.replace(/<\/?[^>]+(>|$)/g, "")
+                  )}
+                </span>
               </div>
               <Button
                 variant="secondary"
