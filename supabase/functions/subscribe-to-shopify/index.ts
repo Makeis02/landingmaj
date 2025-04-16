@@ -100,10 +100,14 @@ serve(async (req) => {
     
     const customerData = {
       customer: {
-        email: email,
-        accepts_marketing: true,
+        email,
         tags: tag,
-        send_email_welcome: false
+        send_email_welcome: false,
+        email_marketing_consent: {
+          state: "subscribed",
+          opt_in_level: "single_opt_in",
+          consent_updated_at: new Date().toISOString()
+        }
       }
     };
 
