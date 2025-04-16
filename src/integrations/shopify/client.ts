@@ -297,7 +297,8 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
       body: JSON.stringify({
         email,
         status: "subscribed",
-        tags: ["pack_mensuel_retargeting"]
+        tags: ["pack_mensuel_retargeting"],
+        consent: true
       }),
     });
 
