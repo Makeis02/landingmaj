@@ -1,4 +1,3 @@
-
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
@@ -32,8 +31,9 @@ serve(async (req) => {
     const { 
       email, 
       debug = false, 
-      shopifyDomain = "e77919-2.myshopify.com",  // Utilise le domaine fourni par l'utilisateur
-      shopifyAccessToken = Deno.env.get('SHOPIFY_ADMIN_ACCESS_TOKEN') || '' // Utilise le token passé ou celui stocké
+      shopifyDomain = "e77919-2.myshopify.com",
+      shopifyAccessToken = Deno.env.get('SHOPIFY_ADMIN_ACCESS_TOKEN') || '',
+      tag = "pack_mensuel_retargeting"
     } = requestData;
     
     // Log details for debugging
@@ -41,6 +41,7 @@ serve(async (req) => {
     console.log(`🔧 Debug mode: ${debug ? 'Enabled' : 'Disabled'}`);
     console.log(`🏪 Shopify domain: ${shopifyDomain}`);
     console.log(`🔑 Using provided token: ${Boolean(shopifyAccessToken)}`);
+    console.log(`🏷️ Using tag: ${tag}`);
     
     // Input validation
     if (!email || typeof email !== 'string' || !email.includes('@') || !email.includes('.')) {
@@ -101,7 +102,7 @@ serve(async (req) => {
       customer: {
         email: email,
         accepts_marketing: true,
-        tags: "newsletter-subscriber",
+        tags: tag,
         send_email_welcome: false
       }
     };
