@@ -288,23 +288,26 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
 // Fonction pour ajouter un contact à Omnisend
 const addToOmnisend = async (email: string): Promise<boolean> => {
   try {
+    const payload = {
+      email,
+      status: "subscribed",
+      tags: ["pack_mensuel_retargeting"],
+      consent: {
+        email: {
+          consented: true,
+          consentedAt: new Date().toISOString(),
+          optInType: "Single"
+        }
+      },
+    };
+
     const response = await fetch("https://api.omnisend.com/v3/contacts", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "X-API-KEY": process.env.OMNISEND_API_KEY!,
       },
-      body: JSON.stringify({
-        email,
-        status: "subscribed",
-        tags: ["pack_mensuel_retargeting"],
-        consent: {
-          email: {
-            consented: true,
-            consentedAt: new Date().toISOString()
-          }
-        }
-      }),
+      body: JSON.stringify(payload),
     });
 
     const result = await response.json();
