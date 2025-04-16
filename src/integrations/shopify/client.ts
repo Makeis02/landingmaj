@@ -1,3 +1,4 @@
+
 // Service for integrating with Shopify APIs
 // This provides a client for Shopify operations
 
@@ -100,8 +101,9 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
       body: { 
         email,
         debug: true,
-        shopifyDomain: "e77919-2.myshopify.com",
-        shopifyAccessToken: process.env.SHOPIFY_ADMIN_ACCESS_TOKEN
+        shopifyDomain: "e77919-2.myshopify.com",  // Domaine Shopify mis à jour
+        shopifyAccessToken: process.env.SHOPIFY_ACCESS_TOKEN
+ // Clé API fournie
       }
     });
     const endTime = Date.now();
@@ -187,16 +189,6 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
           }], {
             onConflict: 'email'
           });
-
-        // Ajout à Omnisend après le succès de Shopify
-        console.log("Tentative d'ajout à Omnisend...");
-        const omnisendResult = await addToOmnisend(email);
-
-        if (omnisendResult) {
-          console.log("✅ Email ajouté avec succès à Omnisend");
-        } else {
-          console.warn("⚠️ Email non ajouté à Omnisend");
-        }
       } catch (error) {
         console.error("Erreur lors de l'enregistrement du succès dans Supabase:", error);
       }
@@ -282,31 +274,5 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
       success: false, 
       message: "Échec de l'inscription. Veuillez réessayer ultérieurement."
     };
-  }
-};
-
-// Fonction pour ajouter un contact à Omnisend
-const addToOmnisend = async (email: string): Promise<boolean> => {
-  try {
-    const response = await fetch("https://api.omnisend.com/v3/contacts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-API-KEY": process.env.OMNISEND_API_KEY!,
-      },
-      body: JSON.stringify({
-        email,
-        status: "subscribed",
-        tags: ["pack_mensuel_retargeting"]
-      }),
-    });
-
-    const result = await response.json();
-    console.log("📨 Contact envoyé à Omnisend:", result);
-
-    return response.ok;
-  } catch (err) {
-    console.error("❌ Erreur en envoyant le contact à Omnisend:", err);
-    return false;
   }
 };
