@@ -1244,7 +1244,7 @@ const Pricing = () => {
             {monthlyPacksWithSurprise.map((pack, packIndex) => (
               <div 
                 key={pack.name}
-                className="h-full flex flex-col min-h-[660px]"
+                className="flex flex-col h-full"
               >
                 <div className={`bg-gradient-to-br ${pack.name === "Pack Découverte" ? "from-yellow-50 to-yellow-100" : "from-blue-50 to-blue-100"} rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl h-full flex flex-col`}>
                   {/* Badge */}
@@ -1256,61 +1256,63 @@ const Pricing = () => {
                     />
                   </div>
 
-                  {/* Grille d'images (on garde la hauteur fixe pour stabiliser) */}
-                  <div className={`grid ${
-                    pack.name === "Pack Survie" ? "grid-cols-2" :
-                    pack.name === "Pack Premium" ? "grid-cols-3" :
-                    "grid-cols-2 md:grid-cols-3"
-                  } gap-2 md:gap-4 mb-6 md:mb-8 auto-rows-fr`}>
-                    {pack.name === "Pack Survie" ? (
-                      // Pack Survie - 2 images en 2 colonnes
-                      [...Array(2)].map((_, index) => (
-                        <div
-                          key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                        >
-                          <BoxEditableImage
-                            imageKey={`box_mois_pack_survie_image_${index + 1}`}
-                            initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
-                            onUpdate={() => refetchBoxImages()}
-                          />
-                        </div>
-                      ))
-                    ) : pack.name === "Pack Premium" ? (
-                      // Pack Premium - 3 images en 3 colonnes
-                      [...Array(3)].map((_, index) => (
-                        <div
-                          key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                        >
-                          <BoxEditableImage
-                            imageKey={`box_mois_pack_premium_image_${index + 1}`}
-                            initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
-                            onUpdate={() => refetchBoxImages()}
-                          />
-                        </div>
-                      ))
-                    ) : (
-                      // Pack Découverte - 6 images en 2x3 sur mobile, 3x2 sur desktop
-                      [...Array(6)].map((_, index) => (
-                        <div
-                          key={`${pack.name}-image-${index}`}
-                          className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                        >
-                          <BoxEditableImage
-                            imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
-                            initialUrl={boxImages[`box_mois_pack_decouverte_image_${index + 1}`] || ""}
-                            onUpdate={() => refetchBoxImages()}
-                          />
-                        </div>
-                      ))
-                    )}
+                  {/* Grille d'images avec hauteur adaptative */}
+                  <div className="h-[150px] sm:h-[200px] md:h-[250px] mb-4 sm:mb-6 md:mb-8">
+                    <div className={`grid ${
+                      pack.name === "Pack Survie" ? "grid-cols-2" :
+                      pack.name === "Pack Premium" ? "grid-cols-3" :
+                      "grid-cols-3"  // Toujours 3 colonnes en mobile pour Pack Découverte
+                    } gap-1 sm:gap-2 md:gap-4 h-full`}>
+                      {pack.name === "Pack Survie" ? (
+                        // Pack Survie - 2 images en 2 colonnes
+                        [...Array(2)].map((_, index) => (
+                          <div
+                            key={`${pack.name}-image-${index}`}
+                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
+                          >
+                            <BoxEditableImage
+                              imageKey={`box_mois_pack_survie_image_${index + 1}`}
+                              initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
+                              onUpdate={() => refetchBoxImages()}
+                            />
+                          </div>
+                        ))
+                      ) : pack.name === "Pack Premium" ? (
+                        // Pack Premium - 3 images en 3 colonnes
+                        [...Array(3)].map((_, index) => (
+                          <div
+                            key={`${pack.name}-image-${index}`}
+                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
+                          >
+                            <BoxEditableImage
+                              imageKey={`box_mois_pack_premium_image_${index + 1}`}
+                              initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
+                              onUpdate={() => refetchBoxImages()}
+                            />
+                          </div>
+                        ))
+                      ) : (
+                        // Pack Découverte - 6 images en 2x3 sur mobile, 3x2 sur desktop
+                        [...Array(6)].map((_, index) => (
+                          <div
+                            key={`${pack.name}-image-${index}`}
+                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
+                          >
+                            <BoxEditableImage
+                              imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
+                              initialUrl={boxImages[`box_mois_pack_decouverte_image_${index + 1}`] || ""}
+                              onUpdate={() => refetchBoxImages()}
+                            />
+                          </div>
+                        ))
+                      )}
+                    </div>
                   </div>
 
-                  {/* Contenu principal - Retour à Flexbox */}
+                  {/* Contenu avec hauteurs adaptatives */}
                   <div className="flex flex-col flex-grow">
-                    {/* Titre */}
-                    <h3 className="text-lg md:text-2xl font-bold mb-4 text-center">
+                    {/* Titre avec hauteur adaptative */}
+                    <h3 className="text-base sm:text-lg md:text-2xl font-bold mb-2 sm:mb-4 text-center h-[40px] sm:h-[50px] md:h-[60px] flex items-center justify-center">
                       <EditableText 
                         contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`}
                         initialContent={pack.name}
@@ -1318,17 +1320,17 @@ const Pricing = () => {
                       />
                     </h3>
 
-                    {/* Prix */}
-                    <div className="flex justify-center items-baseline gap-3 mb-4 md:mb-5">
+                    {/* Prix avec hauteur adaptative */}
+                    <div className="flex justify-center items-baseline gap-2 sm:gap-3 mb-2 sm:mb-4 md:mb-5 h-[40px] sm:h-[45px] md:h-[50px]">
                       <div className="flex items-baseline animate-pulse">
-                        <span className="text-2xl md:text-4xl font-bold text-primary">
+                        <span className="text-xl sm:text-2xl md:text-4xl font-bold text-primary">
                           <EditableText 
                             contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`}
                             initialContent={pack.promoPrice || "0"}
                             onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_price`)}
                           />
                         </span>
-                        <span className="text-xl md:text-2xl font-bold text-primary ml-1">€</span>
+                        <span className="text-lg sm:text-xl md:text-2xl font-bold text-primary ml-1">€</span>
                       </div>
                       <div className="flex items-baseline">
                         <span className="text-sm md:text-base line-through text-slate-400">
@@ -1342,16 +1344,17 @@ const Pricing = () => {
                       </div>
                     </div>
 
-                    {/* Description - Ajout hauteur minimale */}
-                    <p className="text-slate-600 text-center text-xs md:text-sm mb-6 md:mb-8 min-h-[60px]">
+                    {/* Description avec hauteur adaptative */}
+                    <p className="text-slate-600 text-center text-xs sm:text-sm mb-3 sm:mb-6 md:mb-8 h-[50px] sm:h-[55px] md:h-[60px] flex items-center justify-center px-2">
                       <EditableText 
                         contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`}
                         initialContent={pack.description.replace("?", ".")}
                         onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`)}
                       />
                     </p>
-                    {/* Bloc blanc avec liste */}
-                    <div className={`bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl px-4 py-3 md:px-5 md:py-4 mb-4 md:mb-6`}>
+
+                    {/* Bloc blanc avec hauteur adaptative */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl px-3 sm:px-4 md:px-5 py-2 sm:py-3 md:py-4 mb-3 sm:mb-4 md:mb-6 h-[180px] sm:h-[200px] md:h-[250px] overflow-y-auto">
                       <p className="text-xs md:text-sm text-slate-600 mb-2">
                         <EditableText 
                           contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`}
@@ -1359,7 +1362,7 @@ const Pricing = () => {
                           onUpdate={(newText) => handleTextUpdate(newText, `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`)}
                         />
                       </p>
-                      <ul className="space-y-1.5 [&>li:last-child]:mb-0">
+                      <ul className="space-y-1 sm:space-y-1.5 [&>li:last-child]:mb-0">
                         {pack.name === "Pack Premium" 
                           ? pack.notes
                               .filter(note => typeof note === "string" && note.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "")
@@ -1369,7 +1372,7 @@ const Pricing = () => {
                                 const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
 
                                 return (
-                                  <li key={index} className="text-xs md:text-sm">
+                                  <li key={index} className="text-[11px] sm:text-xs md:text-sm">
                                     <div className="flex items-start gap-2">
                                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
                                       <div className="flex items-center gap-1">
@@ -1391,7 +1394,7 @@ const Pricing = () => {
                                 const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
 
                                 return (
-                                  <li key={index} className="text-xs md:text-sm">
+                                  <li key={index} className="text-[11px] sm:text-xs md:text-sm">
                                     <div className="flex items-start gap-2">
                                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 flex-shrink-0"></div>
                                       <div className="flex items-center gap-1">
@@ -1410,8 +1413,8 @@ const Pricing = () => {
                       </ul>
                     </div>
 
-                    {/* Bouton - avec mt-auto */}
-                    <div className="mt-auto">
+                    {/* Bouton avec espacement adaptatif */}
+                    <div className="mt-2 sm:mt-4 md:mt-auto">
                       {isEditMode ? (
                         <div className="flex flex-col items-center">
                           <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">
