@@ -22,6 +22,32 @@ const Cta = () => {
 
   const [promoCode, setPromoCode] = useState("AQUA20");
 
+  // Récupération du code promo depuis Supabase
+  const { data: promoData } = useQuery({
+    queryKey: ["promo-code"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("editable_content")
+        .select("content")
+        .eq("content_key", "promo_code")
+        .single();
+
+      if (error) {
+        console.error("❌ Erreur de récupération du code promo:", error);
+        return null;
+      }
+
+      return data?.content || "AQUA20";
+    },
+  });
+
+  // Mettre à jour l'état local quand les données sont chargées
+  useEffect(() => {
+    if (promoData) {
+      setPromoCode(promoData);
+    }
+  }, [promoData]);
+
   // Récupération des URLs des boutons depuis Supabase
   const { data: buttonData } = useQuery({
     queryKey: ["button-content"],
@@ -245,8 +271,44 @@ const Cta = () => {
   };
 
   // Callback pour mettre à jour le code promo lorsqu'il est modifié via EditableText
-  const handlePromoCodeUpdate = (newPromoCode: string) => {
-    setPromoCode(newPromoCode);
+  const handlePromoCodeUpdate = async (newPromoCode: string) => {
+    try {
+      // Mettre à jour dans Supabase
+      const { error } = await supabase
+        .from('editable_content')
+        .upsert({
+          content_key: 'promo_code',
+          content: newPromoCode
+        }, {
+          onConflict: 'content_key'
+        });
+
+      if (error) {
+        console.error("❌ Erreur lors de la mise à jour du code promo:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de sauvegarder le code promo",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Mettre à jour l'état local
+      setPromoCode(newPromoCode);
+      console.log("✅ Code promo mis à jour:", newPromoCode);
+
+      toast({
+        title: "Succès",
+        description: "Le code promo a été mis à jour",
+      });
+    } catch (error) {
+      console.error("❌ Erreur lors de la mise à jour du code promo:", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour du code promo",
+        variant: "destructive"
+      });
+    }
   };
 
   // Define the buttons array for cleaner rendering
@@ -337,43 +399,42 @@ const Cta = () => {
           <div className="bg-white/10 p-6 rounded-lg max-w-md mx-auto">
             <p className="text-lg mb-2">Votre code promo :</p>
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="bg-white/20 py-3 px-6 rounded-lg text-2xl font-bold tracking-wider">
-                {isEditMode ? (
-                  <EditableText
-                    contentKey="promo_code"
-                    initialContent={promoCode}
-                    className="inline bg-primary/50 px-1 rounded"
-                    onUpdate={handlePromoCodeUpdate}
-                  />
-                ) : (
-                  promoCode
-                )}
+              <div className="bg-[#4BA3D3] py-3 px-6 rounded-lg text-2xl font-bold tracking-wider text-center">
+                <EditableText
+                  contentKey="promo_code"
+                  initialContent="AQUA10"
+                  className="inline-block"
+                  onUpdate={handlePromoCodeUpdate}
+                />
               </div>
               <Button
                 variant="secondary"
                 size="icon"
                 onClick={copyPromoCode}
-                className="h-12 w-12"
+                className="h-12 w-12 bg-white hover:bg-white/90 text-primary"
                 data-testid="copy-promo-button"
               >
-                {copied ? <CheckCheck className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+                {copied ? (
+                  <CheckCheck className="h-5 w-5" />
+                ) : (
+                  <Copy className="h-5 w-5" />
+                )}
               </Button>
             </div>
-            <p className="text-sm opacity-80 mb-4">
+            <p className="text-sm text-white/90 mb-6">
               <EditableText
                 contentKey="promo_description"
-                initialContent="Utilisez ce code lors de votre achat pour bénéficier de -20% sur votre premier mois."
+                initialContent="Utilisez ce code lors de votre inscription pour bénéficier de -10% sur les 2 premiers mois."
                 className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
               />
             </p>
-            {/* Use map to render buttons dynamically and add flex-wrap */}
-            <div className="flex flex-wrap justify-center gap-3 w-full animate-in fade-in-0 slide-in-from-bottom-4 duration-500">
+            <div className="flex flex-col gap-3 w-full">
               {ctaButtons.map(({ key, urlKey, defaultText, testid, logText }) => (
                 <Button
                   key={key}
                   size="default"
                   variant="secondary"
-                  className="inline-flex items-center justify-center px-4 py-2 text-base whitespace-nowrap hover:scale-105 transition-transform duration-300"
+                  className="w-full bg-white hover:bg-white/90 text-primary font-medium py-2 text-base flex items-center justify-between"
                   onClick={() => {
                     if (!isEditMode) {
                       console.log(`🔗 Navigation vers ${logText}`);
@@ -390,7 +451,7 @@ const Cta = () => {
                     initialContent={defaultText}
                     className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
                   />
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               ))}
             </div>
