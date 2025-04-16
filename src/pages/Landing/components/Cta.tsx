@@ -400,12 +400,16 @@ const Cta = () => {
             <p className="text-lg mb-2">Votre code promo :</p>
             <div className="flex items-center justify-center space-x-2 mb-4">
               <div className="bg-[#4BA3D3] py-3 px-6 rounded-lg text-2xl font-bold tracking-wider text-center">
-                <EditableText
-                  contentKey="promo_code"
-                  initialContent="AQUA10"
-                  className="inline-block"
-                  onUpdate={handlePromoCodeUpdate}
-                />
+                {isEditMode ? (
+                  <EditableText
+                    contentKey="promo_code"
+                    initialContent="AQUA10"
+                    className="inline"
+                    onUpdate={handlePromoCodeUpdate}
+                  />
+                ) : (
+                  "AQUA10"
+                )}
               </div>
               <Button
                 variant="secondary"
