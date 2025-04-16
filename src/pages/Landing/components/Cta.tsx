@@ -434,29 +434,29 @@ const Cta = () => {
             </p>
             <div className="flex flex-col gap-3 w-full">
               {ctaButtons.map(({ key, urlKey, defaultText, testid, logText }) => (
-                <Button
+                <a
                   key={key}
-                  size="default"
-                  variant="secondary"
-                  className="w-full bg-white hover:bg-white/90 text-primary font-medium py-2 text-base flex items-center justify-between"
-                  onClick={() => {
-                    if (!isEditMode) {
-                      console.log(`🔗 Navigation vers ${logText}`);
-                      const url = buttonData?.[urlKey]?.startsWith("http")
-                        ? buttonData[urlKey]
-                        : `http://${buttonData?.[urlKey] || "#"}`;
-                      window.location.href = url;
-                    }
-                  }}
-                  data-testid={testid}
+                  href={buttonData?.[urlKey]?.startsWith("http")
+                    ? buttonData[urlKey]
+                    : `http://${buttonData?.[urlKey] || "#"}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={!isEditMode ? "w-full" : "pointer-events-none"}
                 >
-                  <EditableText
-                    contentKey={key}
-                    initialContent={defaultText}
-                    className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
-                  />
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                  <Button
+                    size="default"
+                    variant="secondary"
+                    className="w-full bg-white hover:bg-white/90 text-primary font-medium py-2 text-base flex items-center justify-between"
+                    data-testid={testid}
+                  >
+                    <EditableText
+                      contentKey={key}
+                      initialContent={defaultText}
+                      className={isEditMode ? "inline bg-primary/50 px-1 rounded" : "inline"}
+                    />
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </a>
               ))}
             </div>
             
