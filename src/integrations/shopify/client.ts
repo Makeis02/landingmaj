@@ -174,7 +174,7 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
     }
     
     // Consignons la réussite dans Supabase aussi
-    if (data.success) {
+    if (data && (data.success === true || data.customerId)) {
       try {
         console.log("Enregistrement du succès dans Supabase suite à l'appel réussi de l'Edge Function");
         await supabase
@@ -292,13 +292,9 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
       email,
       status: "subscribed",
       tags: ["pack_mensuel_retargeting"],
-      consent: {
-        email: {
-          consented: true,
-          consentedAt: new Date().toISOString(),
-          optInType: "Single"
-        }
-      },
+      consented: true,
+      consentedAt: new Date().toISOString(),
+      optInType: "single"
     };
 
     const response = await fetch("https://api.omnisend.com/v3/contacts", {
