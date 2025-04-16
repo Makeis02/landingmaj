@@ -250,7 +250,9 @@ const Cta = () => {
   };
 
   const copyPromoCode = () => {
-    navigator.clipboard.writeText(promoCode);
+    // S'assurer que seul le texte brut est copié
+    const cleanPromoCode = promoCode.replace(/<[^>]*>/g, '').trim();
+    navigator.clipboard.writeText(cleanPromoCode);
     setCopied(true);
     toast({
       title: "Code copié !",
@@ -408,7 +410,7 @@ const Cta = () => {
                     onUpdate={handlePromoCodeUpdate}
                   />
                 ) : (
-                  "AQUA10"
+                  promoCode
                 )}
               </div>
               <Button
