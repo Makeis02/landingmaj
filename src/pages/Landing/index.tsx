@@ -6,6 +6,7 @@ import FloatingHeader from "@/components/admin/FloatingHeader";
 import Footer from "@/components/Footer";
 import Clarity from "@microsoft/clarity";
 
+
 // 🔄 Identifiants Facebook et Clarity
 const FACEBOOK_PIXEL_ID = "408487235316215";
 const ACCESS_TOKEN = process.env.REACT_APP_FACEBOOK_ACCESS_TOKEN || "";

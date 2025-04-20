@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Check, X, Gift, HelpCircle } from "lucide-react";
+import { Check, X, Gift, HelpCircle, Fish } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EditableText } from "@/components/EditableText";
@@ -10,6 +10,7 @@ import { EditableImage } from "@/components/EditableImage";
 import { useEditStore } from "@/stores/useEditStore";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
+import Upcoming from "./Upcoming";
 
 // Composant personnalisé pour les tooltips qui fonctionnent sur mobile
 interface MobileTooltipProps {
@@ -1126,6 +1127,18 @@ const Pricing = () => {
                       onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
                     />
                   </h3>
+                  <div className="flex items-center justify-center mb-4 px-2">
+                    <div className="inline-flex items-center justify-center bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-medium px-3 py-2 rounded-full w-full max-w-[95%] mx-auto">
+                      <div className="flex items-center justify-center w-5 mr-1.5">
+                        <Fish className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
+                      </div>
+                      <p className="text-center flex-1 leading-tight px-0.5">
+                        {plan.name === "Pack Survie" && "Pour petits aquariums de 10 à 60L : bettas seuls, guppys, rasboras, néons, petits poissons rouges isolés."}
+                        {plan.name === "Pack Basic" && "Pour aquariums communautaires de 60 à 150L : guppys, platies, rasboras, corydoras, petits cichlidés nains."}
+                        {plan.name === "Pack Premium" && "Pour grands bacs de plus de 150L : cichlidés africains (Malawi, Tanganyika), scalaires, discus et aquariums très plantés."}
+                      </p>
+                    </div>
+                  </div>
                   <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
                     <EditableText
                       contentKey={priceKey}
@@ -1221,6 +1234,8 @@ const Pricing = () => {
           </div>
         </div>
       </section>
+
+      <Upcoming />
 
       <section className="py-12 md:py-20 px-4 bg-white overflow-hidden">
         <div className="container mx-auto max-w-6xl">
