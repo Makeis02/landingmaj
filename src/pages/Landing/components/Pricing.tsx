@@ -1435,6 +1435,26 @@ const Pricing = () => {
 
                     {/* Bouton avec espacement adaptatif */}
                     <div className="mt-2 sm:mt-4 md:mt-auto">
+                      <div className="text-center mb-3">
+                        <MobileTooltip
+                          content={
+                            <div className="bg-white p-4 rounded-xl shadow-xl max-w-[300px] border border-gray-100">
+                              <div className="space-y-3">
+                                <h4 className="font-semibold text-primary">
+                                  Détails à venir
+                                </h4>
+                                <div className="text-sm text-slate-600">
+                                  Contenu en cours de préparation
+                                </div>
+                              </div>
+                            </div>
+                          }
+                        >
+                          <span className="text-primary hover:text-primary/80 text-sm cursor-pointer underline transition-colors">
+                            En savoir plus
+                          </span>
+                        </MobileTooltip>
+                      </div>
                       {isEditMode ? (
                         <div className="flex flex-col items-center">
                           <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">
