@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@emoji-mart/data": "^1.1.1",
-    "@emoji-mart/react": "^1.1.1",
+    "@emoji-mart/react": "latest",
     "@hookform/resolvers": "^3.9.0",
     "@microsoft/clarity": "^1.0.0",
     "@radix-ui/react-accordion": "^1.2.0",
