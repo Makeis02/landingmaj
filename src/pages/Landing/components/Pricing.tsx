@@ -1435,6 +1435,7 @@ const Pricing = () => {
 
                     {/* Bouton avec espacement adaptatif */}
                     <div className="mt-2 sm:mt-4 md:mt-auto">
+                      {/* Temporairement masqué
                       <div className="text-center mb-3">
                         <MobileTooltip
                           content={
@@ -1455,6 +1456,7 @@ const Pricing = () => {
                           </span>
                         </MobileTooltip>
                       </div>
+                      */}
                       {isEditMode ? (
                         <div className="flex flex-col items-center">
                           <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">
