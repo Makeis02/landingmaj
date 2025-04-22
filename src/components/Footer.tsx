@@ -28,6 +28,10 @@ const Footer = () => {
   const [gdprText, setGdprText] = useState('Nous respectons votre vie privée et sommes conformes aux normes RGPD.');
   const [trustpilotUrl, setTrustpilotUrl] = useState('https://fr.trustpilot.com/');
   
+  // State for draft links
+  const [draftLegalLinks, setDraftLegalLinks] = useState<{ label: string; url: string }[]>([]);
+  const [draftUsefulLinks, setDraftUsefulLinks] = useState<{ label: string; url: string }[]>([]);
+  
   // Setup image upload hook
   const { isUploading, handleImageUpload } = useImageUpload({
     imageKey: 'footer_logo',
@@ -43,6 +47,7 @@ const Footer = () => {
   const { data: footerLinks = [], isLoading: isLoadingLinks } = useQuery({
     queryKey: ['footer-links'],
     queryFn: async () => {
+      console.log("Fetching footer_links...");
       const { data, error } = await supabase
         .from('footer_links')
         .select('*')
@@ -97,73 +102,170 @@ const Footer = () => {
 
   // Fonction pour formater l'URL
   const formatUrl = (url: string, section: string) => {
-    if (!url) return '';
-    
-    // Pour les mentions légales, on garde le chemin tel quel
+    const cleanUrl = url.trim();
+    if (!cleanUrl) return '';
+
     if (section === 'Mentions Légales') {
-      return url;
+      return cleanUrl;
     }
-    
-    // Pour les autres sections (liens utiles et réseaux sociaux), on ajoute http:// si nécessaire
-    if (url.startsWith('http://') || url.startsWith('https://')) {
-      return url;
+
+    if (cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://')) {
+      return cleanUrl;
     }
-    return `http://${url}`;
+
+    return `http://${cleanUrl}`;
   };
 
   // Add new link mutation
   const addLinkMutation = useMutation({
     mutationFn: async (newLink: { label: string; url: string; section: string; display_order: number }) => {
+      console.log('📝 [mutationFn] Start adding new link:', newLink);
       const formattedUrl = formatUrl(newLink.url, newLink.section);
-      const { error } = await supabase
+      console.log('🔗 [mutationFn] Formatted URL:', formattedUrl);
+      const { data, error } = await supabase
         .from('footer_links')
-        .insert([{ ...newLink, url: formattedUrl }]);
-      if (error) throw error;
+        .insert([{ ...newLink, url: formattedUrl }])
+        .select('*');
+
+      if (error) {
+        console.error('❌ [mutationFn] Error inserting link:', error);
+        throw error;
+      }
+
+      console.log('✅ [mutationFn] Link inserted successfully:', data);
+      return data[0];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['footer-links'] });
+    onSuccess: async (data) => {
+      try {
+        console.log('🎯 [onSuccess] Link added successfully:', data);
+        console.log('🔄 [onSuccess] Invalidating footer-links...');
+        await queryClient.invalidateQueries({ queryKey: ['footer-links'] });
+        console.log('✅ [onSuccess] footer-links invalidated');
+
+        console.log('📡 [onSuccess] Refetching footer-links...');
+        const { data: refreshedLinks, error } = await supabase
+          .from('footer_links')
+          .select('*')
+          .order('display_order', { ascending: true });
+
+        if (error) {
+          console.error('❌ [onSuccess] Error refetching footer-links:', error);
+          return;
+        }
+
+        console.log('📦 [onSuccess] Refetched links:', refreshedLinks);
+
+        if (refreshedLinks) {
+          console.log('🧹 [onSuccess] Setting query data for footer-links...');
+          queryClient.setQueryData(['footer-links'], refreshedLinks);
+          console.log('✅ [onSuccess] Query data set');
+        }
+
+        // Vider les drafts
+        if (data.section === 'Mentions Légales') {
+          console.log('🧹 [onSuccess] Clearing draftLegalLinks');
+          setDraftLegalLinks([]);
+        } else if (data.section === 'Liens Utiles') {
+          console.log('🧹 [onSuccess] Clearing draftUsefulLinks');
+          setDraftUsefulLinks([]);
+        }
+
+        toast({
+          title: "Lien ajouté",
+          description: "Le lien a été ajouté avec succès",
+        });
+        console.log('🎉 [onSuccess] Toast shown');
+
+      } catch (err) {
+        console.error('❌ [onSuccess] Unexpected error:', err);
+      }
+    },
+    onError: (error) => {
+      console.error('❌ [onError] Mutation error:', error);
       toast({
-        title: "Lien ajouté",
-        description: "Le lien a été ajouté avec succès",
+        title: "Erreur",
+        description: "Une erreur est survenue lors de l'ajout du lien",
+        variant: "destructive"
       });
-    },
+    }
   });
 
   // Delete link mutation
   const deleteLinkMutation = useMutation({
     mutationFn: async (id: string) => {
+      console.log('🗑️ [mutationFn] Start deleting link:', id);
+      
       const { error } = await supabase
         .from('footer_links')
         .delete()
         .eq('id', id);
-      if (error) throw error;
+
+      if (error) {
+        console.error('❌ [mutationFn] Error deleting link:', error);
+        throw error;
+      }
+
+      console.log('✅ [mutationFn] Link deleted successfully');
     },
     onSuccess: () => {
+      console.log('🔄 [onSuccess] Invalidating footer-links...');
       queryClient.invalidateQueries({ queryKey: ['footer-links'] });
+      console.log('✅ [onSuccess] footer-links invalidated');
+
       toast({
         title: "Lien supprimé",
         description: "Le lien a été supprimé avec succès",
       });
+      console.log('🎉 [onSuccess] Toast shown');
     },
+    onError: (error) => {
+      console.error('❌ [onError] Mutation error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la suppression du lien",
+        variant: "destructive"
+      });
+    }
   });
 
   // Update link mutation
   const updateLinkMutation = useMutation({
     mutationFn: async ({ id, updatedLink }: { id: string; updatedLink: any }) => {
+      console.log('📝 [mutationFn] Start updating link:', { id, updatedLink });
       const formattedUrl = formatUrl(updatedLink.url, updatedLink.section);
+      console.log('🔗 [mutationFn] Formatted URL:', formattedUrl);
+      
       const { error } = await supabase
         .from('footer_links')
         .update({ ...updatedLink, url: formattedUrl })
         .eq('id', id);
-      if (error) throw error;
+
+      if (error) {
+        console.error('❌ [mutationFn] Error updating link:', error);
+        throw error;
+      }
+
+      console.log('✅ [mutationFn] Link updated successfully');
     },
     onSuccess: () => {
+      console.log('🔄 [onSuccess] Invalidating footer-links...');
       queryClient.invalidateQueries({ queryKey: ['footer-links'] });
+      console.log('✅ [onSuccess] footer-links invalidated');
+
       toast({
         title: "Lien mis à jour",
         description: "Le lien a été mis à jour avec succès",
       });
+      console.log('🎉 [onSuccess] Toast shown');
     },
+    onError: (error) => {
+      console.error('❌ [onError] Mutation error:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour du lien",
+        variant: "destructive"
+      });
+    }
   });
 
   // Update footer settings mutation
@@ -283,12 +385,27 @@ const Footer = () => {
 
   // Group links by section
   const getLinksBySection = (section: string) => {
-    return footerLinks?.filter(link => link.section === section) || [];
+    return footerLinks?.filter(link => 
+      link.section?.toLowerCase() === section.toLowerCase()
+    ) || [];
   };
 
-  const legalLinks = getLinksBySection('Mentions Légales');
-  const usefulLinks = getLinksBySection('Liens Utiles');
-  const socialLinks = getLinksBySection('Réseaux Sociaux');
+  // Use useMemo to recalculate links when footerLinks changes
+  const legalLinks = React.useMemo(() => {
+    const links = getLinksBySection('Mentions Légales').filter(link => link.label && link.url);
+    console.log('🧩 legalLinks affichés:', links);
+    return links;
+  }, [footerLinks]);
+
+  const usefulLinks = React.useMemo(() => {
+    const links = getLinksBySection('Liens Utiles').filter(link => link.label && link.url);
+    console.log('🧩 usefulLinks affichés:', links);
+    return links;
+  }, [footerLinks]);
+
+  const socialLinks = React.useMemo(() => 
+    getLinksBySection('Réseaux Sociaux').filter(link => link.label && link.url),
+  [footerLinks]);
 
   // Render the social media icon based on the label
   const renderSocialIcon = (label: string) => {
@@ -454,6 +571,7 @@ const Footer = () => {
                 className="inline"
               />
             </h3>
+            {console.log('🔎 Liste complète des legalLinks:', legalLinks)}
             <ul className="space-y-2">
               {legalLinks.map(link => (
                 <li key={link.id}>
@@ -496,6 +614,70 @@ const Footer = () => {
                   )}
                 </li>
               ))}
+
+              {/* Afficher les drafts */}
+              {isEditMode && draftLegalLinks.map((draft, index) => (
+                <li key={`draft-${index}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input
+                      type="text"
+                      value={draft.label}
+                      onChange={(e) => {
+                        const updatedDrafts = [...draftLegalLinks];
+                        updatedDrafts[index].label = e.target.value;
+                        setDraftLegalLinks(updatedDrafts);
+                      }}
+                      placeholder="Label du lien"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      type="text"
+                      value={draft.url}
+                      onChange={(e) => {
+                        const updatedDrafts = [...draftLegalLinks];
+                        updatedDrafts[index].url = e.target.value;
+                        setDraftLegalLinks(updatedDrafts);
+                      }}
+                      placeholder="URL du lien"
+                      className="h-8 text-sm"
+                    />
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (!draft.label.trim() || !draft.url.trim()) {
+                          toast({
+                            title: "Erreur",
+                            description: "Le label et l'URL doivent être remplis",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        addLinkMutation.mutate({
+                          label: draft.label,
+                          url: draft.url,
+                          section: 'Mentions Légales',
+                          display_order: legalLinks.length + index + 1
+                        });
+                        setDraftLegalLinks(d => d.filter((_, i) => i !== index));
+                      }}
+                    >
+                      ✓
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setDraftLegalLinks(d => d.filter((_, i) => i !== index));
+                      }}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </li>
+              ))}
             </ul>
             
             {/* Add new link in edit mode */}
@@ -504,12 +686,7 @@ const Footer = () => {
                 variant="outline"
                 size="sm"
                 className="mt-3 text-xs"
-                onClick={() => addLinkMutation.mutate({
-                  label: 'Nouveau lien',
-                  url: '/nouveau-lien',
-                  section: 'Mentions Légales',
-                  display_order: legalLinks.length + 1
-                })}
+                onClick={() => setDraftLegalLinks([...draftLegalLinks, { label: '', url: '' }])}
               >
                 + Ajouter un lien
               </Button>
@@ -567,6 +744,70 @@ const Footer = () => {
                   )}
                 </li>
               ))}
+
+              {/* Afficher les drafts */}
+              {isEditMode && draftUsefulLinks.map((draft, index) => (
+                <li key={`draft-${index}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Input
+                      type="text"
+                      value={draft.label}
+                      onChange={(e) => {
+                        const updatedDrafts = [...draftUsefulLinks];
+                        updatedDrafts[index].label = e.target.value;
+                        setDraftUsefulLinks(updatedDrafts);
+                      }}
+                      placeholder="Label du lien"
+                      className="h-8 text-sm"
+                    />
+                    <Input
+                      type="text"
+                      value={draft.url}
+                      onChange={(e) => {
+                        const updatedDrafts = [...draftUsefulLinks];
+                        updatedDrafts[index].url = e.target.value;
+                        setDraftUsefulLinks(updatedDrafts);
+                      }}
+                      placeholder="URL du lien"
+                      className="h-8 text-sm"
+                    />
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        if (!draft.label.trim() || !draft.url.trim()) {
+                          toast({
+                            title: "Erreur",
+                            description: "Le label et l'URL doivent être remplis",
+                            variant: "destructive",
+                          });
+                          return;
+                        }
+                        addLinkMutation.mutate({
+                          label: draft.label,
+                          url: draft.url,
+                          section: 'Liens Utiles',
+                          display_order: usefulLinks.length + index + 1
+                        });
+                        setDraftUsefulLinks(d => d.filter((_, i) => i !== index));
+                      }}
+                    >
+                      ✓
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      onClick={() => {
+                        setDraftUsefulLinks(d => d.filter((_, i) => i !== index));
+                      }}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                </li>
+              ))}
             </ul>
             
             {/* Add new link in edit mode */}
@@ -575,12 +816,7 @@ const Footer = () => {
                 variant="outline"
                 size="sm"
                 className="mt-3 text-xs"
-                onClick={() => addLinkMutation.mutate({
-                  label: 'Nouveau lien',
-                  url: '/nouveau-lien',
-                  section: 'Liens Utiles',
-                  display_order: usefulLinks.length + 1
-                })}
+                onClick={() => setDraftUsefulLinks([...draftUsefulLinks, { label: '', url: '' }])}
               >
                 + Ajouter un lien
               </Button>

@@ -8,7 +8,12 @@ import { useEffect, useRef, useState } from "react";
 import Carousel from "@/components/Carousel";
 import { EditableImage } from "@/components/EditableImage";
 import { useEditStore } from "@/stores/useEditStore";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import Upcoming from "./Upcoming";
 
@@ -1198,7 +1203,7 @@ const Pricing = () => {
                   <div className="text-sm text-slate-600 mb-6 text-center">
                     Idéal pour : <span className="font-semibold">{plan.ideal}</span>
                   </div>
-                  <div className="mt-auto">
+                  <div className="mt-2 sm:mt-4 md:mt-auto">
                     {isEditMode ? (
                       <div className="flex flex-col items-center">
                         <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>

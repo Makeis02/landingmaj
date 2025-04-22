@@ -105,6 +105,7 @@ const handleStripeSubscription = async () => {
 const HeroComponent = lazy(() => import("./components/Hero"));
 const FeaturesComponent = lazy(() => import("./components/Features"));
 const PricingComponent = lazy(() => import("./components/Pricing"));
+const ReviewsComponent = lazy(() => import("./components/Reviews"));
 const CtaComponent = lazy(() => import("./components/Cta"));
 const FishComponent = lazy(() => import("./components/ui/fish"));
 
@@ -162,6 +163,9 @@ const LandingPage = () => {
           </Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <PricingComponent />
+          </Suspense>
+          <Suspense fallback={<LoadingFallback />}>
+            <ReviewsComponent />
           </Suspense>
           <Suspense fallback={<LoadingFallback />}>
             <CtaComponent />
