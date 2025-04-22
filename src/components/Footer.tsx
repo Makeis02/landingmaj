@@ -452,6 +452,8 @@ const Footer = () => {
 
   // Ajouter ou mettre à jour les liens sociaux au chargement du composant
   useEffect(() => {
+    if (!isEditMode) return; // Only run in edit mode
+
     const updateSocialLinks = async () => {
       const existingFacebookLink = socialLinks.find(link => link.label.toLowerCase() === 'facebook');
       const existingInstagramLink = socialLinks.find(link => link.label.toLowerCase() === 'instagram');
@@ -486,7 +488,7 @@ const Footer = () => {
     };
 
     updateSocialLinks();
-  }, []);
+  }, [isEditMode, socialLinks]);
 
   return (
     <footer className="bg-gray-50 text-gray-700 border-t border-gray-200">
