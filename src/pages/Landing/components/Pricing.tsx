@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/components/ui/use-toast";
 import Upcoming from "./Upcoming";
+import React from "react";
 
 // Composant personnalisé pour les tooltips qui fonctionnent sur mobile
 interface MobileTooltipProps {
@@ -27,6 +28,15 @@ const MobileTooltip = ({ content, children }: MobileTooltipProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Nettoyer le contenu
+  const cleanedContent = React.useMemo(() => {
+    if (typeof content === 'string') {
+      const trimmed = content.trim();
+      return trimmed === 'null' ? '' : trimmed;
+    }
+    return content;
+  }, [content]);
 
   // Détecter si l'appareil est mobile
   useEffect(() => {
@@ -67,9 +77,13 @@ const MobileTooltip = ({ content, children }: MobileTooltipProps) => {
           <TooltipTrigger asChild>
             {children}
           </TooltipTrigger>
-          <TooltipContent className="max-w-[250px] bg-white p-3 text-sm rounded shadow-lg">
-            {content}
-          </TooltipContent>
+          {cleanedContent && String(cleanedContent).trim() !== "" && (
+            <TooltipContent className="bg-white p-3 text-sm rounded-xl shadow-xl w-[90vw] max-w-[280px] overflow-hidden border border-gray-100">
+              <div className="max-h-[220px] overflow-y-auto">
+                {cleanedContent}
+              </div>
+            </TooltipContent>
+          )}
         </Tooltip>
       </TooltipProvider>
     );
@@ -84,10 +98,12 @@ const MobileTooltip = ({ content, children }: MobileTooltipProps) => {
       >
         {children}
       </div>
-      {isOpen && (
-        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 -translate-y-2 bg-white p-3 text-sm rounded-lg shadow-lg max-w-[250px] animate-in fade-in-0 zoom-in-95">
-          {content}
-          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 w-2 h-2 rotate-45 bg-white"></div>
+      {isOpen && cleanedContent && String(cleanedContent).trim() !== "" && (
+        <div className="absolute z-50 bottom-full left-1/2 transform -translate-x-1/2 -translate-y-2 bg-white p-3 text-sm rounded-xl shadow-xl w-[90vw] max-w-[280px] overflow-hidden border border-gray-100">
+          <div className="max-h-[220px] overflow-y-auto">
+            {cleanedContent}
+          </div>
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 -translate-y-1 w-2 h-2 rotate-45 bg-white border-l border-t border-gray-100"></div>
         </div>
       )}
     </div>
@@ -196,6 +212,12 @@ const Pricing = () => {
           "box_mois_pack_premium_image_1", "box_mois_pack_premium_image_2", "box_mois_pack_premium_image_3",
           "box_mois_pack_decouverte_image_1", "box_mois_pack_decouverte_image_2", "box_mois_pack_decouverte_image_3",
           "box_mois_pack_decouverte_image_4", "box_mois_pack_decouverte_image_5", "box_mois_pack_decouverte_image_6",
+          "monthly_pack_survie_tooltip",
+          "monthly_pack_premium_tooltip",
+          "monthly_pack_decouverte_tooltip",
+          "monthly_pack_survie_tooltip_title",
+          "monthly_pack_premium_tooltip_title",
+          "monthly_pack_decouverte_tooltip_title",
           "offer_validity",
         ]);
       return contentData?.reduce((acc, item) => {
@@ -535,17 +557,36 @@ const Pricing = () => {
     }
   };
 
-  const handleTextUpdate = async (newText: string, contentKey: string) => {
-    const { error } = await supabase
-      .from("editable_content")
-      .update({ content: newText })
-      .eq("content_key", contentKey);
+  const { toast } = useToast();
 
-    if (!error) {
-      refetch();
-      console.log("Mise à jour réussie pour :", contentKey);
-    } else {
-      console.error("Erreur lors de la mise à jour :", error);
+  const handleTextUpdate = async (newText: string, contentKey: string) => {
+    try {
+      const trimmedText = newText.trim();
+      
+      const { error } = await supabase
+        .from("editable_content")
+        .update({ content: trimmedText })
+        .eq("content_key", contentKey);
+
+      if (!error) {
+        // Forcer le rechargement des données après la mise à jour
+        await refetch();
+        console.log("Mise à jour réussie pour :", contentKey);
+      } else {
+        console.error("Erreur lors de la mise à jour :", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la mise à jour du contenu",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur inattendue :", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue est survenue",
+        variant: "destructive"
+      });
     }
   };
 
@@ -1086,152 +1127,157 @@ const Pricing = () => {
               const priceKey = `pack_${plan.id}_price`;
 
               return (
-                <div key={plan.id} className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
-                  plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
-                }`}>
-                  <Carousel
-                    packName={plan.name}
-                    images={currentImages}
-                    speed={carouselSpeed}
-                    isEditMode={isEditMode}
-                    contentKey={plan.imageContentKey}
-                    onImagesUpdate={(newImages) => {
-                      console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
-                      if (plan.id === "basix") {
-                        setBasixImages(newImages);
-                      } else if (plan.id === "premium") {
-                        setPremiumImages(newImages);
-                      } else {
-                        setDiscoveryImages(newImages);
-                      }
-                      refetchImages();
-                    }}
-                  />
-                  {isEditMode && (
-                    <div className="flex justify-center mt-4 mb-2">
-                      <button
-                        onClick={() => fileInputRefs.current[plan.id]?.click()}
-                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm"
-                      >
-                        Ajouter des images
-                      </button>
-                      <input
-                        type="file"
-                        ref={el => fileInputRefs.current[plan.id] = el}
-                        className="hidden"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => handleImageUpload(e, plan.id)}
-                      />
-                    </div>
-                  )}
-                  <h3 className="text-2xl font-bold mb-2 mt-4 min-h-[40px] flex items-center justify-center text-center">
-                    <EditableText
-                      contentKey={nameKey}
-                      initialContent={plan.name}
-                      onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
+                <div 
+                  key={plan.name}
+                  className="relative flex flex-col h-full"
+                >
+                  <div className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
+                    plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
+                  }`}>
+                    <Carousel
+                      packName={plan.name}
+                      images={currentImages}
+                      speed={carouselSpeed}
+                      isEditMode={isEditMode}
+                      contentKey={plan.imageContentKey}
+                      onImagesUpdate={(newImages) => {
+                        console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
+                        if (plan.id === "basix") {
+                          setBasixImages(newImages);
+                        } else if (plan.id === "premium") {
+                          setPremiumImages(newImages);
+                        } else {
+                          setDiscoveryImages(newImages);
+                        }
+                        refetchImages();
+                      }}
                     />
-                  </h3>
-                  <div className="flex items-center justify-center mb-4 px-2">
-                    <div className="inline-flex items-center justify-center bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-medium px-3 py-2 rounded-full w-full max-w-[95%] mx-auto">
-                      <div className="flex items-center justify-center w-5 mr-1.5">
-                        <Fish className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
-                      </div>
-                      <p className="text-center flex-1 leading-tight px-0.5">
-                        {plan.name === "Pack Survie" && "Pour petits aquariums de 10 à 60L : bettas seuls, guppys, rasboras, néons, petits poissons rouges isolés."}
-                        {plan.name === "Pack Basic" && "Pour aquariums communautaires de 60 à 150L : guppys, platies, rasboras, corydoras, petits cichlidés nains."}
-                        {plan.name === "Pack Premium" && "Pour grands bacs de plus de 150L : cichlidés africains (Malawi, Tanganyika), scalaires, discus et aquariums très plantés."}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
-                    <EditableText
-                      contentKey={priceKey}
-                      initialContent={plan.price}
-                      onUpdate={(newText) => handleTextUpdate(newText, priceKey)}
-                    />
-                    <span className="text-base font-normal text-slate-600 ml-1">/mois</span>
-                  </div>
-                  <div className="space-y-4 mb-8 flex-grow">
-                    {plan.features.map((feature, index) => {
-                      const featureKey = `pack_${plan.id}_features_${index + 1}`;
-                      let supabaseFeatureIndex = index + 1;
-                      if (plan.id === 'premium' && supabaseFeatureIndex >= 3) {
-                        supabaseFeatureIndex++;
-                      }
-                      const actualFeatureKey = `pack_${plan.id}_features_${supabaseFeatureIndex}`;
-
-                      return (
-                        <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-3">
-                          <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="flex items-center gap-1">
-                            <EditableText
-                              contentKey={actualFeatureKey}
-                              initialContent={feature}
-                              onUpdate={(newText) => handleTextUpdate(newText, actualFeatureKey)}
-                            />
-                            {containsRevePoints(feature) && (
-                              <MobileTooltip
-                                content={
-                                  <EditableText
-                                    contentKey="reve_points_tooltip"
-                                    initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
-                                    onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
-                                  />
-                                }
-                              >
-                                <span className="cursor-help">
-                                  <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
-                                </span>
-                              </MobileTooltip>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {plan.noFeatures.map((feature, index) => (
-                      <div key={`${plan.id}-nofeature-${index}`} className="flex items-start gap-3 text-slate-400">
-                        <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                        <EditableText
-                          contentKey={`pack_${plan.id}_no_features_${index + 1}`}
-                          initialContent={feature}
-                          onUpdate={(newText) => handleTextUpdate(newText, `pack_${plan.id}_no_features_${index + 1}`)}
+                    {isEditMode && (
+                      <div className="flex justify-center mt-4 mb-2">
+                        <button
+                          onClick={() => fileInputRefs.current[plan.id]?.click()}
+                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm"
+                        >
+                          Ajouter des images
+                        </button>
+                        <input
+                          type="file"
+                          ref={el => fileInputRefs.current[plan.id] = el}
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => handleImageUpload(e, plan.id)}
                         />
                       </div>
-                    ))}
-                  </div>
-                  <div className="text-sm text-slate-600 mb-6 text-center">
-                    Idéal pour : <span className="font-semibold">{plan.ideal}</span>
-                  </div>
-                  <div className="mt-2 sm:mt-4 md:mt-auto">
-                    {isEditMode ? (
-                      <div className="flex flex-col items-center">
-                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
-                          <EditableText
-                            contentKey={plan.buttonTextKey}
-                            initialContent={buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
-                            onUpdate={(newText) => handleTextUpdate(newText, plan.buttonTextKey)}
-                          />
-                        </Button>
-                        <EditableURL
-                          contentKey={plan.buttonUrlKey}
-                          initialContent={buttonData?.[plan.buttonUrlKey] || "#"}
-                          onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.buttonUrlKey)}
-                        />
-                      </div>
-                    ) : (
-                      <a
-                        href={buttonData?.[plan.buttonUrlKey]?.startsWith("http")
-                          ? buttonData[plan.buttonUrlKey]
-                          : `http://${buttonData?.[plan.buttonUrlKey] || "#"}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
-                          {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
-                        </Button>
-                      </a>
                     )}
+                    <h3 className="text-2xl font-bold mb-2 mt-4 min-h-[40px] flex items-center justify-center text-center">
+                      <EditableText
+                        contentKey={nameKey}
+                        initialContent={plan.name}
+                        onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
+                      />
+                    </h3>
+                    <div className="flex items-center justify-center mb-4 px-2">
+                      <div className="inline-flex items-center justify-center bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-medium px-3 py-2 rounded-full w-full max-w-[95%] mx-auto">
+                        <div className="flex items-center justify-center w-5 mr-1.5">
+                          <Fish className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
+                        </div>
+                        <p className="text-center flex-1 leading-tight px-0.5">
+                          {plan.name === "Pack Survie" && "Pour petits aquariums de 10 à 60L : bettas seuls, guppys, rasboras, néons, petits poissons rouges isolés."}
+                          {plan.name === "Pack Basic" && "Pour aquariums communautaires de 60 à 150L : guppys, platies, rasboras, corydoras, petits cichlidés nains."}
+                          {plan.name === "Pack Premium" && "Pour grands bacs de plus de 150L : cichlidés africains (Malawi, Tanganyika), scalaires, discus et aquariums très plantés."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
+                      <EditableText
+                        contentKey={priceKey}
+                        initialContent={plan.price}
+                        onUpdate={(newText) => handleTextUpdate(newText, priceKey)}
+                      />
+                      <span className="text-base font-normal text-slate-600 ml-1">/mois</span>
+                    </div>
+                    <div className="space-y-4 mb-8 flex-grow">
+                      {plan.features.map((feature, index) => {
+                        const featureKey = `pack_${plan.id}_features_${index + 1}`;
+                        let supabaseFeatureIndex = index + 1;
+                        if (plan.id === 'premium' && supabaseFeatureIndex >= 3) {
+                          supabaseFeatureIndex++;
+                        }
+                        const actualFeatureKey = `pack_${plan.id}_features_${supabaseFeatureIndex}`;
+
+                        return (
+                          <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <div className="flex items-center gap-1">
+                              <EditableText
+                                contentKey={actualFeatureKey}
+                                initialContent={feature}
+                                onUpdate={(newText) => handleTextUpdate(newText, actualFeatureKey)}
+                              />
+                              {containsRevePoints(feature) && (
+                                <MobileTooltip
+                                  content={
+                                    <EditableText
+                                      contentKey="reve_points_tooltip"
+                                      initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
+                                      onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
+                                    />
+                                  }
+                                >
+                                  <span className="cursor-help">
+                                    <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
+                                  </span>
+                                </MobileTooltip>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {plan.noFeatures.map((feature, index) => (
+                        <div key={`${plan.id}-nofeature-${index}`} className="flex items-start gap-3 text-slate-400">
+                          <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                          <EditableText
+                            contentKey={`pack_${plan.id}_no_features_${index + 1}`}
+                            initialContent={feature}
+                            onUpdate={(newText) => handleTextUpdate(newText, `pack_${plan.id}_no_features_${index + 1}`)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-sm text-slate-600 mb-6 text-center">
+                      Idéal pour : <span className="font-semibold">{plan.ideal}</span>
+                    </div>
+                    <div className="mt-2 sm:mt-4 md:mt-auto">
+                      {isEditMode ? (
+                        <div className="flex flex-col items-center">
+                          <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                            <EditableText
+                              contentKey={plan.buttonTextKey}
+                              initialContent={buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                              onUpdate={(newText) => handleTextUpdate(newText, plan.buttonTextKey)}
+                            />
+                          </Button>
+                          <EditableURL
+                            contentKey={plan.buttonUrlKey}
+                            initialContent={buttonData?.[plan.buttonUrlKey] || "#"}
+                            onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.buttonUrlKey)}
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={buttonData?.[plan.buttonUrlKey]?.startsWith("http")
+                            ? buttonData[plan.buttonUrlKey]
+                            : `http://${buttonData?.[plan.buttonUrlKey] || "#"}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                            {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                          </Button>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -1264,7 +1310,7 @@ const Pricing = () => {
             {monthlyPacksWithSurprise.map((pack, packIndex) => (
               <div 
                 key={pack.name}
-                className="flex flex-col h-full"
+                className="relative flex flex-col h-full"
               >
                 <div className={`bg-gradient-to-br ${pack.name === "Pack Découverte" ? "from-yellow-50 to-yellow-100" : "from-blue-50 to-blue-100"} rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl h-full flex flex-col`}>
                   {/* Badge */}
@@ -1435,17 +1481,40 @@ const Pricing = () => {
 
                     {/* Bouton avec espacement adaptatif */}
                     <div className="mt-2 sm:mt-4 md:mt-auto">
-                      {/* Temporairement masqué
                       <div className="text-center mb-3">
                         <MobileTooltip
                           content={
                             <div className="bg-white p-4 rounded-xl shadow-xl max-w-[300px] border border-gray-100">
                               <div className="space-y-3">
-                                <h4 className="font-semibold text-primary">
-                                  Détails à venir
+                                <h4 className="font-semibold text-primary border-b pb-2">
+                                  <EditableText
+                                    contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip_title`}
+                                    initialContent={
+                                      pricingData?.[`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip_title`] ||
+                                      pack.name
+                                    }
+                                    onUpdate={(newText) =>
+                                      handleTextUpdate(
+                                        newText,
+                                        `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip_title`
+                                      )
+                                    }
+                                  />
                                 </h4>
-                                <div className="text-sm text-slate-600">
-                                  Contenu en cours de préparation
+                                <div className="text-sm text-slate-600 space-y-2">
+                                  <EditableText
+                                    contentKey={`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip`}
+                                    initialContent={
+                                      pricingData?.[`monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip`] ||
+                                      "Ajoutez ici les détails de ce pack."
+                                    }
+                                    onUpdate={(newText) =>
+                                      handleTextUpdate(
+                                        newText,
+                                        `monthly_pack_${pack.name.toLowerCase().replace(" ", "_")}_tooltip`
+                                      )
+                                    }
+                                  />
                                 </div>
                               </div>
                             </div>
@@ -1456,7 +1525,6 @@ const Pricing = () => {
                           </span>
                         </MobileTooltip>
                       </div>
-                      */}
                       {isEditMode ? (
                         <div className="flex flex-col items-center">
                           <Button className="w-full bg-primary text-white hover:bg-primary/90 shadow-lg hover:shadow-xl">

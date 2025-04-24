@@ -58,6 +58,22 @@ const Footer = () => {
     },
   });
 
+  // Debug: log complet des données brutes
+  useEffect(() => {
+    if (!footerLinks.length) return;
+
+    console.log("🧾 Toutes les données brutes de footerLinks:");
+    footerLinks.forEach((link, i) => {
+      console.log(`#${i}`, {
+        id: link.id,
+        label: link.label,
+        section: link.section,
+        sectionNormalized: normalize(link.section),
+        url: link.url,
+      });
+    });
+  }, [footerLinks]);
+
   // Fetch footer settings from Supabase
   const { data: footerSettings = {}, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['footer-settings'],
@@ -116,6 +132,56 @@ const Footer = () => {
     return `http://${cleanUrl}`;
   };
 
+  // Fonction de normalisation (accents, casse, espaces)
+  const normalize = (s?: string) =>
+    (s || '').normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+
+  // Debug: afficher toutes les sections
+  useEffect(() => {
+    if (footerLinks) {
+      console.log("🏷 Toutes les sections dans footerLinks:", 
+        footerLinks.map(l => ({
+          section: l.section,
+          label: l.label,
+          url: l.url
+        }))
+      );
+
+      // Warning pour les sections inconnues
+      footerLinks.forEach((link) => {
+        const norm = normalize(link.section);
+        if (!['mentions legales', 'liens utiles', 'reseaux sociaux'].includes(norm)) {
+          console.warn("⚠️ Section inconnue détectée:", link);
+        }
+      });
+    }
+  }, [footerLinks]);
+
+  // Sections filtrées sans useMemo
+  const legalLinks = footerLinks.filter(link => {
+    const raw = link.section;
+    const norm = normalize(link.section);
+    console.log("🔎 Test section:", { raw, norm });
+
+    return norm.includes("mentions legales") && link.label && link.url;
+  });
+
+  const usefulLinks = footerLinks
+    ?.filter(link => normalize(link.section) === normalize('Liens Utiles'))
+    .filter(link => link.label && link.url) || [];
+
+  const socialLinks = footerLinks
+    ?.filter(link => normalize(link.section) === normalize('Réseaux Sociaux'))
+    .filter(link => link.label && link.url) || [];
+
+  // Debug: log avant chaque rendu
+  console.log("📊 État actuel des liens:", {
+    total: footerLinks?.length || 0,
+    legal: legalLinks.length,
+    useful: usefulLinks.length,
+    social: socialLinks.length
+  });
+
   // Add new link mutation
   const addLinkMutation = useMutation({
     mutationFn: async (newLink: { label: string; url: string; section: string; display_order: number }) => {
@@ -142,32 +208,16 @@ const Footer = () => {
         await queryClient.invalidateQueries({ queryKey: ['footer-links'] });
         console.log('✅ [onSuccess] footer-links invalidated');
 
-        console.log('📡 [onSuccess] Refetching footer-links...');
-        const { data: refreshedLinks, error } = await supabase
-          .from('footer_links')
-          .select('*')
-          .order('display_order', { ascending: true });
-
-        if (error) {
-          console.error('❌ [onSuccess] Error refetching footer-links:', error);
-          return;
-        }
-
-        console.log('📦 [onSuccess] Refetched links:', refreshedLinks);
-
-        if (refreshedLinks) {
-          console.log('🧹 [onSuccess] Setting query data for footer-links...');
-          queryClient.setQueryData(['footer-links'], refreshedLinks);
-          console.log('✅ [onSuccess] Query data set');
-        }
-
-        // Vider les drafts
-        if (data.section === 'Mentions Légales') {
-          console.log('🧹 [onSuccess] Clearing draftLegalLinks');
+        // Gestion sécurisée des sections
+        const normalizedSection = normalize(data.section);
+        if (normalizedSection.includes('mentions legales')) {
           setDraftLegalLinks([]);
-        } else if (data.section === 'Liens Utiles') {
-          console.log('🧹 [onSuccess] Clearing draftUsefulLinks');
+        } else if (normalizedSection.includes('liens utiles')) {
           setDraftUsefulLinks([]);
+        } else if (normalizedSection.includes('reseaux sociaux')) {
+          console.log('🎯 Rien à faire pour Réseaux Sociaux');
+        } else {
+          console.warn('⚠️ Section inconnue:', data.section);
         }
 
         toast({
@@ -383,30 +433,6 @@ const Footer = () => {
     }
   };
 
-  // Group links by section
-  const getLinksBySection = (section: string) => {
-    return footerLinks?.filter(link => 
-      link.section?.toLowerCase() === section.toLowerCase()
-    ) || [];
-  };
-
-  // Use useMemo to recalculate links when footerLinks changes
-  const legalLinks = React.useMemo(() => {
-    const links = getLinksBySection('Mentions Légales').filter(link => link.label && link.url);
-    console.log('🧩 legalLinks affichés:', links);
-    return links;
-  }, [footerLinks]);
-
-  const usefulLinks = React.useMemo(() => {
-    const links = getLinksBySection('Liens Utiles').filter(link => link.label && link.url);
-    console.log('🧩 usefulLinks affichés:', links);
-    return links;
-  }, [footerLinks]);
-
-  const socialLinks = React.useMemo(() => 
-    getLinksBySection('Réseaux Sociaux').filter(link => link.label && link.url),
-  [footerLinks]);
-
   // Render the social media icon based on the label
   const renderSocialIcon = (label: string) => {
     switch (label.toLowerCase()) {
@@ -452,43 +478,34 @@ const Footer = () => {
 
   // Ajouter ou mettre à jour les liens sociaux au chargement du composant
   useEffect(() => {
-    if (!isEditMode) return; // Only run in edit mode
+    if (!isEditMode || socialLinks.length > 0) return; // Ne pas exécuter si déjà des liens sociaux
 
     const updateSocialLinks = async () => {
-      const existingFacebookLink = socialLinks.find(link => link.label.toLowerCase() === 'facebook');
-      const existingInstagramLink = socialLinks.find(link => link.label.toLowerCase() === 'instagram');
-
-      if (!existingFacebookLink) {
+      try {
+        // Ajouter Facebook s'il n'existe pas
         await addLinkMutation.mutateAsync({
           label: 'Facebook',
           url: defaultSocialLinks.facebook,
           section: 'Réseaux Sociaux',
           display_order: 1
         });
-      } else if (existingFacebookLink.url !== defaultSocialLinks.facebook) {
-        await updateLinkMutation.mutateAsync({
-          id: existingFacebookLink.id,
-          updatedLink: { ...existingFacebookLink, url: defaultSocialLinks.facebook }
-        });
-      }
 
-      if (!existingInstagramLink) {
+        // Ajouter Instagram s'il n'existe pas
         await addLinkMutation.mutateAsync({
           label: 'Instagram',
           url: defaultSocialLinks.instagram,
           section: 'Réseaux Sociaux',
           display_order: 2
         });
-      } else if (existingInstagramLink.url !== defaultSocialLinks.instagram) {
-        await updateLinkMutation.mutateAsync({
-          id: existingInstagramLink.id,
-          updatedLink: { ...existingInstagramLink, url: defaultSocialLinks.instagram }
-        });
+
+        console.log("✅ Liens sociaux ajoutés avec succès");
+      } catch (error) {
+        console.error("❌ Erreur lors de l'ajout des liens sociaux:", error);
       }
     };
 
     updateSocialLinks();
-  }, [isEditMode, socialLinks]);
+  }, [isEditMode]); // Plus de dépendance à socialLinks
 
   return (
     <footer className="bg-gray-50 text-gray-700 border-t border-gray-200">
@@ -573,7 +590,6 @@ const Footer = () => {
                 className="inline"
               />
             </h3>
-            {console.log('🔎 Liste complète des legalLinks:', legalLinks)}
             <ul className="space-y-2">
               {legalLinks.map(link => (
                 <li key={link.id}>
@@ -656,11 +672,13 @@ const Footer = () => {
                           });
                           return;
                         }
+                        console.log("🧪 Tentative ajout lien Mentions Légales :", draft.label, draft.url);
+                        const maxOrder = Math.max(...legalLinks.map(l => l.display_order || 0), 0);
                         addLinkMutation.mutate({
                           label: draft.label,
                           url: draft.url,
                           section: 'Mentions Légales',
-                          display_order: legalLinks.length + index + 1
+                          display_order: maxOrder + 1
                         });
                         setDraftLegalLinks(d => d.filter((_, i) => i !== index));
                       }}
