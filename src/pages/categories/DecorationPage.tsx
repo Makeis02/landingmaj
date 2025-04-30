@@ -1,0 +1,11 @@
+const DecorationPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Décoration</h1>
+      <p>Bienvenue sur la page test de la catégorie "Décoration".</p>
+      <p>Ici tu pourras bientôt afficher les produits, les sous-catégories, etc.</p>
+    </div>
+  );
+};
+
+export default DecorationPage; 

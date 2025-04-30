@@ -1,0 +1,20 @@
+import React from "react";
+
+const EauDouceNettoyagePage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Nettoyage Aquarium</h1>
+      <p>Bienvenue sur la page dédiée aux produits de nettoyage pour aquariums d'eau douce.</p>
+      <p>Découvrez notre sélection de produits pour maintenir votre aquarium propre et sain :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Nettoyants pour vitres</li>
+        <li>Éponges et raclettes</li>
+        <li>Produits de nettoyage du substrat</li>
+        <li>Accessoires de maintenance</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits détaillés, guides de nettoyage, conseils d'entretien...</p>
+    </div>
+  );
+};
+
+export default EauDouceNettoyagePage; 

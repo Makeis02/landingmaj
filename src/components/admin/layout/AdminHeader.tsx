@@ -1,13 +1,19 @@
-import { LogOut, Home } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { LogOut, Home, Settings, FolderTree, Package } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { useEditStore } from "@/stores/useEditStore";
 
-export const AdminHeader = ({ onEditToggle, isEditing }) => {
+export const AdminHeader = () => {
   const navigate = useNavigate();
+  const { isEditMode, isAdmin, setEditMode } = useEditStore();
+
+  // Ne pas afficher le header si l'utilisateur n'est pas admin ou n'est pas en mode édition
+  if (!isAdmin || !isEditMode) return null;
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setEditMode(false); // Désactiver le mode édition lors de la déconnexion
     navigate("/admin-login");
   };
 
@@ -21,6 +27,20 @@ export const AdminHeader = ({ onEditToggle, isEditing }) => {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900">Mode Administrateur</h1>
           <div className="flex gap-4">
+            <Link
+              to="/admin/categories"
+              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <FolderTree className="w-4 h-4 mr-2" />
+              Catégories
+            </Link>
+            <Link
+              to="/admin/produits"
+              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              Produits
+            </Link>
             <Button onClick={handleGoToSite} variant="outline">
               <Home className="w-4 h-4 mr-2" />
               Accéder au site
@@ -35,3 +55,5 @@ export const AdminHeader = ({ onEditToggle, isEditing }) => {
     </header>
   );
 };
+
+export default AdminHeader;

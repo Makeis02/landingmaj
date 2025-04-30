@@ -25,14 +25,18 @@ const PORT = process.env.PORT || 3000;
 const WS_PORT = process.env.WS_PORT || 8081;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "MON_TOKEN_SECRET";
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || "MON_ACCESS_TOKEN_FACEBOOK";
+const SHOPIFY_DOMAIN = process.env.VITE_SHOPIFY_STORE_DOMAIN;
+const SHOPIFY_ADMIN_ACCESS_TOKEN = process.env.VITE_SHOPIFY_ADMIN_ACCESS_TOKEN;
 
 console.log('🔑 Configuration chargée:');
 console.log('- PORT:', PORT);
 console.log('- WS_PORT:', WS_PORT);
 console.log('- VERIFY_TOKEN:', VERIFY_TOKEN ? '✅ Défini' : '❌ Manquant');
 console.log('- PAGE_ACCESS_TOKEN:', PAGE_ACCESS_TOKEN ? '✅ Défini' : '❌ Manquant');
+console.log('- SHOPIFY_DOMAIN:', SHOPIFY_DOMAIN ? '✅ Défini' : '❌ Manquant');
+console.log('- SHOPIFY_ADMIN_ACCESS_TOKEN:', SHOPIFY_ADMIN_ACCESS_TOKEN ? '✅ Défini' : '❌ Manquant');
 
-// 🛠️ Middleware
+// 🛠️ Middleware essentiels
 app.use(bodyParser.json());
 app.use(cors());
 
@@ -66,6 +70,93 @@ const broadcastMessage = (message) => {
 
 // 📂 Stockage temporaire des conversations (Remplacez par une BDD)
 const conversations = new Map();
+
+// ==========================================
+// 🔴 SECTION API ROUTES (PRIORITAIRES)
+// ==========================================
+
+// 🛍️ **API Shopify pour les produits**
+app.get('/api/shopify/products', async (req, res) => {
+  if (!SHOPIFY_DOMAIN || !SHOPIFY_ADMIN_ACCESS_TOKEN) {
+    console.error('❌ Variables d\'environnement Shopify manquantes');
+    return res.status(500).json({ 
+      error: 'Configuration Shopify manquante', 
+      message: 'Les identifiants Shopify ne sont pas configurés sur le serveur' 
+    });
+  }
+
+  try {
+    console.log('🔍 Récupération des produits depuis Shopify...');
+    const response = await axios.get(`https://${SHOPIFY_DOMAIN}/admin/api/2023-10/products.json`, {
+      headers: {
+        "X-Shopify-Access-Token": SHOPIFY_ADMIN_ACCESS_TOKEN,
+        "Content-Type": "application/json",
+      }
+    });
+
+    // Vérifier d'abord si nous avons des données valides
+    if (!response.data) {
+      console.error('❌ Réponse vide de Shopify');
+      return res.status(500).json({ 
+        error: 'Réponse vide', 
+        message: 'Shopify a renvoyé une réponse vide' 
+      });
+    }
+
+    // Vérifier si nous avons des produits dans les données
+    if (!response.data.products || !Array.isArray(response.data.products)) {
+      console.error('❌ Aucun produit dans la réponse Shopify:', response.data);
+      return res.status(500).json({ 
+        error: 'Pas de produits', 
+        message: 'Aucun produit trouvé dans la réponse de Shopify' 
+      });
+    }
+
+    // Formater les données avant de les renvoyer au frontend
+    const formattedProducts = response.data.products.map(product => ({
+      id: product.id,
+      title: product.title,
+      price: product.variants[0]?.price || "0.00",
+      stock: product.variants[0]?.inventory_quantity || 0,
+      image: product.image?.src || "",
+    }));
+
+    console.log(`✅ ${formattedProducts.length} produits récupérés avec succès`);
+    
+    // Toujours renvoyer un JSON valide, même si la liste est vide
+    return res.status(200).json({ 
+      products: formattedProducts,
+      count: formattedProducts.length
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la communication avec Shopify :', error.message);
+    
+    // Sécuriser le message d'erreur pour toujours renvoyer un JSON valide
+    let errorMessage = "Erreur inconnue";
+    
+    if (error.response) {
+      // La requête a été faite et le serveur a répondu avec un code d'état hors de la plage 2xx
+      errorMessage = `Erreur API Shopify (${error.response.status}): ${JSON.stringify(error.response.data || {})}`;
+    } else if (error.request) {
+      // La requête a été faite mais aucune réponse n'a été reçue
+      errorMessage = "Pas de réponse de Shopify - vérifiez la connectivité réseau";
+    } else {
+      // Une erreur s'est produite lors de la configuration de la requête
+      errorMessage = error.message || "Erreur lors de la configuration de la requête";
+    }
+    
+    return res.status(500).json({ 
+      error: 'Erreur API Shopify', 
+      message: errorMessage,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 🌍 **Endpoint pour tester si le serveur tourne**
+app.get('/api/health', (req, res) => {
+    res.status(200).json({ status: "ok", message: "✅ Serveur en ligne et fonctionnel !" });
+});
 
 // 🔍 **Vérification Webhook Facebook**
 app.get('/webhook', (req, res) => {
@@ -152,9 +243,17 @@ const sendMessageToMessenger = async (recipientId, messageText) => {
     }
 };
 
-// 🌍 **Endpoint pour tester si le serveur tourne**
-app.get('/', (req, res) => {
-    res.send("✅ Serveur en ligne et fonctionnel !");
+// ==========================================
+// 🔵 SECTION FRONTEND (APRÈS LES API)
+// ==========================================
+
+// Servir les fichiers statiques de l'application React
+app.use(express.static(path.join(__dirname, 'dist')));
+
+// Route par défaut qui retourne index.html pour toutes les requêtes qui ne correspondent pas à une API
+app.get('*', (req, res) => {
+    console.log(`🌐 Requête frontend pour: ${req.path}`);
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // **🚀 Démarrage du serveur**

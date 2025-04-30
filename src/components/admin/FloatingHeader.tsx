@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Edit, LogOut, Save } from "lucide-react";
@@ -6,6 +5,7 @@ import { useEditStore } from "@/stores/useEditStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import AdminHeader from "@/components/admin/layout/AdminHeader";
 
 const FloatingHeader = () => {
   const { isEditMode, setEditMode, checkAdminStatus, isAdmin } = useEditStore();

@@ -1,0 +1,13 @@
+import React from "react";
+
+const DecorationsResinePage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Décorations en résine</h1>
+      <p>Bienvenue sur la page dédiée à la catégorie "Décorations en résine".</p>
+      <p>Prochainement : contenu spécifique, produits, fiches conseils…</p>
+    </div>
+  );
+};
+
+export default DecorationsResinePage; 

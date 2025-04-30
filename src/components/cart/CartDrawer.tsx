@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, X } from "lucide-react";
@@ -20,6 +19,7 @@ export const CartDrawer = () => {
   const { toast } = useToast();
   const { items, syncWithSupabase, getTotal, fetchGiftSettings } = useCartStore();
   const [reachedThreshold, setReachedThreshold] = useState<number | null>(null);
+  const prevItemsLength = useRef(items.length);
 
   // Fetch thresholds data
   const { data: thresholds } = useQuery({
@@ -90,6 +90,14 @@ export const CartDrawer = () => {
     
     manageGift();
   }, [items.length, giftSettings]);
+
+  // Effect pour ouvrir automatiquement le panier quand un produit est ajouté
+  useEffect(() => {
+    if (items.length > prevItemsLength.current) {
+      setIsOpen(true);
+    }
+    prevItemsLength.current = items.length;
+  }, [items.length]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = getTotal();

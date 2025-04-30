@@ -1,0 +1,20 @@
+import React from "react";
+
+const ChauffagesPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Chauffages</h1>
+      <p>Bienvenue sur la page dédiée aux chauffages pour aquarium.</p>
+      <p>Découvrez notre sélection de systèmes de chauffage :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Thermoplongeurs</li>
+        <li>Chauffages automatiques</li>
+        <li>Câbles chauffants</li>
+        <li>Régulateurs de température</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits spécifiques, guides d'installation, conseils de réglage...</p>
+    </div>
+  );
+};
+
+export default ChauffagesPage; 

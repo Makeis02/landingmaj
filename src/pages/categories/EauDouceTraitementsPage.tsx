@@ -1,0 +1,20 @@
+import React from "react";
+
+const EauDouceTraitementsPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Traitements</h1>
+      <p>Bienvenue sur la page dédiée aux traitements pour aquariums d'eau douce.</p>
+      <p>Découvrez notre sélection de produits pour traiter et maintenir la qualité de l'eau :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Conditionneurs d'eau</li>
+        <li>Traitements anti-algues</li>
+        <li>Produits de stabilisation</li>
+        <li>Traitements spécifiques</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits détaillés, guides de traitement, conseils d'utilisation...</p>
+    </div>
+  );
+};
+
+export default EauDouceTraitementsPage; 

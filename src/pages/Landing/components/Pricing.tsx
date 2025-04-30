@@ -600,15 +600,24 @@ const Pricing = () => {
   }, [data]);
 
   const monthlyPacksWithSurprise = monthlyPacks.map(pack => {
+    const updatedNotes = [...pack.notes];
+
     if (pack.name === "Pack Premium") {
-      const updatedNotes = [...pack.notes];
-      updatedNotes.splice(1, 0, "Surprise offerte chaque mois");
-      return {
-        ...pack,
-        notes: updatedNotes
-      };
+      updatedNotes.push(pricingData?.monthly_pack_pack_premium_note_3 || "Notice illustrée incluse");
     }
-    return pack;
+
+    if (pack.name === "Pack Basix") {
+      updatedNotes.push(pricingData?.monthly_pack_pack_basix_note_3 || "Notice illustrée incluse");
+    }
+
+    if (pack.name === "Pack Survie") {
+      updatedNotes.push(pricingData?.monthly_pack_pack_survie_note_3 || "Notice illustrée incluse");
+    }
+
+    return {
+      ...pack,
+      notes: updatedNotes
+    };
   });
 
   const containsRevePoints = (text: string): boolean => {
@@ -1325,13 +1334,13 @@ const Pricing = () => {
                   {/* Grille d'images avec hauteur adaptative */}
                   <div className="h-[150px] sm:h-[200px] md:h-[250px] mb-4 sm:mb-6 md:mb-8">
                     <div className={`grid ${
-                      pack.name === "Pack Survie" ? "grid-cols-2" :
-                      pack.name === "Pack Premium" ? "grid-cols-3" :
+                      pack.name === "Pack Survie" ? "grid-cols-3" :
+                      pack.name === "Pack Premium" ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-4" :
                       "grid-cols-3"  // Toujours 3 colonnes en mobile pour Pack Découverte
                     } gap-1 sm:gap-2 md:gap-4 h-full`}>
                       {pack.name === "Pack Survie" ? (
-                        // Pack Survie - 2 images en 2 colonnes
-                        [...Array(2)].map((_, index) => (
+                        // Pack Survie - 3 images en 3 colonnes
+                        [...Array(3)].map((_, index) => (
                           <div
                             key={`${pack.name}-image-${index}`}
                             className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
@@ -1344,8 +1353,8 @@ const Pricing = () => {
                           </div>
                         ))
                       ) : pack.name === "Pack Premium" ? (
-                        // Pack Premium - 3 images en 3 colonnes
-                        [...Array(3)].map((_, index) => (
+                        // Pack Premium - 4 images en grille 2x2 (mobile) ou 4x1 (desktop)
+                        [...Array(4)].map((_, index) => (
                           <div
                             key={`${pack.name}-image-${index}`}
                             className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
@@ -1432,10 +1441,18 @@ const Pricing = () => {
                         {pack.name === "Pack Premium" 
                           ? pack.notes
                               .filter(note => typeof note === "string" && note.replace(/[\s\u200B-\u200D\uFEFF]/g, "") !== "")
-                              .slice(0, 3)
                               .map((note, index) => {
                                 const showGiftIcon = note.includes("Bambou Amtra");
                                 const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
+                                // Remplacer index par un vrai index
+                                // Ajoute une condition spécifique pour le nouveau 3e élément
+                                const finalKey = (pack.name === "Pack Premium" && index === 3)
+                                  ? "monthly_pack_pack_premium_note_3"
+                                  : (pack.name === "Pack Basix" && index === 3)
+                                  ? "monthly_pack_pack_basix_note_3"
+                                  : (pack.name === "Pack Survie" && index === 3)
+                                  ? "monthly_pack_pack_survie_note_3"
+                                  : noteKey;
 
                                 return (
                                   <li key={index} className="text-[11px] sm:text-xs md:text-sm">
@@ -1444,9 +1461,9 @@ const Pricing = () => {
                                       <div className="flex items-center gap-1">
                                         {showGiftIcon && <Gift className="h-3 w-3 text-primary mr-1 flex-shrink-0" />}
                                         <EditableText 
-                                          contentKey={noteKey}
+                                          contentKey={finalKey}
                                           initialContent={note}
-                                          onUpdate={(newText) => handleTextUpdate(newText, noteKey)}
+                                          onUpdate={(newText) => handleTextUpdate(newText, finalKey)}
                                         />
                                       </div>
                                     </div>
@@ -1458,6 +1475,15 @@ const Pricing = () => {
                               .map((note, index) => {
                                 const showGiftIcon = note.includes("Bambou Amtra");
                                 const noteKey = `monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_note_${index}`;
+                                // Remplacer index par un vrai index
+                                // Ajoute une condition spécifique pour le nouveau 3e élément
+                                const finalKey = (pack.name === "Pack Premium" && index === 3)
+                                  ? "monthly_pack_pack_premium_note_3"
+                                  : (pack.name === "Pack Basix" && index === 3)
+                                  ? "monthly_pack_pack_basix_note_3"
+                                  : (pack.name === "Pack Survie" && index === 3)
+                                  ? "monthly_pack_pack_survie_note_3"
+                                  : noteKey;
 
                                 return (
                                   <li key={index} className="text-[11px] sm:text-xs md:text-sm">
@@ -1466,9 +1492,9 @@ const Pricing = () => {
                                       <div className="flex items-center gap-1">
                                         {showGiftIcon && <Gift className="h-3 w-3 text-primary mr-1 flex-shrink-0" />}
                                         <EditableText 
-                                          contentKey={noteKey}
+                                          contentKey={finalKey}
                                           initialContent={note}
-                                          onUpdate={(newText) => handleTextUpdate(newText, noteKey)}
+                                          onUpdate={(newText) => handleTextUpdate(newText, finalKey)}
                                         />
                                       </div>
                                     </div>
