@@ -181,6 +181,24 @@ const Pricing = () => {
   const [carouselSpeed, setCarouselSpeed] = useState<number>(5000);
   const [boxImages, setBoxImages] = useState<BoxImagesData>({});
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
+  
+  // Check if it's mobile view (less than sm breakpoint)
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 640);
+    };
+    
+    // Check on initial load
+    checkMobileView();
+    
+    // Add event listener for window resize
+    window.addEventListener('resize', checkMobileView);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobileView);
+  }, []);
+  
   const { data, refetch } = useQuery({
     queryKey: ["pricing-content"],
     queryFn: async () => {
@@ -777,7 +795,7 @@ const Pricing = () => {
         <img 
           src={initialUrl || "https://via.placeholder.com/150?text=Image+non+disponible"} 
           alt="" 
-          className="w-full aspect-[1/1] object-cover rounded-lg shadow-md transition-transform duration-500"
+          className="w-full aspect-[3/4] object-contain p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md"
         />
       );
     }
@@ -787,7 +805,7 @@ const Pricing = () => {
         <img
           src={initialUrl || "https://via.placeholder.com/150?text=Ajouter+une+image"}
           alt=""
-          className="w-full aspect-[1/1] object-cover rounded-lg shadow-md transition-transform duration-500"
+          className="w-full aspect-[3/4] object-contain p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md"
           onError={(e) => {
             if (initialUrl) {
               console.error("Image failed to load:", initialUrl);
@@ -1163,15 +1181,12 @@ const Pricing = () => {
                     />
                     {isEditMode && (
                       <div className="flex justify-center mt-4 mb-2">
-                        <button
-                          onClick={() => fileInputRefs.current[plan.id]?.click()}
-                          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm"
-                        >
+                        <label htmlFor={`file-input-${plan.id}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm cursor-pointer">
                           Ajouter des images
-                        </button>
+                        </label>
                         <input
+                          id={`file-input-${plan.id}`}
                           type="file"
-                          ref={el => fileInputRefs.current[plan.id] = el}
                           className="hidden"
                           accept="image/*"
                           multiple
@@ -1332,54 +1347,75 @@ const Pricing = () => {
                   </div>
 
                   {/* Grille d'images avec hauteur adaptative */}
-                  <div className="h-[150px] sm:h-[200px] md:h-[250px] mb-4 sm:mb-6 md:mb-8">
+                  <div className="mb-4 sm:mb-6 md:mb-8">
                     <div className={`grid ${
-                      pack.name === "Pack Survie" ? "grid-cols-3" :
-                      pack.name === "Pack Premium" ? "grid-cols-2 sm:grid-cols-2 md:grid-cols-4" :
-                      "grid-cols-3"  // Toujours 3 colonnes en mobile pour Pack Découverte
-                    } gap-1 sm:gap-2 md:gap-4 h-full`}>
+                      pack.name === "Pack Survie" ? "grid-cols-2 sm:grid-cols-3" :
+                      pack.name === "Pack Premium" ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4" :
+                      "grid-cols-2 sm:grid-cols-3"
+                    } gap-2 sm:gap-3 md:gap-4`}>
                       {pack.name === "Pack Survie" ? (
                         // Pack Survie - 3 images en 3 colonnes
-                        [...Array(3)].map((_, index) => (
-                          <div
-                            key={`${pack.name}-image-${index}`}
-                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                          >
-                            <BoxEditableImage
-                              imageKey={`box_mois_pack_survie_image_${index + 1}`}
-                              initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
-                              onUpdate={() => refetchBoxImages()}
-                            />
-                          </div>
-                        ))
+                        [...Array(3)].map((_, index) => {
+                          // Centrer uniquement si c'est le dernier élément ET que le nombre total d'éléments est impair (dans une grille de 2 colonnes en mobile)
+                          const totalImages = 3;
+                          const isLastAndAlone = isMobileView && (index === totalImages - 1) && (totalImages % 2 !== 0);
+                          return (
+                            <div
+                              key={`${pack.name}-image-${index}`}
+                              className={`relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105 ${
+                                isLastAndAlone ? "col-span-2 justify-self-center w-1/2" : ""
+                              }`}
+                            >
+                              <BoxEditableImage
+                                imageKey={`box_mois_pack_survie_image_${index + 1}`}
+                                initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                          );
+                        })
                       ) : pack.name === "Pack Premium" ? (
-                        // Pack Premium - 4 images en grille 2x2 (mobile) ou 4x1 (desktop)
-                        [...Array(4)].map((_, index) => (
-                          <div
-                            key={`${pack.name}-image-${index}`}
-                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                          >
-                            <BoxEditableImage
-                              imageKey={`box_mois_pack_premium_image_${index + 1}`}
-                              initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
-                              onUpdate={() => refetchBoxImages()}
-                            />
-                          </div>
-                        ))
+                        // Pack Premium - 4 images en grille
+                        [...Array(4)].map((_, index) => {
+                          // Centrer uniquement si c'est le dernier élément ET que le nombre total d'éléments est impair (dans une grille de 2 colonnes en mobile)
+                          const totalImages = 4;
+                          const isLastAndAlone = isMobileView && (index === totalImages - 1) && (totalImages % 2 !== 0);
+                          return (
+                            <div
+                              key={`${pack.name}-image-${index}`}
+                              className={`relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105 ${
+                                isLastAndAlone ? "col-span-2 justify-self-center w-1/2" : ""
+                              }`}
+                            >
+                              <BoxEditableImage
+                                imageKey={`box_mois_pack_premium_image_${index + 1}`}
+                                initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                          );
+                        })
                       ) : (
-                        // Pack Découverte - 6 images en 2x3 sur mobile, 3x2 sur desktop
-                        [...Array(6)].map((_, index) => (
-                          <div
-                            key={`${pack.name}-image-${index}`}
-                            className="relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105"
-                          >
-                            <BoxEditableImage
-                              imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
-                              initialUrl={boxImages[`box_mois_pack_decouverte_image_${index + 1}`] || ""}
-                              onUpdate={() => refetchBoxImages()}
-                            />
-                          </div>
-                        ))
+                        // Pack Découverte - 6 images
+                        [...Array(6)].map((_, index) => {
+                          // Centrer uniquement si c'est le dernier élément ET que le nombre total d'éléments est impair (dans une grille de 2 colonnes en mobile)
+                          const totalImages = 6;
+                          const isLastAndAlone = isMobileView && (index === totalImages - 1) && (totalImages % 2 !== 0);
+                          return (
+                            <div
+                              key={`${pack.name}-image-${index}`}
+                              className={`relative overflow-hidden rounded-lg flex items-center justify-center transform transition-all duration-500 hover:scale-105 ${
+                                isLastAndAlone ? "col-span-2 justify-self-center w-1/2" : ""
+                              }`}
+                            >
+                              <BoxEditableImage
+                                imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
+                                initialUrl={boxImages[`box_mois_pack_decouverte_image_${index + 1}`] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                          );
+                        })
                       )}
                     </div>
                   </div>
