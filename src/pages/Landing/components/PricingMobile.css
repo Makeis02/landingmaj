@@ -1,0 +1,46 @@
+/* Styles mobiles pour la section Pricing */
+@media (max-width: 640px) {
+  /* Conteneur principal des box mensuelles */
+  .monthly-box-container {
+    min-height: auto !important;
+    padding-top: 1.5rem !important;
+  }
+  
+  /* Section des images */
+  .monthly-images-grid {
+    height: auto !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  /* Section d'informations (titre, prix, description) */
+  .monthly-info-section {
+    margin-top: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  
+  /* Conteneurs de texte */
+  .monthly-title-container,
+  .monthly-price-container,
+  .monthly-desc-container {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0.25rem 0 !important;
+  }
+  
+  /* Ajustements spécifiques */
+  .monthly-title-container {
+    margin-top: 0 !important;
+  }
+  
+  /* Section de contenu */
+  .monthly-content-box {
+    height: auto !important;
+    min-height: 180px !important;
+    max-height: 220px !important;
+    overflow-y: auto !important;
+  }
+} 

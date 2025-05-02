@@ -17,6 +17,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import Upcoming from "./Upcoming";
 import React from "react";
+import "./PricingMobile.css"; // Import des styles mobiles
 
 // Composant personnalisé pour les tooltips qui fonctionnent sur mobile
 interface MobileTooltipProps {
@@ -1336,7 +1337,7 @@ const Pricing = () => {
                 key={pack.name}
                 className="relative h-full"
               >
-                <div className={`bg-gradient-to-br ${pack.name === "Pack Découverte" ? "from-yellow-50 to-yellow-100" : "from-blue-50 to-blue-100"} rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl flex flex-col h-full min-h-[800px]`}>
+                <div className={`bg-gradient-to-br ${pack.name === "Pack Découverte" ? "from-yellow-50 to-yellow-100" : "from-blue-50 to-blue-100"} rounded-lg md:rounded-2xl p-4 md:p-8 shadow-lg hover:shadow-xl flex flex-col h-full min-h-[800px] monthly-box-container`}>
                   {/* Section du haut - Badge + Images */}
                   <div className="mb-4">
                     {/* Badge */}
@@ -1349,44 +1350,87 @@ const Pricing = () => {
                     </div>
 
                     {/* Grille d'images avec hauteur fixe */}
-                    <div className="h-[180px] mb-4 sm:mb-6 md:mb-8">
+                    <div className="h-[180px] mb-4 sm:mb-6 md:mb-8 monthly-images-grid">
                       <div className={`grid ${
-                        pack.name === "Pack Basic" ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"
-                      } gap-4 place-items-center h-full`}>
+                        pack.name === "Pack Basic" ? "grid-cols-2" : 
+                        pack.name === "Pack Premium" ? "grid-cols-2" :
+                        "grid-cols-2 sm:grid-cols-3"
+                      } gap-3 md:gap-2 place-items-center h-full md:h-[160px]`}>
                         {pack.name === "Pack Survie" ? (
-                          // Pack Survie - 3 images en 3 colonnes
-                          [...Array(3)].map((_, index) => (
-                            <div
-                              key={`${pack.name}-image-${index}`}
-                              className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] mx-auto aspect-[3/4]"
-                            >
+                          // Pack Survie - 3 images en 3 colonnes sur desktop, avec la 3ème centrée sur mobile
+                          <>
+                            {/* Première image */}
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
                               <BoxEditableImage
-                                imageKey={`box_mois_pack_survie_image_${index + 1}`}
-                                initialUrl={boxImages[`box_mois_pack_survie_image_${index + 1}`] || ""}
+                                imageKey="box_mois_pack_survie_image_1"
+                                initialUrl={boxImages["box_mois_pack_survie_image_1"] || ""}
                                 onUpdate={() => refetchBoxImages()}
                               />
                             </div>
-                          ))
+                            {/* Deuxième image */}
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_survie_image_2"
+                                initialUrl={boxImages["box_mois_pack_survie_image_2"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                            {/* Troisième image - centrée sur mobile uniquement */}
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4] hidden sm:flex">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_survie_image_3"
+                                initialUrl={boxImages["box_mois_pack_survie_image_3"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4] col-span-2 sm:hidden">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_survie_image_3"
+                                initialUrl={boxImages["box_mois_pack_survie_image_3"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                          </>
                         ) : pack.name === "Pack Premium" ? (
-                          // Pack Premium - 4 images en grille
-                          [...Array(4)].map((_, index) => (
-                            <div
-                              key={`${pack.name}-image-${index}`}
-                              className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] mx-auto aspect-[3/4]"
-                            >
+                          // Pack Premium - 4 images en grille 2x2
+                          <>
+                            {/* Première ligne: 2 images */}
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
                               <BoxEditableImage
-                                imageKey={`box_mois_pack_premium_image_${index + 1}`}
-                                initialUrl={boxImages[`box_mois_pack_premium_image_${index + 1}`] || ""}
+                                imageKey="box_mois_pack_premium_image_1"
+                                initialUrl={boxImages["box_mois_pack_premium_image_1"] || ""}
                                 onUpdate={() => refetchBoxImages()}
                               />
                             </div>
-                          ))
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_premium_image_2"
+                                initialUrl={boxImages["box_mois_pack_premium_image_2"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                            {/* Deuxième ligne: 2 images */}
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_premium_image_3"
+                                initialUrl={boxImages["box_mois_pack_premium_image_3"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                            <div className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]">
+                              <BoxEditableImage
+                                imageKey="box_mois_pack_premium_image_4"
+                                initialUrl={boxImages["box_mois_pack_premium_image_4"] || ""}
+                                onUpdate={() => refetchBoxImages()}
+                              />
+                            </div>
+                          </>
                         ) : (
                           // Pack Découverte - 6 images
                           [...Array(6)].map((_, index) => (
                             <div
                               key={`${pack.name}-image-${index}`}
-                              className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] mx-auto aspect-[3/4]"
+                              className="flex items-center justify-center p-2 bg-white/70 backdrop-blur-sm rounded-xl shadow-md w-full max-w-[100px] md:max-w-[85px] mx-auto aspect-[3/4]"
                             >
                               <BoxEditableImage
                                 imageKey={`box_mois_pack_decouverte_image_${index + 1}`}
@@ -1401,9 +1445,9 @@ const Pricing = () => {
                   </div>
 
                   {/* Section centrale - Titre, Prix, Description */}
-                  <div className="mb-4 mt-8">
+                  <div className="mb-4 mt-8 monthly-info-section">
                     {/* Titre avec hauteur fixe */}
-                    <div className="h-[60px] mb-2 sm:mb-4">
+                    <div className="h-[60px] mb-2 sm:mb-4 monthly-title-container">
                       <h3 className="text-base sm:text-lg md:text-2xl font-bold text-center flex items-center justify-center h-full">
                         <EditableText 
                           contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_name`}
@@ -1414,7 +1458,7 @@ const Pricing = () => {
                     </div>
 
                     {/* Prix avec hauteur fixe */}
-                    <div className="h-[50px] flex justify-center items-center gap-2 sm:gap-3 mb-2 sm:mb-4 md:mb-5">
+                    <div className="h-[50px] flex justify-center items-center gap-2 sm:gap-3 mb-2 sm:mb-4 md:mb-5 monthly-price-container">
                       <div className="flex items-baseline animate-pulse">
                         <span className="text-xl sm:text-2xl md:text-4xl font-bold text-primary">
                           <EditableText 
@@ -1438,7 +1482,7 @@ const Pricing = () => {
                     </div>
 
                     {/* Description avec hauteur fixe */}
-                    <div className="h-[70px] flex items-center justify-center mb-3 sm:mb-6 md:mb-8">
+                    <div className="h-[70px] flex items-center justify-center mb-3 sm:mb-6 md:mb-8 monthly-desc-container">
                       <p className="text-slate-600 text-center text-xs sm:text-sm px-2">
                         <EditableText 
                           contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_description`}
@@ -1451,7 +1495,7 @@ const Pricing = () => {
 
                   {/* Bloc blanc avec hauteur fixe et positionnement absolu */}
                   <div className="flex-grow mb-6">
-                    <div className="bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl px-3 sm:px-4 md:px-5 py-2 sm:py-3 md:py-4 h-[220px] overflow-y-auto">
+                    <div className="bg-white/80 backdrop-blur-sm rounded-lg md:rounded-xl px-3 sm:px-4 md:px-5 py-2 sm:py-3 md:py-4 h-[220px] overflow-y-auto monthly-content-box">
                       <p className="text-xs md:text-sm text-slate-600 mb-2">
                         <EditableText 
                           contentKey={`monthly_pack_${pack.name.replace(" ", "_").toLowerCase()}_shipping`}

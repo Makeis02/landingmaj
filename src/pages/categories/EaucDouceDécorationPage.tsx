@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -118,6 +118,25 @@ const CategoryPage = () => {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [brandsError, setBrandsError] = useState<string | null>(null);
   const [brandsLoading, setBrandsLoading] = useState(false);
+
+  // Add this near the other state declarations
+  const hasAppliedInitialSubCategory = useRef(false);
+  
+  // Pagination states
+  const ITEMS_PER_PAGE = 12; // Ajuste selon ton design
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts]);
 
   // Obtenir les informations de la catégorie
   const categoryInfo = {
@@ -293,6 +312,7 @@ const CategoryPage = () => {
 
   // Sélectionner automatiquement la sous-catégorie depuis l'URL
   useEffect(() => {
+    if (hasAppliedInitialSubCategory.current) return;
     if (!initialSubCategorySlug) {
       console.log("⚠️ Aucun slug 'souscategorie' trouvé dans l'URL.");
       return;
@@ -312,7 +332,10 @@ const CategoryPage = () => {
 
       if (match) {
         console.log("✅ Sous-catégorie trouvée :", match);
-        setSelectedSubCategories([match.id]);
+        if (!selectedSubCategories.includes(match.id)) {
+          setSelectedSubCategories([match.id]);
+          hasAppliedInitialSubCategory.current = true;
+        }
       } else {
         console.warn("❌ Aucune correspondance pour la sous-catégorie slug :", initialSubCategorySlug);
         console.log("📊 Détails de recherche :");
@@ -325,7 +348,7 @@ const CategoryPage = () => {
     }, 300); // attends 300ms
 
     return () => clearTimeout(timeout);
-  }, [initialSubCategorySlug, subCategories]);
+  }, [initialSubCategorySlug, subCategories, selectedSubCategories]);
 
   // Les filtres sont désactivés pour l'instant
   useEffect(() => {
@@ -726,7 +749,7 @@ const CategoryPage = () => {
                   <p className="text-lg text-gray-500">Aucun produit trouvé pour cette catégorie.</p>
                 </div>
               ) : (
-                filteredProducts.map((product) => (
+                paginatedProducts.map((product) => (
                 <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                     {/* Désactiver l'affichage des promos pour l'instant */}
                     {false && (
@@ -771,16 +794,37 @@ const CategoryPage = () => {
             </div>
             
             {/* Pagination */}
-            {!isLoading && !error && filteredProducts.length > 0 && (
+            {!isLoading && !error && filteredProducts.length > 0 && totalPages > 1 && (
             <div className="mt-10 flex justify-center">
               <nav className="flex items-center gap-1">
-                <Button variant="outline" size="sm" disabled>Précédent</Button>
-                <Button variant="default" size="sm">1</Button>
-                <Button variant="outline" size="sm">2</Button>
-                <Button variant="outline" size="sm">3</Button>
-                <span className="mx-1">...</span>
-                <Button variant="outline" size="sm">8</Button>
-                <Button variant="outline" size="sm">Suivant</Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Précédent
+                </Button>
+                
+                {[...Array(totalPages)].map((_, index) => (
+                  <Button
+                    key={index}
+                    variant={currentPage === index + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(index + 1)}
+                  >
+                    {index + 1}
+                  </Button>
+                ))}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Suivant
+                </Button>
               </nav>
             </div>
             )}
