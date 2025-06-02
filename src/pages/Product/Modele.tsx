@@ -35,6 +35,7 @@ import Reviews from "@/pages/Landing/components/Reviews";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
+import { getApiUrl } from "@/lib/constants";
 
 // Types
 interface Product {
@@ -495,7 +496,7 @@ const Modele = ({ categoryParam = null }) => {
   const fetchProducts = async () => {
     try {
       logDebug("Appel de fetchProducts");
-      const response = await fetch('/api/stripe/products');
+      const response = await fetch(getApiUrl('/api/stripe/products'));
       
       const status = {
         status: response.status,

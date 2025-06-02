@@ -1,3 +1,5 @@
+import { getApiUrl } from "@/lib/constants";
+
 export interface StripeProduct {
   id: string;
   title: string;
@@ -26,8 +28,7 @@ function getApiBaseUrl(): string {
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = "https://landingmaj.onrender.com";
-  const url = `${baseUrl}/api/stripe/products`;
+  const url = getApiUrl('/api/stripe/products');
   
   try {
     console.log(`⏳ Appel à l'API Stripe sur: ${url}`);
@@ -78,11 +79,7 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
     
     return data.products;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error("❌ La requête Stripe a expiré (timeout)");
-    } else {
-      console.error("❌ Error fetching Stripe products:", error);
-    }
-    return [];
+    console.error("❌ Erreur lors de la récupération des produits Stripe:", error);
+    throw error;
   }
 } 
