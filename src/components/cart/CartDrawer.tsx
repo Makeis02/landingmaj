@@ -15,9 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type CartStep = "products" | "thresholds" | "summary" | "checkout";
 
 export const CartDrawer = () => {
-  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
-  const { items, syncWithSupabase, getTotal, fetchGiftSettings } = useCartStore();
+  const { items, isOpen, openDrawer, closeDrawer, syncWithSupabase, getTotal, fetchGiftSettings } = useCartStore();
   const [reachedThreshold, setReachedThreshold] = useState<number | null>(null);
   const prevItemsLength = useRef(items.length);
 
@@ -94,7 +93,7 @@ export const CartDrawer = () => {
   // Effect pour ouvrir automatiquement le panier quand un produit est ajouté
   useEffect(() => {
     if (items.length > prevItemsLength.current) {
-      setIsOpen(true);
+      openDrawer();
     }
     prevItemsLength.current = items.length;
   }, [items.length]);
@@ -122,6 +121,7 @@ export const CartDrawer = () => {
   const remaining = firstThreshold ? Math.max(firstThreshold.value - total, 0) : 0;
 
   const handleCheckout = () => {
+    closeDrawer();
     toast({
       title: "Information",
       description: "Redirection vers la page de paiement...",
@@ -130,28 +130,11 @@ export const CartDrawer = () => {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="relative"
-        onClick={() => setIsOpen(true)}
-      >
-        <ShoppingCart className="h-5 w-5" />
-        {totalItems > 0 && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0"
-          >
-            {totalItems}
-          </Badge>
-        )}
-      </Button>
-
-      <Sheet open={isOpen} onOpenChange={setIsOpen}>
-        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <Sheet open={isOpen} onOpenChange={open => open ? openDrawer() : closeDrawer()}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto bg-white text-gray-800 border-l border-slate-200 rounded-l-xl shadow-2xl">
           <SheetHeader className="flex items-center justify-between">
-            <SheetTitle>Votre panier</SheetTitle>
-            <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)}>
+            <SheetTitle className="text-2xl font-bold text-primary mb-2">Votre panier</SheetTitle>
+            <Button variant="ghost" size="icon" onClick={closeDrawer}>
               <X className="h-4 w-4" />
             </Button>
           </SheetHeader>

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useEditStore } from "@/stores/useEditStore";
 import { UploadButton } from "./ui/upload-button";
@@ -11,6 +10,7 @@ interface EditableImageProps {
   className?: string;
   onUpdate?: (newUrl: string) => void;
   children?: ({ openFileDialog }: { openFileDialog: () => void }) => React.ReactElement;
+  forceEditable?: boolean;
 }
 
 export const EditableImage = ({ 
@@ -18,7 +18,8 @@ export const EditableImage = ({
   initialUrl,
   className = "",
   onUpdate,
-  children
+  children,
+  forceEditable = false
 }: EditableImageProps) => {
   console.log("=== EditableImage Component Render ===");
   console.log("Props received:", { imageKey, initialUrl, className });
@@ -97,7 +98,7 @@ export const EditableImage = ({
     currentImageUrl: imageUrl
   });
 
-  if (!isEditMode) {
+  if (!isEditMode && !forceEditable) {
     return <img src={imageUrl} alt="" className={className} />;
   }
 

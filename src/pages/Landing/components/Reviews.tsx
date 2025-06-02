@@ -68,7 +68,7 @@ const StarRating = ({ rating, onRatingChange, readonly = false }: { rating: numb
           <svg
             className={`w-5 h-5 transition-colors ${
               star <= (hover || rating)
-                ? 'text-[#0074b3]'
+                ? 'text-[#0074b3] fill-[#0074b3]'
                 : 'text-gray-300'
             }`}
             fill="currentColor"
@@ -82,7 +82,11 @@ const StarRating = ({ rating, onRatingChange, readonly = false }: { rating: numb
   );
 };
 
-const Reviews = () => {
+interface ReviewsProps {
+  productId?: string;
+}
+
+const Reviews = ({ productId }: ReviewsProps) => {
   const { isEditMode } = useEditStore();
   const [showAddComment, setShowAddComment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +94,14 @@ const Reviews = () => {
   const [newRating, setNewRating] = useState(5);
   const [commentText, setCommentText] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   const queryClient = useQueryClient();
+
+  // Fonction pour ajouter un log de debug
+  const addDebugLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  };
 
   // Auto-hide notification after 5 seconds
   useEffect(() => {
@@ -106,21 +117,28 @@ const Reviews = () => {
     setNotification({ type, message });
   };
 
+  // Récupérer les avis avec le productId
   const { data: reviews, refetch } = useQuery({
-    queryKey: ["customer-reviews"],
+    queryKey: ["customer-reviews", productId],
     queryFn: async () => {
-      console.log("🔄 Fetching reviews depuis Supabase...");
-      const { data, error } = await supabase
+      addDebugLog(`🔄 Fetching reviews pour le produit: ${productId}`);
+      let query = supabase
         .from("customer_reviews")
         .select("*")
         .order("created_at", { ascending: false });
 
+      if (productId) {
+        query = query.eq("product_id", productId);
+      }
+
+      const { data, error } = await query;
+
       if (error) {
-        console.error("❌ Erreur au fetch des reviews :", error);
+        addDebugLog(`❌ Erreur au fetch des reviews : ${error.message}`);
         throw new Error(error.message);
       }
 
-      console.log("✅ Reviews récupérées :", data);
+      addDebugLog(`✅ Reviews récupérées : ${data?.length || 0} avis`);
       return data || [];
     }
   });
@@ -183,12 +201,14 @@ const Reviews = () => {
     }
 
     try {
+      addDebugLog(`💬 Envoi avis: rating=${newRating}, comment=${comment.substring(0, 50)}..., productId=${productId}`);
       const { error } = await supabase.from("customer_reviews").insert({
         customer_name,
         comment,
         is_approved: false,
         created_at: new Date().toISOString(),
-        rating: newRating
+        rating: newRating,
+        product_id: productId
       });
 
       if (!error) {
@@ -196,14 +216,15 @@ const Reviews = () => {
         setCommentText("");
         setNewRating(5);
         await refetch();
+        addDebugLog("✅ Avis ajouté avec succès");
         showNotification('success', 'Commentaire ajouté avec succès ! Il sera visible après validation par notre équipe.');
         setShowAddComment(false);
       } else {
-        console.error("Erreur envoi commentaire :", error);
+        addDebugLog(`❌ Erreur Supabase: ${error.message}`);
         showNotification('error', 'Une erreur est survenue lors de l\'envoi du commentaire. Veuillez réessayer.');
       }
     } catch (error) {
-      console.error("Erreur envoi commentaire :", error);
+      addDebugLog(`❌ Erreur envoi commentaire : ${error.message}`);
       showNotification('error', 'Une erreur est survenue lors de l\'envoi du commentaire. Veuillez réessayer.');
     } finally {
       setIsSubmitting(false);
@@ -246,44 +267,16 @@ const Reviews = () => {
   };
 
   return (
-    <section className="py-16 bg-slate-50 relative">
+    <div>
+      {/* Notification */}
       {notification && (
-        <div
-          className={`fixed bottom-4 right-4 p-4 rounded-lg shadow-lg max-w-md z-50 transition-all duration-500 ${
-            notification.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          <div className="flex items-center">
-            {notification.type === 'success' ? (
-              <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-              </svg>
-            ) : (
-              <svg className="w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd"/>
-              </svg>
-            )}
-            <p>{notification.message}</p>
-            <button
-              onClick={() => setNotification(null)}
-              className="ml-auto text-slate-400 hover:text-slate-600"
-            >
-              ✕
-            </button>
-          </div>
+        <div className={`p-4 mb-4 rounded-lg ${notification.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          {notification.message}
         </div>
       )}
 
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-slate-900">
-            Ce que disent nos clients
-          </h2>
-        </div>
-        <ScrollArea className="h-[450px] rounded-md">
-          <div className="pr-4 space-y-6">
+      {/* Liste des avis */}
+      <div className="space-y-6">
             {reviewsToDisplay.map((review) => (
               <Card key={review.id} className="p-8 hover:shadow-lg transition-shadow">
                 <div className="flex items-start space-x-4">
@@ -387,19 +380,8 @@ const Reviews = () => {
               <p className="text-center text-gray-500 py-8">Aucun avis pour le moment...</p>
             )}
           </div>
-        </ScrollArea>
 
-        {!isEditMode && (
-          <div className="text-center mt-8">
-            <button
-              onClick={() => setShowAddComment(true)}
-              className="bg-[#0074b3] hover:bg-[#00639c] text-white font-semibold px-6 py-3 rounded-xl transition"
-            >
-              Ajouter un commentaire
-            </button>
-          </div>
-        )}
-
+      {/* Formulaire d'ajout d'avis */}
         {showAddComment && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 w-full max-w-md relative">
@@ -476,8 +458,52 @@ const Reviews = () => {
             </div>
           </div>
         )}
+
+      {/* Bouton pour ajouter un avis */}
+      {!showAddComment && (
+        <div className="text-center mt-8">
+          <button
+            onClick={() => setShowAddComment(true)}
+            className="bg-[#0074b3] hover:bg-[#00639c] text-white font-semibold px-6 py-3 rounded-xl transition"
+          >
+            Ajouter un commentaire
+          </button>
+        </div>
+      )}
+
+      {/* Debug Panel (visible uniquement en mode édition) */}
+      {isEditMode && (
+        <div className="mt-8 border border-yellow-200 bg-yellow-50 rounded-lg p-4">
+          <h3 className="font-bold mb-2 text-yellow-800">🛠️ Debug Panel - Avis</h3>
+          <div className="space-y-2">
+            <div>
+              <strong>Product ID:</strong> {productId || 'non défini'}
+            </div>
+            <div>
+              <strong>Nombre d'avis:</strong> {reviews?.length || 0}
+            </div>
+            <div>
+              <strong>Logs:</strong>
+              <div className="mt-2 bg-yellow-100 p-3 rounded text-xs font-mono max-h-40 overflow-y-auto">
+                {debugLogs.length === 0 ? (
+                  <span className="text-gray-500">Aucun log disponible</span>
+                ) : (
+                  debugLogs.map((log, index) => (
+                    <div key={index} className="mb-1">{log}</div>
+                  ))
+                )}
+              </div>
+            </div>
+            <div>
+              <strong>Dernier avis:</strong>
+              <pre className="mt-2 bg-yellow-100 p-3 rounded text-xs font-mono max-h-40 overflow-y-auto">
+                {reviews?.[0] ? JSON.stringify(reviews[0], null, 2) : 'Aucun avis'}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
-    </section>
   );
 };
 

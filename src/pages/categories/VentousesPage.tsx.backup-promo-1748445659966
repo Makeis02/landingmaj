@@ -1,0 +1,24 @@
+import React from "react";
+
+import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
+import slugify from 'slugify';
+import { fetchProductDescriptions } from "@/lib/api/products";
+
+const VentousesPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Ventouses</h1>
+      <p>Bienvenue sur la page dédiée aux ventouses pour aquarium.</p>
+      <p>Découvrez notre gamme de ventouses et supports :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Ventouses standard</li>
+        <li>Supports pour chauffage</li>
+        <li>Clips pour tuyaux</li>
+        <li>Fixations diverses</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits spécifiques, guides d'installation, conseils de fixation...</p>
+    </div>
+  );
+};
+
+export default VentousesPage; 

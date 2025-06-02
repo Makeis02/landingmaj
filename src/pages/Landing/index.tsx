@@ -87,7 +87,10 @@ const sendEventToAPI = async (eventName: string, eventData = {}) => {
 // 📌 Suivi d'un abonnement réussi via Stripe Webhook
 const handleStripeSubscription = async () => {
   try {
-    const response = await fetch("/api/stripe-webhook");
+    // Get API base URL from environment variables with fallback
+    const apiBaseUrl = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+    
+    const response = await fetch(`${apiBaseUrl}/api/stripe-webhook`);
     const data = await response.json();
     if (data.success) {
       console.log("✅ Abonnement Stripe détecté :", data);

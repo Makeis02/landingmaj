@@ -1,4 +1,3 @@
-
 import { useCartStore } from "@/stores/useCartStore";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Trash2 } from "lucide-react";
@@ -33,6 +32,23 @@ const CartProducts = () => {
     }
   };
 
+  // Fonction pour formater l'affichage des variantes
+  const formatVariant = (variant: string | undefined) => {
+    if (!variant) return null;
+    
+    // Diviser les différentes variantes s'il y en a plusieurs
+    const variants = variant.split('|');
+    
+    return variants.map(v => {
+      const [name, value] = v.split(':');
+      return (
+        <span key={v} className="text-xs bg-gray-100 px-2 py-1 rounded mr-1">
+          {name}: {value}
+        </span>
+      );
+    });
+  };
+
   return (
     <div className="space-y-4">
       <AnimatePresence>
@@ -50,7 +66,7 @@ const CartProducts = () => {
               <img
                 src={item.image_url}
                 alt={item.title}
-                className="w-20 h-20 object-cover rounded"
+                className="w-20 h-20 object-contain rounded bg-white p-1"
               />
             )}
 
@@ -68,7 +84,33 @@ const CartProducts = () => {
                 )}
               </h3>
               
-              {!item.is_gift && !item.threshold_gift && <p className="text-sm text-gray-500">{item.price}€</p>}
+              {/* Afficher la variante si elle existe */}
+              {item.variant && (
+                <div className="mt-1 mb-2 flex flex-wrap gap-1">
+                  {formatVariant(item.variant)}
+                </div>
+              )}
+              
+              {/* Affichage du prix avec gestion des réductions */}
+              {!item.is_gift && !item.threshold_gift && (
+                <div className="text-sm mb-1">
+                  {item.has_discount && item.original_price ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 line-through text-xs">
+                        {item.original_price.toFixed(2)}€
+                      </span>
+                      <span className="text-slate-900 font-medium">
+                        {item.price.toFixed(2)}€
+                      </span>
+                      <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">
+                        -{item.discount_percentage}%
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">{item.price.toFixed(2)}€</span>
+                  )}
+                </div>
+              )}
               
               {!item.is_gift && !item.threshold_gift && (
                 <div className="flex items-center gap-2 mt-2">

@@ -1,0 +1,157 @@
+import slugify from 'slugify';
+
+// Get API base URL from environment variables with fallback
+const getApiBaseUrl = () => {
+  // Use environment variable if available
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback to current origin if in browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Default fallback for SSR or other contexts
+  return '';
+};
+
+export interface PageGenerationParams {
+  productId: string;
+  title: string;
+  description: string;
+  price: number;
+  image: string;
+  brandName: string;
+  brandId: string | null;
+  categories: Array<{ id: string; name: string }>;
+}
+
+// Crée une page produit sur le serveur
+export const createProductPage = async (params: PageGenerationParams): Promise<{ success: boolean; message: string; slug?: string }> => {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    // Envoyer une requête au backend pour créer la page
+    const response = await fetch(`${apiBaseUrl}/api/products/create-page`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error creating product page:', error);
+    return { success: false, message: 'Erreur lors de la création de la page produit.' };
+  }
+};
+
+// Supprime une page produit sur le serveur
+export const deleteProductPage = async (productId: string, title: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const slug = slugify(title, { lower: true });
+    const apiBaseUrl = getApiBaseUrl();
+    
+    // Envoyer une requête au backend pour supprimer la page
+    const response = await fetch(`${apiBaseUrl}/api/products/delete-page`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productId, title, slug }),
+    });
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error deleting product page:', error);
+    return { success: false, message: 'Erreur lors de la suppression de la page produit.' };
+  }
+};
+
+// Vérifie si une page produit existe
+export const checkProductPageExists = async (productIds: string[]): Promise<Record<string, boolean>> => {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    
+    // Envoyer une requête au backend pour vérifier l'existence des pages
+    const response = await fetch(`${apiBaseUrl}/api/products/check-pages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productIds }),
+    });
+
+    const data = await response.json();
+    return data.exists || {};
+  } catch (error) {
+    console.error('Error checking product pages:', error);
+    return {};
+  }
+};
+
+// Récupère les descriptions personnalisées des produits depuis les fichiers .tsx
+export const fetchProductDescriptions = async (): Promise<Record<string, string>> => {
+  try {
+    const apiBaseUrl = getApiBaseUrl();
+    console.log("🔍 Récupération des descriptions de produits depuis l'API...");
+    console.log("🌐 URL de l'API:", `${apiBaseUrl}/api/products/descriptions`);
+    
+    // Appeler l'API pour récupérer les descriptions
+    const response = await fetch(`${apiBaseUrl}/api/products/descriptions`);
+    
+    if (!response.ok) {
+      console.error(`❌ Erreur HTTP: ${response.status} - ${await response.text()}`);
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    // Validation des données reçues
+    if (!data || typeof data !== 'object') {
+      console.error(`❌ Format de réponse invalide:`, data);
+      return {};
+    }
+    
+    // Vérifier que le champ descriptions existe et est un objet
+    if (!data.descriptions || typeof data.descriptions !== 'object') {
+      console.error(`❌ Champ descriptions manquant ou invalide:`, data);
+      return {};
+    }
+    
+    const descriptions = data.descriptions || {};
+    
+    // Normaliser les identifiants - convertir tous les IDs en chaînes de caractères
+    const normalizedDescriptions: Record<string, string> = {};
+    Object.entries(descriptions).forEach(([id, desc]) => {
+      // Convertir l'ID en chaîne de caractères
+      const stringId = String(id);
+      // Vérifier que la description est une chaîne de caractères
+      const stringDesc = typeof desc === 'string' ? desc : String(desc);
+      normalizedDescriptions[stringId] = stringDesc;
+    });
+    
+    console.log("✅ Descriptions récupérées:", Object.keys(normalizedDescriptions).length);
+    
+    // Debug: vérification des types de clés et valeurs
+    if (Object.keys(normalizedDescriptions).length > 0) {
+      const sampleKeys = Object.keys(normalizedDescriptions).slice(0, 3);
+      console.log("🔑 Type des clés:", typeof sampleKeys[0]);
+      console.log("📄 Échantillon des clés:", sampleKeys);
+      
+      sampleKeys.forEach(key => {
+        console.log(`📦 Description pour ${key}: ${normalizedDescriptions[key].substring(0, 30)}...`);
+      });
+    } else {
+      console.log("⚠️ Aucune description récupérée!");
+    }
+    
+    return normalizedDescriptions;
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des descriptions:', error);
+    return {};
+  }
+}; 

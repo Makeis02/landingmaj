@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -49,6 +48,7 @@ const BestSellers = () => {
       id: product.shopify_id,
       title: product.title,
       price: product.price,
+      quantity: 1,
       image_url: product.image_url,
     });
     

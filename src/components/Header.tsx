@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ShoppingCart, Heart, User, Search, Menu, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Heart, User, Search, Menu, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   NavigationMenu,
@@ -11,18 +11,138 @@ import {
 } from "@/components/ui/navigation-menu";
 import CartDrawer from "./cart/CartDrawer";
 import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { fetchActiveCategories } from "@/lib/api/categories";
+import { useCartStore } from "@/stores/useCartStore";
+import { Badge } from "@/components/ui/badge";
+import { fetchStripeProducts } from "@/lib/api/stripe";
+import slugify from 'slugify';
+import { supabase } from "@/integrations/supabase/client";
+import { useFavoritesStore } from "@/stores/useFavoritesStore";
+import { useUserStore } from "@/stores/useUserStore";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { items, openDrawer } = useCartStore();
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [dropdownResults, setDropdownResults] = useState([]);
+  const [dropdownLoading, setDropdownLoading] = useState(false);
+  const [dropdownError, setDropdownError] = useState(null);
+  const [productImages, setProductImages] = useState<Record<string, string>>({});
+  const [productPriceRanges, setProductPriceRanges] = useState<Record<string, { min: number, max: number }>>({});
+  const [searchHasFocus, setSearchHasFocus] = useState(false);
+  const { items: favorites } = useFavoritesStore();
+  const totalFavorites = favorites.length;
+  const navigate = useNavigate();
+  const user = useUserStore((s) => s.user);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["active-categories"],
     queryFn: fetchActiveCategories,
   });
+
+  // Charger tous les produits pour la recherche
+  const { data: allProducts = [], isLoading: isProductsLoading } = useQuery({
+    queryKey: ["all-products-for-search"],
+    queryFn: fetchStripeProducts,
+  });
+
+  // Charger les catégories des produits
+  const { data: productCategories = {} } = useQuery({
+    queryKey: ["product-categories"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('product_categories')
+        .select('product_id, category_id');
+      
+      // Transformer en Record<productId, categoryIds[]>
+      return data?.reduce((acc, curr) => {
+        if (!acc[curr.product_id]) acc[curr.product_id] = [];
+        acc[curr.product_id].push(curr.category_id);
+        return acc;
+      }, {}) || {};
+    }
+  });
+
+  // Charger les price_maps des produits (clé product_{cleanId}_variant_0_price_map dans editable_content)
+  useEffect(() => {
+    const loadProductPriceRanges = async () => {
+      if (allProducts.length === 0) return;
+      const productIds = allProducts.map(p => p.id.toString());
+      const keys = productIds.map(id => `product_${getCleanProductId(id)}_variant_0_price_map`);
+      const { data } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', keys);
+      if (data) {
+        const priceMap: Record<string, { min: number, max: number }> = {};
+        data.forEach(({ content_key, content }) => {
+          const id = content_key.replace(/^product_/, '').replace(/_variant_0_price_map$/, '');
+          try {
+            const parsed = JSON.parse(content);
+            const prices = Object.values(parsed).map(v => parseFloat(String(v)));
+            if (prices.length > 0) {
+              priceMap[id] = { min: Math.min(...prices), max: Math.max(...prices) };
+            }
+          } catch {}
+        });
+        setProductPriceRanges(priceMap);
+      }
+    };
+    loadProductPriceRanges();
+  }, [allProducts]);
+
+  // Fonction utilitaire pour nettoyer les IDs de produit (identique à PopularProducts)
+  const getCleanProductId = (id: string) => {
+    if (!id || typeof id !== "string") return "";
+    if (id.startsWith("prod_")) return id;
+    if (id.startsWith("shopify_")) return id.replace("shopify_", "");
+    if (id.includes("/")) return id.split("/").pop() || "";
+    return id;
+  };
+
+  // Charger les images des produits (clé product_${getCleanProductId(id)}_image_0 dans editable_content)
+  useEffect(() => {
+    const loadProductImages = async () => {
+      if (allProducts.length === 0) return;
+      const productIds = allProducts.map(p => p.id.toString());
+      const imageKeys = productIds.map(id => `product_${getCleanProductId(id)}_image_0`);
+      const { data } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', imageKeys);
+      if (data) {
+        const imagesMap = data.reduce((acc, curr) => {
+          const productId = curr.content_key.replace(/^product_/, '').replace(/_image_0$/, '');
+          acc[productId] = curr.content;
+          return acc;
+        }, {});
+        setProductImages(imagesMap);
+      }
+    };
+    loadProductImages();
+  }, [allProducts]);
+
+  // Filtrer les produits selon la recherche et les catégories (dès la première lettre)
+  const filteredProducts = searchQuery.length > 0
+    ? allProducts.filter(p => {
+        const hasCategories = productCategories[p.id.toString()]?.length > 0;
+        const matchesSearch = p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        return hasCategories && matchesSearch;
+      })
+    : [];
+
+  // Gestion du dropdown (desktop)
+  const handleInputFocus = () => {
+    setSearchHasFocus(true);
+  };
+  const handleInputBlur = () => {
+    setTimeout(() => setSearchHasFocus(false), 150);
+  };
 
   // Fonction pour corriger les URLs de redirection
   const getRedirectUrl = (subSub, allCategories) => {
@@ -48,6 +168,20 @@ const Header = () => {
     { title: "Suivi colis", href: "/tracking" },
     { title: "Contact", href: "/contact" },
   ];
+
+  const handleAccountClick = async () => {
+    // Priorité à Zustand, fallback sur supabase
+    if (user) {
+      navigate("/account");
+      return;
+    }
+    const { data } = await supabase.auth.getUser();
+    if (data?.user) {
+      navigate("/account");
+    } else {
+      navigate("/account/login");
+    }
+  };
 
   return (
     <>
@@ -77,10 +211,39 @@ const Header = () => {
               <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-5 w-5 text-gray-600" />
               </Button>
-              <Button variant="ghost" size="icon">
+              <Link to="/account/favorites">
+                <Button variant="ghost" size="icon" aria-label="Voir mes favoris" className="relative">
+                  <Heart className="h-5 w-5 text-gray-600" />
+                  {totalFavorites > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0"
+                    >
+                      {totalFavorites}
+                    </Badge>
+                  )}
+                </Button>
+              </Link>
+              <Button variant="ghost" size="icon" onClick={handleAccountClick}>
                 <User className="h-5 w-5 text-gray-600" />
               </Button>
-              <CartDrawer />
+              {/* Bouton du panier (réutilise le même cartDrawer) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={openDrawer}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0"
+                  >
+                    {totalItems}
+                  </Badge>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -205,16 +368,72 @@ const Header = () => {
                   type="search"
                   placeholder="Rechercher..."
                   className="pl-10 pr-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-ocean"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onFocus={handleInputFocus}
+                  onBlur={handleInputBlur}
+                  autoComplete="off"
                 />
                 <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                {/* Dropdown résultats */}
+                {(searchQuery.length > 0 && searchHasFocus) && (
+                  <div className="absolute left-0 mt-2 w-[340px] bg-white rounded-xl shadow-xl border z-50 max-h-96 overflow-y-auto animate-fade-in">
+                    {isProductsLoading || allProducts.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">Chargement...</div>
+                    ) : filteredProducts.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">Aucun produit trouvé</div>
+                    ) : (
+                      filteredProducts.slice(0, 8).map(product => (
+                        <a
+                          key={product.id}
+                          href={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-[#f0f8ff] transition group cursor-pointer"
+                          style={{ textDecoration: 'none' }}
+                        >
+                          <img 
+                            src={productImages[getCleanProductId(product.id)] || '/placeholder.svg'} 
+                            alt={product.title} 
+                            className="w-12 h-12 object-cover rounded-md border" 
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm truncate group-hover:text-[#0074b3] transition-colors">{product.title}</div>
+                            <div className="font-semibold text-[#0074b3] text-sm mt-1">
+                              {productPriceRanges[getCleanProductId(product.id)]
+                                ? `De ${productPriceRanges[getCleanProductId(product.id)].min.toFixed(2)}€ à ${productPriceRanges[getCleanProductId(product.id)].max.toFixed(2)}€`
+                                : `${product.price?.toFixed(2)}€`}
+                            </div>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
-              <Button variant="ghost" size="icon">
-                <Heart className="h-5 w-5" />
+              <Link to="/account/favorites">
+                <Button variant="ghost" size="icon" aria-label="Voir mes favoris">
+                  <Heart className="h-5 w-5 text-gray-600" />
               </Button>
-              <Button variant="ghost" size="icon">
+              </Link>
+              <Button variant="ghost" size="icon" onClick={handleAccountClick}>
                 <User className="h-5 w-5" />
               </Button>
-              <CartDrawer />
+              {/* Bouton du panier (desktop) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="relative"
+                onClick={openDrawer}
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {totalItems > 0 && (
+                  <Badge 
+                    variant="destructive" 
+                    className="absolute -top-2 -right-2 h-5 w-5 flex items-center justify-center p-0"
+                  >
+                    {totalItems}
+                  </Badge>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -325,10 +544,44 @@ const Header = () => {
                   type="text"
                   placeholder="Rechercher un produit, une catégorie..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={e => setSearchQuery(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring focus:border-ocean"
                   autoFocus
                 />
+                {/* Résultats mobile */}
+                {searchQuery.length > 0 && (
+                  <div className="bg-white rounded-xl shadow-xl border z-50 max-h-[60vh] overflow-y-auto animate-fade-in">
+                    {isProductsLoading || allProducts.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">Chargement...</div>
+                    ) : filteredProducts.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">Aucun produit trouvé</div>
+                    ) : (
+                      filteredProducts.slice(0, 12).map(product => (
+                        <a
+                          key={product.id}
+                          href={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-[#f0f8ff] transition group cursor-pointer"
+                          style={{ textDecoration: 'none' }}
+                          onClick={() => setIsSearchOpen(false)}
+                        >
+                          <img 
+                            src={productImages[getCleanProductId(product.id)] || '/placeholder.svg'} 
+                            alt={product.title} 
+                            className="w-12 h-12 object-cover rounded-md border" 
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-sm truncate group-hover:text-[#0074b3] transition-colors">{product.title}</div>
+                            <div className="font-semibold text-[#0074b3] text-sm mt-1">
+                              {productPriceRanges[getCleanProductId(product.id)]
+                                ? `De ${productPriceRanges[getCleanProductId(product.id)].min.toFixed(2)}€ à ${productPriceRanges[getCleanProductId(product.id)].max.toFixed(2)}€`
+                                : `${product.price?.toFixed(2)}€`}
+                            </div>
+                          </div>
+                        </a>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -343,6 +596,9 @@ const Header = () => {
           />
         </div>
       </header>
+
+      {/* Un seul CartDrawer sans bouton (le drawer s'ouvre via le state global) */}
+      <CartDrawer />
     </>
   );
 };

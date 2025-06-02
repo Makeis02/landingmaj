@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
-import { fetchShopifyProducts, ShopifyProduct } from "@/lib/api/shopify";
+import { fetchStripeProducts, StripeProduct } from "@/lib/api/stripe";
 import { useEditStore } from "@/stores/useEditStore";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCategories, Category } from "@/lib/api/categories";
@@ -14,9 +14,43 @@ import { fetchBrandsForProducts, updateProductBrand } from "@/lib/api/brands";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
+import slugify from 'slugify';
+import { createProductPage, deleteProductPage, checkProductPageExists, PageGenerationParams } from "@/lib/api/products";
+import { Switch } from "@/components/ui/switch";
+import { EditableImage } from "@/components/EditableImage";
+import { supabase } from "@/integrations/supabase/client";
+
+// Get API base URL from environment variables with fallback
+const getApiBaseUrl = () => {
+  // Use environment variable if available
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback to current origin if in browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Default fallback for SSR or other contexts
+  return '';
+};
+
+// Types pour la gestion des pages produit
+type ProductPageStatus = {
+  [productId: string]: {
+    exists: boolean;
+    isLoading: boolean;
+    slug?: string;
+  }
+};
+
+// Fonction utilitaire pour formater l'ID Stripe
+const formatStripeId = (id: string | number) => `stripe_${id}`;
 
 const ProduitsPage = () => {
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
+  const [products, setProducts] = useState<StripeProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,8 +59,145 @@ const ProduitsPage = () => {
   const [updatingProduct, setUpdatingProduct] = useState<string | null>(null);
   const [updatingBrand, setUpdatingBrand] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [productPages, setProductPages] = useState<ProductPageStatus>({});
+  const [creatingPage, setCreatingPage] = useState<string | null>(null);
+  const [deletingPage, setDeletingPage] = useState<string | null>(null);
   const { isAdmin } = useEditStore();
   const { toast } = useToast();
+  const [globalLogos, setGlobalLogos] = useState({
+    eauDouce: '',
+    eauMer: ''
+  });
+  const lastFlagsRef = useRef<string>("");
+  
+  // Fonction pour générer une page produit
+  const handleCreateProductPage = async (product: StripeProduct) => {
+    try {
+      setIsLoading(true);
+      
+      // Générer le slug à partir du titre
+      const slug = slugify(product.title, { lower: true });
+      
+      // Récupérer les informations de catégorie
+      const categoryIds = linkedCategories[product.id.toString()] || [];
+      const categoryObjects = categoryIds.map(id => {
+        const category = categories.find(c => c.id === id);
+        return category ? { id, name: category.name } : null;
+      }).filter(Boolean) as Array<{ id: string; name: string }>;
+      
+      // Récupérer les informations de marque
+      const brandId = linkedBrands[product.id.toString()] || null;
+      const brand = brandId ? getBrandById(brandId) : null;
+      
+      // Créer la page produit avec tous les paramètres requis
+      const params: PageGenerationParams = {
+        productId: product.id.toString(),
+        title: product.title,
+        description: product.description || '',
+        price: product.price,
+        image: product.image || '/placeholder.svg',
+        brandName: brand?.name || 'Non spécifié',
+        brandId: brandId,
+        categories: categoryObjects
+      };
+      
+      const result = await createProductPage(params);
+      
+      // Mettre à jour le statut local avec le slug retourné par l'API
+      setProductPages(prev => ({
+        ...prev,
+        [product.id.toString()]: {
+          exists: true,
+          isLoading: false,
+          slug: result.slug || slug // Utiliser le slug de l'API ou celui généré localement
+        }
+      }));
+      
+      toast({
+        title: "Page créée",
+        description: "La page produit a été créée avec succès."
+      });
+    } catch (error) {
+      console.error("Erreur lors de la création de la page:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de créer la page produit."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fonction pour supprimer une page produit
+  const handleDeleteProductPage = async (product: StripeProduct) => {
+    try {
+      const productId = product.id.toString();
+      
+      // Met à jour le state pour montrer le chargement
+      setDeletingPage(productId);
+      setProductPages(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          isLoading: true
+        }
+      }));
+      
+      // Appeler l'API pour supprimer la page
+      const result = await deleteProductPage(productId, product.title);
+      
+      if (result.success) {
+        // Mise à jour du statut
+        setProductPages(prev => ({
+          ...prev,
+          [productId]: {
+            exists: false,
+            isLoading: false
+          }
+        }));
+        
+        toast({
+          title: "Succès",
+          description: `Page produit pour "${product.title}" supprimée avec succès.`,
+        });
+      } else {
+        // Mise à jour du statut en cas d'échec
+        setProductPages(prev => ({
+          ...prev,
+          [productId]: {
+            ...prev[productId],
+            isLoading: false
+          }
+        }));
+        
+        toast({
+          variant: "destructive",
+          title: "Erreur",
+          description: result.message || "Impossible de supprimer la page produit.",
+        });
+      }
+    } catch (error) {
+      console.error("Erreur lors de la suppression de la page produit:", error);
+      
+      // Mise à jour du statut en cas d'erreur
+      setProductPages(prev => ({
+        ...prev,
+        [product.id.toString()]: {
+          ...prev[product.id.toString()],
+          isLoading: false
+        }
+      }));
+      
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Une erreur s'est produite lors de la suppression de la page produit.",
+      });
+    } finally {
+      setDeletingPage(null);
+    }
+  };
   
   // Charger les catégories
   const { data: categories = [] } = useQuery({
@@ -79,8 +250,8 @@ const ProduitsPage = () => {
       try {
         setIsLoading(true);
         
-        // Utilisation de l'API Shopify réelle
-        const data = await fetchShopifyProducts();
+        // Utilisation de l'API Stripe
+        const data = await fetchStripeProducts();
         
         setProducts(data);
         setError(null);
@@ -139,10 +310,50 @@ const ProduitsPage = () => {
     loadLinkedBrands();
   }, [products, toast]);
   
+  // Vérifier l'existence des pages produit
+  useEffect(() => {
+    if (products.length === 0) return;
+    
+    const checkAllProductPages = async () => {
+      try {
+        console.log("🔍 Vérification de l'existence des pages produit...");
+        const productIds = products.map(p => p.id.toString());
+        
+        // Créer un dictionnaire des titres pour aider à la vérification par slug
+        const productTitles = {};
+        products.forEach(p => {
+          productTitles[p.id.toString()] = p.title;
+        });
+        
+        console.log(`📦 Envoi de ${productIds.length} IDs et leurs titres pour vérification`);
+        const pagesStatus = await checkProductPageExists(productIds, productTitles);
+        
+        console.log("📊 Résultats de la vérification:", pagesStatus);
+        
+        const status: ProductPageStatus = {};
+        
+        productIds.forEach(id => {
+          const page = pagesStatus[id];
+          status[id] = {
+            exists: page?.exists === true, // Vérifie explicitement si la page existe
+            isLoading: false,
+            slug: page?.slug // Utilise le slug retourné par l'API
+          };
+        });
+        
+        setProductPages(status);
+      } catch (error) {
+        console.error("❌ Erreur lors de la vérification des pages produit:", error);
+      }
+    };
+    
+    checkAllProductPages();
+  }, [products]);
+  
   const handleRefresh = async () => {
     try {
       setIsLoading(true);
-      const data = await fetchShopifyProducts();
+      const data = await fetchStripeProducts();
       setProducts(data);
       setError(null);
     } catch (err) {
@@ -226,11 +437,182 @@ const ProduitsPage = () => {
     return brands.find((brand) => brand.id === brandId) || null;
   };
   
+  // Déclare fetchLogos dans le scope du composant
+  const fetchLogos = async () => {
+    const { data } = await supabase
+      .from('editable_content')
+      .select("content_key, content")
+      .in("content_key", ["global_logo_eaudouce_url", "global_logo_eaudemer_url"]);
+
+    const logos = {
+      eauDouce: data?.find(i => i.content_key === "global_logo_eaudouce_url")?.content || '',
+      eauMer: data?.find(i => i.content_key === "global_logo_eaudemer_url")?.content || ''
+    };
+    setGlobalLogos(logos);
+  };
+
+  useEffect(() => {
+    fetchLogos();
+  }, []);
+  
+  // Mettre à jour un logo
+  const handleLogoUpdate = async (logoType: 'eauDouce' | 'eauMer', url: string) => {
+    try {
+      const contentKey = logoType === 'eauDouce' ? 'global_logo_eaudouce_url' : 'global_logo_eaudemer_url';
+      
+      const { data: existingData } = await supabase
+        .from('editable_content')
+        .select('content_key')
+        .eq('content_key', contentKey)
+        .single();
+
+      if (existingData) {
+        await supabase
+          .from('editable_content')
+          .update({ content: url })
+          .eq('content_key', contentKey);
+      } else {
+        await supabase
+          .from('editable_content')
+          .insert({ content_key: contentKey, content: url });
+      }
+
+      setGlobalLogos(prev => ({
+        ...prev,
+        [logoType]: url
+      }));
+
+      toast({
+        title: "Logo mis à jour",
+        description: `Le logo ${logoType === 'eauDouce' ? 'Eau Douce' : 'Eau de Mer'} a été mis à jour avec succès.`
+      });
+
+      await fetchLogos();
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du logo:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le logo. Veuillez réessayer."
+      });
+    }
+  };
+
+  const handleLogoVisibilityChange = async (productId: string, logoType: 'eaudouce' | 'eaudemer', checked: boolean) => {
+    try {
+      const contentKey = `product_${productId}_show_logo_${logoType}`;
+      const { error } = await supabase
+        .from('editable_content')
+        .upsert(
+          { content_key: contentKey, content: checked.toString() },
+          { onConflict: 'content_key', ignoreDuplicates: false }
+        );
+
+      if (error) throw error;
+
+      setProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === productId
+            ? {
+                ...product,
+                [`show_logo_${logoType}`]: checked.toString()
+              }
+            : product
+        )
+      );
+
+      toast({
+        title: "Visibilité mise à jour",
+        description: `La visibilité du logo ${logoType === 'eaudouce' ? 'Eau Douce' : 'Eau de Mer'} a été mise à jour.`
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la visibilité du logo:', error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour la visibilité du logo."
+      });
+    }
+  };
+  
+  // On ne fetch les flags qu'une seule fois après le chargement initial pour éviter d'écraser la MAJ locale lors du cochage
+  useEffect(() => {
+    if (products.length === 0) return;
+    const fetchLogoFlags = async () => {
+      const productIds = products.map(p => p.id.toString());
+      // Récupère toutes les variantes de show_logo_eaudouce et show_logo_eaudemer
+      const { data: dataDouce } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .ilike('content_key', '%show_logo_eaudouce%');
+      const { data: dataMer } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .ilike('content_key', '%show_logo_eaudemer%');
+      const data = [...(dataDouce || []), ...(dataMer || [])];
+      console.log('🟢 [ADMIN FETCH FLAGS] Toutes les clés lues :', data);
+      setProducts(prevProducts => {
+        return prevProducts.map(product => {
+          const douceKey = `product_${product.id}_show_logo_eaudouce`;
+          const merKey = `product_${product.id}_show_logo_eaudemer`;
+          const douce = data.find(d => d.content_key === douceKey)?.content || "false";
+          const mer = data.find(d => d.content_key === merKey)?.content || "false";
+          return {
+            ...product,
+            show_logo_eaudouce: douce,
+            show_logo_eaudemer: mer
+          };
+        });
+      });
+    };
+    fetchLogoFlags();
+  }, [products]);
+  
   return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Gestion des Produits</h1>
+        <Button onClick={handleRefresh} disabled={isLoading}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Rafraîchir
+        </Button>
+      </div>
+
+      {/* Section des logos globaux */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold mb-4">Logos Globaux</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h3 className="text-sm font-medium mb-2">Logo Eau Douce</h3>
+              <EditableImage
+                key={globalLogos.eauDouce}
+                imageKey="global_logo_eaudouce_url"
+                initialUrl={globalLogos.eauDouce}
+                className="w-32 h-32 object-contain border rounded-lg p-2"
+                onUpdate={(url) => handleLogoUpdate('eauDouce', url)}
+                forceEditable={true}
+              />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium mb-2">Logo Eau de Mer</h3>
+              <EditableImage
+                key={globalLogos.eauMer}
+                imageKey="global_logo_eaudemer_url"
+                initialUrl={globalLogos.eauMer}
+                className="w-32 h-32 object-contain border rounded-lg p-2"
+                onUpdate={(url) => handleLogoUpdate('eauMer', url)}
+                forceEditable={true}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Produits Shopify</h1>
-        <p className="text-gray-500">Gérez vos produits directement depuis Shopify</p>
+          <h1 className="text-3xl font-bold mb-2">Produits Stripe</h1>
+          <p className="text-gray-500">Gérez vos produits directement depuis Stripe</p>
       </div>
       
       {/* Layout en deux colonnes */}
@@ -258,7 +640,7 @@ const ProduitsPage = () => {
           </Card>
         </div>
         
-        {/* Colonne droite - Produits Shopify */}
+          {/* Colonne droite - Produits Stripe */}
         <div className="flex-1">
           <Card className="mb-6">
             <CardContent className="pt-6">
@@ -294,15 +676,18 @@ const ProduitsPage = () => {
                         <TableHead>Nom du produit</TableHead>
                         <TableHead>Prix</TableHead>
                         <TableHead>Stock</TableHead>
+                        <TableHead>Page</TableHead>
+                          <TableHead>Catégories</TableHead>
                         <TableHead>Marque</TableHead>
-                        <TableHead>Catégories</TableHead>
+                          <TableHead>Logo Eau Douce</TableHead>
+                          <TableHead>Logo Eau de Mer</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8">
+                          <TableCell colSpan={8} className="text-center py-8">
                             Aucun produit trouvé
                           </TableCell>
                         </TableRow>
@@ -319,7 +704,7 @@ const ProduitsPage = () => {
                               </div>
                             </TableCell>
                             <TableCell className="font-medium">{product.title}</TableCell>
-                            <TableCell>{parseFloat(product.price).toFixed(2)} €</TableCell>
+                              <TableCell>{product.price.toFixed(2)} €</TableCell>
                             <TableCell>
                               <span className={`px-2 py-1 rounded-full text-xs ${
                                 product.stock > 10 
@@ -332,91 +717,117 @@ const ProduitsPage = () => {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <div className="space-y-2">
+                              {productPages[product.id.toString()]?.isLoading ? (
+                                <div className="flex items-center">
+                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                  <span className="text-xs text-gray-500">Chargement...</span>
+                                </div>
+                              ) : productPages[product.id.toString()]?.exists ? (
+                                <div className="flex items-center">
+                                  <span className="text-green-500 font-bold text-xl">✓</span>
+                                  <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">Page créée</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center">
+                                  <span className="text-red-500 font-bold text-xl">✗</span>
+                                  <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">Pas de page</span>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                                <MultiSelect
+                                  options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                                  selectedValues={linkedCategories[product.id] || []}
+                                  onChange={(selected) => handleCategoryChange(product.id, selected)}
+                                  placeholder="Sélectionner des catégories"
+                                />
+                              </TableCell>
+                              <TableCell>
                                 <Select
-                                  value={linkedBrands[product.id.toString()] || "none"}
-                                  onValueChange={(value) => handleBrandChange(product.id.toString(), value === "none" ? null : value)}
+                                  value={linkedBrands[product.id] || "none"}
+                                  onValueChange={(value) => handleBrandChange(product.id, value === "none" ? null : value)}
                                 >
-                                  <SelectTrigger className="w-[180px]">
+                                  <SelectTrigger>
                                     <SelectValue placeholder="Sélectionner une marque" />
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="none">Aucune marque</SelectItem>
-                                    {brands.filter(brand => brand.id && brand.id.trim() !== "").map((brand) => (
+                                    {brands.map((brand) => (
                                       <SelectItem key={brand.id} value={brand.id}>
                                         {brand.name}
                                       </SelectItem>
                                     ))}
                                   </SelectContent>
                                 </Select>
-                                
-                                {/* Afficher la marque sélectionnée avec son image si disponible */}
-                                {linkedBrands[product.id.toString()] && (
-                                  <div className="flex items-center gap-2 mt-2">
-                                    {(() => {
-                                      const brand = getBrandById(linkedBrands[product.id.toString()]);
-                                      return brand ? (
-                                        <>
-                                          {brand.image_url && (
-                                            <div className="w-6 h-6 bg-gray-100 rounded overflow-hidden">
-                                              <img
-                                                src={brand.image_url}
-                                                alt={brand.name}
-                                                className="w-full h-full object-contain"
-                                              />
-                                            </div>
-                                          )}
-                                          <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">
-                                            {brand.name}
-                                          </span>
-                                        </>
-                                      ) : null;
-                                    })()}
-                                  </div>
-                                )}
-                                
-                                {updatingBrand === product.id.toString() && (
-                                  <div className="text-xs text-blue-500">Mise à jour...</div>
-                                )}
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="space-y-2">
-                                <MultiSelect 
-                                  options={categories.map((cat) => ({ 
-                                    label: cat.name, 
-                                    value: cat.id 
-                                  }))}
-                                  selectedValues={linkedCategories[product.id.toString()] || []}
-                                  onChange={(selected) => handleCategoryChange(product.id.toString(), selected)}
-                                  placeholder="Sélectionner des catégories"
-                                  className="w-48"
+                              </TableCell>
+                              <TableCell>
+                                <Switch
+                                  checked={product.show_logo_eaudouce === "true"}
+                                  disabled={false}
+                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudouce', checked)}
                                 />
-                                
-                                {/* Afficher les badges des catégories sélectionnées */}
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {(linkedCategories[product.id.toString()] || []).map((catId) => {
-                                    const category = categories.find(c => c.id === catId);
-                                    return category ? (
-                                      <span 
-                                        key={catId} 
-                                        className="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800"
-                                      >
-                                        {category.name}
-                                      </span>
-                                    ) : null;
-                                  })}
-                                </div>
-                                
-                                {updatingProduct === product.id.toString() && (
-                                  <div className="text-xs text-blue-500">Mise à jour...</div>
-                                )}
-                              </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
+                                <Switch
+                                  checked={product.show_logo_eaudemer === "true"}
+                                  disabled={false}
+                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
+                                />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-2">
                                 <Button variant="outline" size="sm">Éditer</Button>
                                 <Button variant="destructive" size="sm">Supprimer</Button>
+                                
+                                {/* Boutons de gestion des pages produit */}
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                                  disabled={creatingPage === product.id.toString() || productPages[product.id.toString()]?.exists === true}
+                                  onClick={() => handleCreateProductPage(product)}
+                                >
+                                  {creatingPage === product.id.toString() ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Création en cours...
+                                    </>
+                                  ) : productPages[product.id.toString()]?.exists ? (
+                                    "✓ Page déjà créée"
+                                  ) : (
+                                    "✨ Créer page produit"
+                                  )}
+                                </Button>
+                                
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-red-500 text-red-500 hover:bg-red-50"
+                                  disabled={deletingPage === product.id.toString() || productPages[product.id.toString()]?.exists === false}
+                                  onClick={() => handleDeleteProductPage(product)}
+                                >
+                                  {deletingPage === product.id.toString() ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Suppression en cours...
+                                    </>
+                                  ) : !productPages[product.id.toString()]?.exists ? (
+                                    "❌ Pas de page à supprimer"
+                                  ) : (
+                                    "🗑️ Supprimer page produit"
+                                  )}
+                                </Button>
+                                
+                                <Button 
+                                  variant="link" 
+                                  size="sm"
+                                  onClick={() => {
+                                      const slug = slugify(product.title, { lower: true });
+                                      window.open(`/produits/${slug}?id=${product.id}`, '_blank');
+                                  }}
+                                >
+                                  Voir la page
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -438,6 +849,7 @@ const ProduitsPage = () => {
               <Button variant="outline" size="sm" disabled>Précédent</Button>
               <Button variant="outline" size="sm">1</Button>
               <Button variant="outline" size="sm" disabled>Suivant</Button>
+              </div>
             </div>
           </div>
         </div>

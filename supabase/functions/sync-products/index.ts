@@ -1,5 +1,6 @@
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -18,85 +19,122 @@ interface ShopifyProduct {
   images: { src: string }[];
 }
 
-Deno.serve(async (req) => {
+const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+  apiVersion: '2023-10-16',
+  httpClient: Stripe.createFetchHttpClient(),
+})
+
+const supabase = createClient(
+  Deno.env.get('SUPABASE_URL') || '',
+  Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
+)
+
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const shopifyDomain = 'e77919-2.myshopify.com'
-    const adminAccessToken = Deno.env.get('SHOPIFY_ADMIN_ACCESS_TOKEN')
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    // Récupérer tous les produits Stripe
+    const products = await stripe.products.list({
+      active: true,
+      expand: ['data.default_price']
+    })
 
-    if (!adminAccessToken || !supabaseUrl || !supabaseServiceKey) {
-      throw new Error('Missing environment variables')
-    }
+    const logs: string[] = []
+    logs.push(`📦 Synchronisation de ${products.data.length} produits`)
 
-    // Initialiser le client Supabase
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+    for (const product of products.data) {
+      try {
+        // Récupérer les prix (variantes) du produit
+        const prices = await stripe.prices.list({
+          product: product.id,
+          active: true
+        })
 
-    // Récupérer les produits depuis Shopify
-    const response = await fetch(
-      `https://${shopifyDomain}/admin/api/2024-01/products.json`,
-      {
-        headers: {
-          'X-Shopify-Access-Token': adminAccessToken,
-          'Content-Type': 'application/json',
-        },
+        // Construire l'objet variantStocks
+        const variantStocks: Record<string, number> = {}
+        const pricesData = prices.data.map(price => {
+          // S'assurer que le lookup_key est bien formaté
+          const lookupKey = price.lookup_key
+          if (lookupKey && price.metadata?.stock) {
+            const stock = Number(price.metadata.stock)
+            if (!isNaN(stock)) {
+              variantStocks[lookupKey] = stock
+              logs.push(`✅ Stock trouvé pour ${lookupKey}: ${stock}`)
+            } else {
+              logs.push(`⚠️ Stock invalide pour ${lookupKey}: ${price.metadata.stock}`)
+            }
+          } else {
+            logs.push(`⚠️ Pas de stock pour ${lookupKey || 'clé manquante'}`)
+          }
+
+          return {
+            id: price.id,
+            lookup_key: lookupKey,
+            stock: price.metadata?.stock ? Number(price.metadata.stock) : null
+          }
+        })
+
+        // Vérifier le stock général du produit
+        const generalStock = Number(product.metadata?.stock)
+        if (isNaN(generalStock)) {
+          logs.push(`⚠️ Stock général invalide pour ${product.id}: ${product.metadata?.stock}`)
+        } else {
+          logs.push(`✅ Stock général pour ${product.id}: ${generalStock}`)
       }
-    )
 
-    if (!response.ok) {
-      throw new Error(`Shopify API error: ${response.statusText}`)
-    }
-
-    const { products } = await response.json()
-
-    // Pour chaque produit
-    for (const product of products as ShopifyProduct[]) {
-      const productData = {
-        shopify_id: product.id,
-        title: product.title,
-        description: product.body_html,
-        price: product.variants[0]?.price || null,
-        compare_at_price: product.variants[0]?.compare_at_price || null,
-        image_url: product.images[0]?.src || null,
-        handle: product.handle,
-        vendor: product.vendor,
-        product_type: product.product_type,
-        tags: product.tags ? product.tags.split(',') : [],
-        variants: JSON.stringify(product.variants),
-      }
-
-      // Upsert le produit dans Supabase
+        // Mettre à jour le produit dans Supabase
       const { error } = await supabase
         .from('products')
-        .upsert(
-          productData,
-          { onConflict: 'shopify_id' }
-        )
+          .upsert({
+            id: product.id,
+            title: product.name,
+            price: product.default_price?.unit_amount ? product.default_price.unit_amount / 100 : 0,
+            image: product.images[0] || '',
+            description: product.description || '',
+            brand: product.metadata?.brand || '',
+            reference: product.metadata?.reference || '',
+            metadata: product.metadata,
+            variantStocks,
+            stock: generalStock || 0,
+            prices: pricesData,
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'id'
+          })
 
       if (error) {
-        console.error('Error upserting product:', error)
-        throw error
+          logs.push(`❌ Erreur Supabase pour ${product.id}: ${error.message}`)
+        } else {
+          logs.push(`✅ Produit ${product.id} synchronisé`)
+        }
+
+      } catch (error) {
+        logs.push(`❌ Erreur sur le produit ${product.id}: ${error.message}`)
       }
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: `Synchronized ${products.length} products` }),
+      JSON.stringify({
+        success: true,
+        logs
+      }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
+        status: 200
       }
     )
 
   } catch (error) {
-    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        success: false,
+        error: error.message
+      }),
       {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
+        status: 500
       }
     )
   }

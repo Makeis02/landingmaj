@@ -1,69 +1,80 @@
-# Welcome to your Lovable project
+# Système de génération de pages produit pour Landing Page Pack
 
-## Project info
+Ce projet permet de générer dynamiquement des pages produit à partir d'un modèle et d'une interface d'administration.
 
-**URL**: https://lovable.dev/projects/9348b988-d3f4-49c3-ac2c-eef363d64672
+## Fonctionnalités
 
-## How can I edit this code?
+- Génération de pages produit personnalisées en utilisant un modèle
+- Mise à jour automatique des routes dans App.tsx
+- Interface d'administration pour créer et supprimer des pages produit
+- API REST pour automatiser la génération et suppression de pages
 
-There are several ways of editing your application.
+## Structure du projet
 
-**Use Lovable**
+```
+/src
+  /pages
+    /admin
+      ProduitsPage.tsx  # Interface d'administration avec boutons de gestion
+    /Product
+      Modele.tsx        # Modèle de page produit
+    /products
+      # Pages produit générées automatiquement
+/scripts                # Scripts de génération/suppression
+  generatePage.js       # Génération de pages produit
+  deletePage.js         # Suppression de pages produit
+  updateRoutes.js       # Mise à jour des routes dans App.tsx
+  server.js             # Serveur Express pour l'API REST
+  README.md             # Documentation des scripts
+```
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/9348b988-d3f4-49c3-ac2c-eef363d64672) and start prompting.
+## Installation et démarrage
 
-Changes made via Lovable will be committed automatically to this repo.
+### 1. Installation des dépendances
 
-**Use your preferred IDE**
+```bash
+# Installation des dépendances principales du projet
+npm install
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+# Installation des dépendances pour les scripts
+cd scripts
+npm install
+cd ..
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### 2. Démarrage du serveur de développement
 
-Follow these steps:
+```bash
+# Dans un premier terminal, démarrer l'application React
+npm run dev
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Dans un second terminal, démarrer le serveur API pour les scripts
+cd scripts
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Utilisation
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+1. Accédez à l'interface d'administration à l'adresse `/admin/produits`
+2. Pour chaque produit, vous pouvez :
+   - Cliquer sur "✨ Créer page produit" pour générer une page produit
+   - Cliquer sur "🗑️ Supprimer page produit" pour supprimer une page produit existante
+   - Cliquer sur "🔗 Voir la page" pour voir la page produit générée
 
-**Use GitHub Codespaces**
+## Comment ça fonctionne
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+1. Le modèle `Modele.tsx` sert de base pour toutes les pages produit
+2. Lorsque vous cliquez sur "Créer page produit", les données du produit sont envoyées à l'API
+3. Le script `generatePage.js` crée un nouveau fichier `.tsx` dans `/src/pages/products/`
+4. Le script `updateRoutes.js` ajoute une nouvelle route dans `App.tsx`
+5. La page produit est immédiatement accessible via l'URL `/produits/[slug]`
 
-## What technologies are used for this project?
+## Ligne de commande
 
-This project is built with .
+Vous pouvez également utiliser les scripts directement en ligne de commande. Consultez le [README des scripts](./scripts/README.md) pour plus d'informations.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Notes techniques
 
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/9348b988-d3f4-49c3-ac2c-eef363d64672) and click on Share -> Publish.
-
-## I want to use a custom domain - is that possible?
-
-We don't support custom domains (yet). If you want to deploy your project under your own domain then we recommend using Netlify. Visit our docs for more details: [Custom domains](https://docs.lovable.dev/tips-tricks/custom-domain/)
+- Le système utilise un serveur Express local pour la communication entre l'interface d'administration et les scripts
+- Les opérations sur le système de fichiers sont effectuées côté serveur, et non dans le navigateur
+- Les modifications sont locales et nécessitent un redéploiement pour être visibles en production

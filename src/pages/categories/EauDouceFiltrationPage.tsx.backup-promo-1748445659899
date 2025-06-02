@@ -1,0 +1,24 @@
+import React from "react";
+
+import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
+import slugify from 'slugify';
+import { fetchProductDescriptions } from "@/lib/api/products";
+
+const EauDouceFiltrationPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Filtration</h1>
+      <p>Bienvenue sur la page dédiée aux équipements de filtration pour aquariums d'eau douce.</p>
+      <p>Découvrez notre sélection de produits pour une filtration optimale :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Filtres internes et externes</li>
+        <li>Médias filtrants</li>
+        <li>Pompes de filtration</li>
+        <li>Accessoires de filtration</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits détaillés, guides d'installation, conseils de maintenance...</p>
+    </div>
+  );
+};
+
+export default EauDouceFiltrationPage; 

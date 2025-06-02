@@ -1,6 +1,22 @@
 import { useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+// Get API base URL from environment variables with fallback
+const getApiBaseUrl = () => {
+  // Use environment variable if available
+  if (import.meta.env && import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback to current origin if in browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Default fallback for SSR or other contexts
+  return '';
+};
+
 interface UseBeforeUnloadProps {
   userEmail: string;
   enabled?: boolean;
@@ -16,8 +32,9 @@ export const useBeforeUnload = ({ userEmail, enabled = true }: UseBeforeUnloadPr
       if (document.visibilityState === 'hidden') {
         console.log('👋 L\'utilisateur quitte la page, mise à jour du statut de chat');
         try {
+          const apiBaseUrl = getApiBaseUrl();
           // Utiliser fetch avec keepalive pour éviter les NetworkError
-          const response = await fetch('/api/update-chat-status', {
+          const response = await fetch(`${apiBaseUrl}/api/update-chat-status`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -43,8 +60,9 @@ export const useBeforeUnload = ({ userEmail, enabled = true }: UseBeforeUnloadPr
     const handleBeforeUnload = async (e: BeforeUnloadEvent) => {
       console.log('👋 L\'utilisateur ferme l\'onglet, mise à jour du statut de chat');
       try {
+        const apiBaseUrl = getApiBaseUrl();
         // Utiliser fetch avec keepalive pour éviter les NetworkError
-        const response = await fetch('/api/update-chat-status', {
+        const response = await fetch(`${apiBaseUrl}/api/update-chat-status`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

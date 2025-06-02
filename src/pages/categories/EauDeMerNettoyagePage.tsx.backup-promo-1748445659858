@@ -1,0 +1,24 @@
+import React from "react";
+
+import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
+import slugify from 'slugify';
+import { fetchProductDescriptions } from "@/lib/api/products";
+
+const EauDeMerNettoyagePage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Nettoyage Aquarium Marin</h1>
+      <p>Bienvenue sur la page dédiée aux produits de nettoyage pour aquariums marins.</p>
+      <p>Découvrez notre sélection de produits spécialisés pour l'entretien des aquariums marins :</p>
+      <ul className="list-disc ml-6 mt-2">
+        <li>Nettoyants pour vitres marines</li>
+        <li>Éponges et raclettes spéciales</li>
+        <li>Produits de nettoyage du décor marin</li>
+        <li>Accessoires de maintenance spécifiques</li>
+      </ul>
+      <p className="mt-4">Prochainement : produits détaillés, guides de nettoyage, conseils d'entretien...</p>
+    </div>
+  );
+};
+
+export default EauDeMerNettoyagePage; 

@@ -1,0 +1,1162 @@
+import slugify from 'slugify';
+
+// Helper function to safely handle HTML descriptions
+const getSafeHtmlDescription = (description: string | undefined): string => {
+  if (!description) return "Description non disponible";
+  
+  // Simple HTML validation - check if it has HTML-like content
+  const hasHtmlContent = /<[a-z][\s\S]*>/i.test(description);
+  
+  // If it's already HTML content, return it as is
+  if (hasHtmlContent) return description;
+  
+  // Otherwise treat it as plain text
+  return description.trim() || "Description non disponible";
+};
+import { useState, useEffect, useRef } from "react";
+import { useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
+import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { fetchShopifyProducts, ShopifyProduct } from "@/lib/api/shopify";
+import { fetchCategoriesForProducts } from "@/lib/api/product-categories";
+import { fetchCategories, Category } from "@/lib/api/categories";
+import { fetchBrands, Brand, fetchBrandsForProducts } from "@/lib/api/brands";
+import { EditableText } from "@/components/EditableText";
+import { EditableImage } from "@/components/EditableImage";
+import { useEditStore } from "@/stores/useEditStore";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import FloatingHeader from "@/components/admin/FloatingHeader";
+import { useImageUpload } from "@/hooks/useImageUpload";
+import { useCartStore } from "@/stores/useCartStore";
+import { fetchProductDescriptions } from "@/lib/api/products";
+
+// 🔍 Trouve la sous-catégorie à partir du paramètre `souscategorie` dans l'URL ou du slug direct
+const findMatchingSubCategory = (subCategories: Category[], slugParam: string): Category | undefined => {
+  return subCategories.find(cat => {
+    const cleanSlug = cat.slug?.split("?")[0];
+    const redirectSlug = cat.redirect_url?.split("souscategorie=")[1];
+    return slugParam === cleanSlug || slugParam === redirectSlug;
+  });
+};
+
+// Type étendu pour les produits Shopify dans cette page
+type ExtendedShopifyProduct = ShopifyProduct & {
+  // Propriétés optionnelles supplémentaires pour l'affichage
+  onSale?: boolean;
+  salePrice?: string;
+};
+
+// Données de filtres
+const filters = {
+  price: { min: 0, max: 300 },
+  stock: true,
+  promos: false,
+};
+
+// Types de catégories
+const categories = {
+  "decorations": {
+    title: "Décorations",
+    description: "Embellissez votre aquarium avec notre sélection de décorations naturelles et artificielles.",
+    bannerImage: "/placeholder.svg"
+  },
+  "pumps": {
+    title: "Pompes & Filtration",
+    description: "Solutions de filtration et pompes pour maintenir une eau propre et bien oxygénée.",
+    bannerImage: "/placeholder.svg"
+  },
+  "heating": {
+    title: "Chauffages & Ventilation",
+    description: "Maintenez la température idéale pour vos espèces aquatiques.",
+    bannerImage: "/placeholder.svg"
+  },
+  "biochemical": {
+    title: "Produits Bio-Chimiques",
+    description: "Produits de traitement d'eau et solutions pour l'équilibre biologique de votre aquarium.",
+    bannerImage: "/placeholder.svg"
+  },
+  "lighting": {
+    title: "Éclairages",
+    description: "Systèmes d'éclairage adaptés pour la croissance des plantes et le bien-être des poissons.",
+    bannerImage: "/placeholder.svg"
+  },
+  "maintenance": {
+    title: "Entretiens & Nettoyages",
+    description: "Accessoires et produits pour l'entretien facile de votre aquarium.",
+    bannerImage: "/placeholder.svg"
+  },
+  "food": {
+    title: "Alimentation",
+    description: "Nourriture de qualité pour tous types de poissons et invertébrés.",
+    bannerImage: "/placeholder.svg"
+  },
+  "packs": {
+    title: "Packs Mensuels",
+    description: "Abonnements pratiques pour recevoir régulièrement vos produits essentiels.",
+    bannerImage: "/placeholder.svg"
+  }
+};
+
+// Fonction pour trouver les sous-catégories
+const findSubCategories = (allCategories: Category[], parentId: string | null) => {
+  return allCategories.filter(cat => cat.parent_id === parentId);
+};
+
+const CategoryPage = () => {
+  // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
+  const rawSlug = useParams<{ slug: string }>()?.slug || "eaudoucepompes";
+  const currentSlug = rawSlug.split("?")[0]; // on enlève les éventuels paramètres
+  
+  // Ajoute ceci :
+  const normalizedSlug = currentSlug.trim().toLowerCase().replace(/\W+/g, "");
+
+  console.log("🔎 currentSlug =", currentSlug);
+  console.log("🧽 normalizedSlug =", normalizedSlug);
+
+  // Et modifie les conditions comme ceci :
+  const isEauDouce = normalizedSlug.includes("eaudoucepompes");
+  const isEauMer = normalizedSlug.includes("eaudemerpompes");
+
+  console.log("💧 isEauDouce:", isEauDouce);
+  console.log("🌊 isEauMer:", isEauMer);
+  
+  // Test logs
+  console.log("🧪 Normalized slug = ", normalizedSlug);
+  console.log("🧪 isEauDouce:", isEauDouce);
+  console.log("🧪 isEauMer:", isEauMer); 
+  
+  const [searchParams] = useSearchParams();
+  const initialSubCategorySlug = searchParams.get("souscategorie");
+  console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
+   
+  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
+  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [inStock, setInStock] = useState(true);
+  const [promoOnly, setPromoOnly] = useState(false);
+  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
+  
+  // Nouveaux états pour les produits Shopify
+  const [products, setProducts] = useState<ExtendedShopifyProduct[]>([]);
+  const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
+  const [linkedBrands, setLinkedBrands] = useState<Record<string, string | null>>({});
+  const [filteredProducts, setFilteredProducts] = useState<ExtendedShopifyProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [parentCategory, setParentCategory] = useState<Category | null>(null);
+  const [subCategories, setSubCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [brandsError, setBrandsError] = useState<string | null>(null);
+  const [brandsLoading, setBrandsLoading] = useState(false);
+
+  // Add this near the other state declarations
+  const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
+
+  // Add this near the other state declarations
+  const hasAppliedInitialSubCategory = useRef(false);
+  
+  // Pagination states
+  const ITEMS_PER_PAGE = 12; // Ajuste selon ton design
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts]);
+
+  // État pour le mode édition et toast notifications
+  const { isEditMode } = useEditStore();
+  const { toast } = useToast();
+  
+  // État pour stocker le contenu éditable
+  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryDescription, setCategoryDescription] = useState<string>(
+    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+  );
+  const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
+  
+  // Obtenir les informations de la catégorie
+  const categoryInfo = {
+    title: categoryTitle,
+    description: categoryDescription,
+    bannerImage: categoryBannerImage
+  };
+
+  // Log au montage du composant
+  useEffect(() => {
+    console.log("🔁 CategoryPage monté - slug =", currentSlug);
+  }, []);
+  
+  // Debug useEffect pour confirmer le chargement avec les paramètres URL
+  useEffect(() => {
+    console.log("📍 CategoryPage chargé avec slug =", currentSlug, "et souscategorie =", initialSubCategorySlug);
+  }, [currentSlug, initialSubCategorySlug]);
+
+  // Charger les marques depuis Supabase
+  useEffect(() => {
+    const loadBrands = async () => {
+      try {
+        setBrandsLoading(true);
+        const brandsData = await fetchBrands();
+        setBrands(brandsData);
+        setBrandsError(null);
+      } catch (err) {
+        console.error("Erreur lors du chargement des marques:", err);
+        setBrandsError("Impossible de charger les marques.");
+      } finally {
+        setBrandsLoading(false);
+      }
+    };
+
+    loadBrands();
+  }, []);
+
+  // Charger les produits et les catégories liées
+  useEffect(() => {
+    console.log("🚀 Début du chargement des produits pour le slug:", currentSlug);
+    
+    const loadProductsAndCategories = async () => {
+      console.log("🚀 Début de loadProductsAndCategories()");
+      try {
+        setIsLoading(true);
+
+        // Charger tous les produits Shopify
+        console.log("📤 Avant l'appel fetchShopifyProducts()");
+        const allProducts = await fetchShopifyProducts();
+        console.log("🛒 Produits Shopify récupérés:", allProducts);
+        
+        // Convertir les produits au format étendu
+        const extendedProducts: ExtendedShopifyProduct[] = Array.isArray(allProducts) 
+          ? allProducts.map(product => ({
+              ...product,
+              onSale: false // Par défaut, pas en promotion
+            })) : [];
+        
+        console.log("📦 Produits étendus:", extendedProducts);
+        setProducts(extendedProducts);
+
+        if (extendedProducts.length === 0) {
+          console.warn("⚠️ Aucun produit récupéré de Shopify !");
+          setError("Aucun produit disponible.");
+          setIsLoading(false);
+          return;
+        }
+
+        // Charger les catégories liées pour ces produits
+        const productIds = extendedProducts.map(p => p.id.toString());
+        console.log("🔑 IDs des produits à rechercher:", productIds);
+        const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        console.log("🔗 Catégories par produit:", categoriesByProduct);
+        setLinkedCategories(categoriesByProduct);
+
+        // Charger les marques liées pour ces produits
+        const brandsByProduct = await fetchBrandsForProducts(productIds);
+        console.log("🏷️ Marques par produit:", brandsByProduct);
+        setLinkedBrands(brandsByProduct);
+
+        // Charger toutes les catégories depuis Supabase
+        const categoriesData = await fetchCategories();
+        console.log("📚 Toutes les catégories récupérées:", categoriesData);
+        setAllCategories(categoriesData);
+
+        // Trouver la catégorie mère par son slug
+        const parentCategory = categoriesData.find(
+          (cat) => cat.slug === currentSlug
+        );
+        
+        console.log("🎯 Catégorie mère trouvée via slug:", parentCategory);
+        
+        if (!parentCategory) {
+          console.error("❌ Catégorie non trouvée pour ce slug:", currentSlug);
+          // Pour aider au débogage, affichons les slugs disponibles
+          console.log("🔍 Slugs disponibles:", categoriesData.map(cat => cat.slug));
+          setError("Catégorie non trouvée.");
+          setIsLoading(false);
+          return;
+        }
+        
+        setParentCategory(parentCategory);
+        
+        // Trouver les sous-catégories par parent_id
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        console.log("🌿 Sous-catégories trouvées:", childCategories);
+        
+        // Nettoyage des slugs de sous-catégorie pour supprimer les éventuels paramètres URL
+        const cleanedChildCategories = childCategories.map((cat) => ({
+          ...cat,
+          slug: cat.slug.split("?")[0],
+        }));
+        console.log("✅ Slugs nettoyés :", cleanedChildCategories.map(c => c.slug));
+        setSubCategories(cleanedChildCategories);
+        console.log("📥 Sous-catégories assignées :", cleanedChildCategories);
+        
+        // Récupérer les IDs des sous-catégories ET du parent
+        // Pour accepter les produits liés soit au parent soit aux enfants
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        console.log("🔑 IDs des catégories (parent + enfants):", categoryIds);
+
+        // Filtrer les produits qui appartiennent à la catégorie parent ou à ses sous-catégories
+        // Et qui correspondent aux marques sélectionnées
+        let filtered = extendedProducts.filter((product) => {
+          const productId = product.id.toString();
+          const linked = categoriesByProduct[productId] || [];
+          const productBrandId = brandsByProduct[productId];
+          
+          console.log(`🔎 Produit ${product.title} (ID: ${productId}):`);
+          console.log(`🔗 Lié aux catégories:`, linked);
+          console.log(`🏷️ Lié à la marque:`, productBrandId);
+          
+          const matchSubCategory = selectedSubCategories.length === 0
+            ? linked.some((catId) => categoryIds.includes(catId))
+            : linked.some((catId) => selectedSubCategories.includes(catId));
+          
+          const matchBrand = selectedBrandIds.length === 0
+            ? true
+            : productBrandId && selectedBrandIds.includes(productBrandId);
+          
+          const matchPrice = 
+            parseFloat(product.price) >= priceRange[0] &&
+            parseFloat(product.price) <= priceRange[1];
+
+          const matchStock = !inStock || product.stock > 0;
+
+          const matchPromo = !promoOnly || (product.onSale === true);
+          
+          console.log(`✅ Correspond aux catégories ? ${matchSubCategory}`);
+          console.log(`✅ Correspond aux marques ? ${matchBrand}`);
+          console.log(`✅ Correspond au prix ? ${matchPrice}`);
+          console.log(`✅ Correspond au stock ? ${matchStock}`);
+          console.log(`✅ Correspond aux promos ? ${matchPromo}`);
+          
+          return matchSubCategory && matchBrand && matchPrice && matchStock && matchPromo;
+        });
+
+        console.log("🛒 Produits filtrés:", filtered);
+        setFilteredProducts(filtered);
+        setError(null);
+      } catch (err) {
+        console.error("❌ Erreur lors du chargement:", err);
+        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProductsAndCategories();
+  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
+
+  // Récupérer les descriptions des produits
+  useEffect(() => {
+    if (products.length === 0) return;
+
+    const loadProductDescriptions = async () => {
+      try {
+        console.log("🔄 Chargement des descriptions pour", products.length, "produits...");
+        const descriptions = await fetchProductDescriptions();
+        console.log("📋 Descriptions reçues:", Object.keys(descriptions).length);
+        
+        // Vérifier les IDs des produits actuels pour voir s'ils ont des descriptions
+        products.forEach(product => {
+          const productId = product.id.toString();
+          console.log(`🏷️ Produit ${productId} (${product.title}): ${descriptions[productId] ? "✅ Description trouvée" : "❌ Pas de description"}`);
+        });
+        
+        setProductDescriptions(descriptions);
+      } catch (error) {
+        console.error("❌ Erreur lors du chargement des descriptions:", error);
+      }
+    };
+
+    loadProductDescriptions();
+  }, [products]);
+
+  // Sélectionner automatiquement la sous-catégorie depuis l'URL
+  useEffect(() => {
+    if (hasAppliedInitialSubCategory.current) return;
+    if (!initialSubCategorySlug) {
+      console.log("⚠️ Aucun slug 'souscategorie' trouvé dans l'URL.");
+      return;
+    }
+
+    if (!Array.isArray(subCategories) || subCategories.length === 0) {
+      console.log("⏳ En attente de sous-catégories valides...");
+      return;
+    }
+
+    console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
+    console.log("📋 Liste des slugs disponibles:", subCategories.map(c => c.slug));
+
+    // 🔁 Patiente un peu avant de chercher la sous-catégorie
+    const timeout = setTimeout(() => {
+      const match = findMatchingSubCategory(subCategories, initialSubCategorySlug);
+
+      if (match) {
+        console.log("✅ Sous-catégorie trouvée :", match);
+        if (!selectedSubCategories.includes(match.id)) {
+          setSelectedSubCategories([match.id]);
+          hasAppliedInitialSubCategory.current = true;
+        }
+      } else {
+        console.warn("❌ Aucune correspondance pour la sous-catégorie slug :", initialSubCategorySlug);
+        console.log("📊 Détails de recherche :");
+        subCategories.forEach(cat => {
+          const cleanSlug = cat.slug?.split("?")[0];
+          const redirectSlug = cat.redirect_url?.split("souscategorie=")[1];
+          console.log(`  - ${cat.name}: slug=${cleanSlug}, redirectSlug=${redirectSlug}`);
+        });
+      }
+    }, 300); // attends 300ms
+
+    return () => clearTimeout(timeout);
+  }, [initialSubCategorySlug, subCategories, selectedSubCategories]);
+
+  // Les filtres sont désactivés pour l'instant
+  useEffect(() => {
+    // Volontairement vide pour désactiver les filtres
+    // tout en conservant l'interface utilisateur
+  }, [products]);
+
+  // Effet pour appliquer le debounce au changement de prix
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPriceRange(priceInput);
+    }, 500); // 500ms après l'arrêt
+
+    return () => clearTimeout(timeout);
+  }, [priceInput]);
+
+  // Gérer les changements de filtres
+  const handleBrandToggle = (brandId: string) => {
+    setSelectedBrandIds(prev => 
+      prev.includes(brandId) 
+        ? prev.filter(id => id !== brandId)
+        : [...prev, brandId]
+    );
+  };
+
+  const handleSubCategoryToggle = (subCatId: string) => {
+    setSelectedSubCategories((prev) =>
+      prev.includes(subCatId)
+        ? prev.filter((id) => id !== subCatId)
+        : [...prev, subCatId]
+    );
+  };
+
+  const toggleMobileFilters = () => {
+    setMobileFiltersOpen(!mobileFiltersOpen);
+  };
+
+  // Fonction pour mettre à jour le prix
+  const handlePriceChange = (value: number[]) => {
+    setPriceInput(value);
+  };
+
+  // Rendu des étoiles pour les notes
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            size={16}
+            className={`${
+              i < Math.floor(rating) 
+                ? "text-yellow-500 fill-yellow-500" 
+                : i < rating 
+                  ? "text-yellow-500 fill-yellow-500 opacity-50" 
+                  : "text-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // Fonction pour mettre à jour le contenu éditable
+  const handleTextUpdate = async (newText: string, contentKey: string) => {
+    try {
+      const trimmedText = newText.trim();
+      
+      // Mettre à jour l'état local immédiatement
+      if (contentKey === `category_${currentSlug}_title`) {
+        setCategoryTitle(trimmedText);
+      } else if (contentKey === `category_${currentSlug}_description`) {
+        setCategoryDescription(trimmedText);
+      }
+      
+      // Vérifier si l'entrée existe déjà
+      const { data: existingData } = await supabase
+        .from("editable_content")
+        .select("content_key")
+        .eq("content_key", contentKey)
+        .limit(1);
+      
+      let error;
+      
+      if (existingData && existingData.length > 0) {
+        // Mettre à jour l'entrée existante
+        const { error: updateError } = await supabase
+          .from("editable_content")
+          .update({ content: trimmedText })
+          .eq("content_key", contentKey);
+          
+        error = updateError;
+      } else {
+        // Créer une nouvelle entrée
+        const { error: insertError } = await supabase
+          .from("editable_content")
+          .insert({ content_key: contentKey, content: trimmedText });
+          
+        error = insertError;
+      }
+
+      if (!error) {
+        console.log("Mise à jour réussie pour :", contentKey);
+      } else {
+        console.error("Erreur lors de la mise à jour :", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la mise à jour du contenu",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur inattendue :", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue est survenue",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Charger le contenu éditable depuis Supabase
+  useEffect(() => {
+    const fetchEditableContent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("editable_content")
+          .select("*")
+          .in("content_key", [
+            `category_${currentSlug}_title`, 
+            `category_${currentSlug}_description`,
+            `category_${currentSlug}_banner_image`
+          ]);
+        
+        if (!error && data) {
+          data.forEach(item => {
+            if (item.content_key === `category_${currentSlug}_title`) {
+              setCategoryTitle(item.content);
+            } else if (item.content_key === `category_${currentSlug}_description`) {
+              setCategoryDescription(item.content);
+            } else if (item.content_key === `category_${currentSlug}_banner_image`) {
+              setCategoryBannerImage(item.content);
+            }
+          });
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement du contenu éditable :", error);
+      }
+    };
+
+    fetchEditableContent();
+  }, [currentSlug, isEditMode]);
+
+  // Fonction pour mettre à jour l'URL de l'image
+  const handleImageUpdate = async (newUrl: string, contentKey: string) => {
+    try {
+      // Mettre à jour l'état local
+      if (contentKey === `category_${currentSlug}_banner_image`) {
+        setCategoryBannerImage(newUrl);
+      }
+      
+      // Vérifier si l'entrée existe déjà
+      const { data: existingData } = await supabase
+        .from("editable_content")
+        .select("content_key")
+        .eq("content_key", contentKey)
+        .limit(1);
+      
+      let error;
+      
+      if (existingData && existingData.length > 0) {
+        // Mettre à jour l'entrée existante
+        const { error: updateError } = await supabase
+          .from("editable_content")
+          .update({ content: newUrl })
+          .eq("content_key", contentKey);
+          
+        error = updateError;
+      } else {
+        // Créer une nouvelle entrée
+        const { error: insertError } = await supabase
+          .from("editable_content")
+          .insert({ content_key: contentKey, content: newUrl });
+          
+        error = insertError;
+      }
+
+      if (!error) {
+        console.log("Mise à jour de l'image réussie pour :", contentKey);
+        toast({
+          title: "Image mise à jour",
+          description: "L'image d'arrière-plan a été mise à jour avec succès",
+        });
+      } else {
+        console.error("Erreur lors de la mise à jour de l'image :", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la mise à jour de l'image",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Erreur inattendue :", error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur inattendue est survenue",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Cart functionality
+  const { addItem } = useCartStore();
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <FloatingHeader />
+      
+      <div>
+      {/* Hero Banner */}
+      <div 
+        className="relative bg-cover bg-center py-16"
+      >
+        {isEditMode ? (
+          <div className="absolute inset-0 z-0">
+            <EditableImage
+              imageKey={`category_${currentSlug}_banner_image`}
+              initialUrl={categoryBannerImage}
+              className="w-full h-full object-cover"
+              onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${currentSlug}_banner_image`)}
+            />
+            <div className="absolute inset-0 bg-black/50"></div>
+          </div>
+        ) : (
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{ 
+              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${categoryInfo.bannerImage})` 
+            }}
+          ></div>
+        )}
+        
+        <div className="container mx-auto text-center text-white relative z-10">
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            <EditableText
+              contentKey={`category_${currentSlug}_title`}
+              initialContent={categoryTitle}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
+            />
+          </h1>
+          <p className="max-w-2xl mx-auto mb-8">
+            <EditableText
+              contentKey={`category_${currentSlug}_description`}
+              initialContent={categoryDescription}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+            />
+          </p>
+          
+          {/* Navigation Eau Douce / Eau de Mer */}
+          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
+            <Button
+              asChild
+              variant={isEauDouce ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauDouce
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">🐟</div>
+                <span>Eau douce</span>
+              </a>
+            </Button>
+            
+            <Button
+              asChild
+              variant={isEauMer ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauMer
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">🌊</div>
+                <span>Eau de mer</span>
+              </a>
+            </Button>
+          </div>
+          
+          {/* Breadcrumb navigation removed as requested */}
+          </div>
+        </div>
+      </div>
+      
+      <main className="flex-grow container mx-auto px-4 py-8">
+        {/* Panneau de debug en bas de page */}
+        {isEditMode && (
+          <div style={{ position: "fixed", bottom: 0, left: 0, background: "#fff", padding: "6px", zIndex: 9999, fontSize: "11px", border: "1px solid #ccc" }}>
+            <div>Slug brut : <b>{rawSlug}</b></div>
+            <div>Slug nettoyé : <b>{currentSlug}</b></div>
+            <div>Slug normalisé : <b>{normalizedSlug}</b></div>
+            <div>isEauDouce : <b>{isEauDouce.toString()}</b></div>
+            <div>isEauMer : <b>{isEauMer.toString()}</b></div>
+            <div>Slug sous-catégorie URL : <b>{initialSubCategorySlug}</b></div>
+            <div>Sous-catégories chargées : {subCategories.length}</div>
+            <div>Sous-catégories IDs sélectionnées : {selectedSubCategories.join(", ")}</div>
+            <div>Slugs dispo : {subCategories.map(s => s.slug).join(", ")}</div>
+          </div>
+        )}
+        
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Bouton filtre mobile */}
+          <div className="md:hidden mb-4">
+            <Button 
+              onClick={toggleMobileFilters}
+              variant="outline" 
+              className="w-full flex items-center justify-between"
+            >
+              <div className="flex items-center">
+                <Filter size={18} className="mr-2" />
+                Filtres
+              </div>
+              <ChevronDown size={18} />
+            </Button>
+          </div>
+
+          {/* Filtres (mobile) */}
+          {mobileFiltersOpen && (
+            <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
+              <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="font-bold text-lg">Filtres</h2>
+                  <Button variant="ghost" size="sm" onClick={toggleMobileFilters}>
+                    <X size={24} />
+                  </Button>
+                </div>
+                {/* Contenu des filtres (même que bureau) */}
+                <div className="space-y-6">
+                  {/* Prix */}
+                  <div>
+                    <h3 className="font-medium mb-3">Prix</h3>
+                    <div className="px-2">
+                      <Slider 
+                        defaultValue={[0, 800]} 
+                        max={800} 
+                        step={1} 
+                        value={priceInput}
+                        onValueChange={handlePriceChange}
+                      />
+                      <div className="flex justify-between mt-2 text-sm">
+                        <span>{priceInput[0]}€</span>
+                        <span>{priceInput[1]}€</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Sous-catégories */}
+                  {subCategories.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Sous-catégories</h3>
+                      <div className="space-y-2">
+                        {subCategories.map((subCat) => (
+                          <div key={subCat.id} className="flex items-center">
+                            <Checkbox
+                              id={`subcat-mobile-${subCat.id}`}
+                              checked={selectedSubCategories.includes(subCat.id)}
+                              onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                            />
+                            <label htmlFor={`subcat-mobile-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                              {subCat.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  <Separator />
+                  
+                  {/* Marques */}
+                  <div>
+                    <h3 className="font-medium mb-3">Marques</h3>
+                    <div className="space-y-2">
+                      {brandsLoading ? (
+                        <div className="text-center py-2">
+                          <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                          <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                        </div>
+                      ) : brandsError ? (
+                        <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                      ) : brands.length === 0 ? (
+                        <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                      ) : (
+                        brands.map((brand) => (
+                        <div key={brand.id} className="flex items-center">
+                          <Checkbox 
+                            id={`brand-mobile-${brand.id}`}
+                              checked={selectedBrandIds.includes(brand.id)}
+                            onCheckedChange={() => handleBrandToggle(brand.id)}
+                          />
+                          <label 
+                            htmlFor={`brand-mobile-${brand.id}`}
+                            className="ml-2 text-sm flex-grow"
+                          >
+                            {brand.name}
+                          </label>
+                        </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Disponibilité */}
+                  <div>
+                    <h3 className="font-medium mb-3">Disponibilité</h3>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="stock-mobile" className="text-sm">
+                        En stock uniquement
+                      </label>
+                      <Switch 
+                        id="stock-mobile"
+                        checked={inStock}
+                        onCheckedChange={setInStock}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Promotions */}
+                  <div>
+                    <h3 className="font-medium mb-3">Promotions</h3>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="promos-mobile" className="text-sm">
+                        Articles en promotion
+                      </label>
+                      <Switch 
+                        id="promos-mobile"
+                        checked={promoOnly}
+                        onCheckedChange={setPromoOnly}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button className="w-full" onClick={toggleMobileFilters}>
+                      Appliquer les filtres
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Filtres (desktop) */}
+          <div className="hidden md:block w-64 flex-shrink-0">
+            <div className="sticky top-24 bg-white rounded-lg border p-5 shadow-sm space-y-6">
+              <h2 className="font-bold">Filtres</h2>
+              
+              {/* Prix */}
+              <div>
+                <h3 className="font-medium mb-3">Prix</h3>
+                <div className="px-2">
+                  <Slider 
+                    defaultValue={[0, 800]} 
+                    max={800} 
+                    step={1} 
+                    value={priceInput}
+                    onValueChange={handlePriceChange}
+                  />
+                  <div className="flex justify-between mt-2 text-sm">
+                    <span>{priceInput[0]}€</span>
+                    <span>{priceInput[1]}€</span>
+                  </div>
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Sous-catégories */}
+              {subCategories.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-3">Sous-catégories</h3>
+                  <div className="space-y-2">
+                    {subCategories.map((subCat) => (
+                      <div key={subCat.id} className="flex items-center">
+                        <Checkbox
+                          id={`subcat-${subCat.id}`}
+                          checked={selectedSubCategories.includes(subCat.id)}
+                          onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                        />
+                        <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                          {subCat.name}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <Separator />
+              
+              {/* Marques */}
+              <div>
+                <h3 className="font-medium mb-3">Marques</h3>
+                <div className="space-y-2">
+                  {brandsLoading ? (
+                    <div className="text-center py-2">
+                      <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                      <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                    </div>
+                  ) : brandsError ? (
+                    <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                  ) : brands.length === 0 ? (
+                    <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                  ) : (
+                    brands.map((brand) => (
+                    <div key={brand.id} className="flex items-center">
+                      <Checkbox 
+                        id={`brand-${brand.id}`}
+                          checked={selectedBrandIds.includes(brand.id)}
+                        onCheckedChange={() => handleBrandToggle(brand.id)}
+                      />
+                      <label 
+                        htmlFor={`brand-${brand.id}`}
+                        className="ml-2 text-sm flex-grow"
+                      >
+                        {brand.name}
+                      </label>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Disponibilité */}
+              <div>
+                <h3 className="font-medium mb-3">Disponibilité</h3>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="stock" className="text-sm">
+                    En stock uniquement
+                  </label>
+                  <Switch 
+                    id="stock"
+                    checked={inStock}
+                    onCheckedChange={setInStock}
+                  />
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Promotions */}
+              <div>
+                <h3 className="font-medium mb-3">Promotions</h3>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="promos" className="text-sm">
+                    Articles en promotion
+                  </label>
+                  <Switch 
+                    id="promos"
+                    checked={promoOnly}
+                    onCheckedChange={setPromoOnly}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Produits */}
+          <div className="flex-grow">
+            {/* En-tête de résultats */}
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-semibold">Tous les produits</h2>
+                <p className="text-gray-500 text-sm">{filteredProducts.length} produits trouvés</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select className="text-sm border rounded p-2 bg-white">
+                  <option>Tri par défaut</option>
+                  <option>Prix croissant</option>
+                  <option>Prix décroissant</option>
+                  <option>Meilleures ventes</option>
+                  <option>Nouveautés</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* Grille de produits */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {isLoading ? (
+                <div className="col-span-full flex justify-center items-center h-40">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                </div>
+              ) : error ? (
+                <div className="col-span-full bg-red-50 text-red-600 p-4 rounded-md">
+                  {error}
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="col-span-full text-center py-8">
+                  <p className="text-lg text-gray-500">Aucun produit trouvé pour cette catégorie.</p>
+                </div>
+              ) : (
+                paginatedProducts.map((product) => (
+                <Card key={product.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+                    {/* Désactiver l'affichage des promos pour l'instant */}
+                    {false && (
+                    <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                      PROMO
+                    </div>
+                  )}
+                  <div className="relative h-48 bg-gray-100">
+                    <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?categorie=${currentSlug}`}>
+                      <img 
+                        src={product.image || "/placeholder.svg"} 
+                        alt={product.title} 
+                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
+                      />
+                    </RouterLink>
+                  </div>
+                  <CardContent className="p-4">
+                      <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?categorie=${currentSlug}`} className="hover:text-primary">
+                      <h3 className="font-medium line-clamp-2 mb-1 h-12">{product.title}</h3>
+                    </RouterLink>
+                      <p
+      className="text-sm text-gray-500 line-clamp-2 mb-2 h-10"
+      dangerouslySetInnerHTML={{
+        __html: productDescriptions[product.id.toString()] || "Description non disponible"
+      }}
+    />
+                    
+                    <div className="flex items-center mb-3">
+                        {renderStars(4.5)} {/* Par défaut, ou remplacer par une vraie note */}
+                        <span className="text-xs ml-1 text-gray-500">(4.5)</span>
+                    </div>
+                    
+                    <div className="flex items-baseline mb-3">
+                        {/* Afficher simplement le prix sans promotion pour l'instant */}
+                        <span className="text-lg font-bold text-slate-900">{parseFloat(product.price).toFixed(2)}€</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mt-3">
+                      <Button 
+                        size="sm" 
+                        className="flex-grow"
+                        onClick={() => {
+                          addItem({
+                            id: product.id.toString(),
+                            title: product.title,
+                            price: parseFloat(product.price),
+                            image_url: product.image || "",
+                          });
+                          toast({
+                            title: "Produit ajouté",
+                            description: `${product.title} a été ajouté au panier.`,
+                          });
+                        }}
+                      >
+                        <ShoppingCart size={16} className="mr-1" />
+                        Ajouter
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <CheckCircle size={16} />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+                ))
+              )}
+            </div>
+            
+            {/* Pagination */}
+            {!isLoading && !error && filteredProducts.length > 0 && totalPages > 1 && (
+            <div className="mt-10 flex justify-center">
+              <nav className="flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                >
+                  Précédent
+                </Button>
+                
+                {[...Array(totalPages)].map((_, index) => (
+                  <Button
+                    key={index}
+                    variant={currentPage === index + 1 ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(index + 1)}
+                  >
+                    {index + 1}
+                  </Button>
+                ))}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                >
+                  Suivant
+                </Button>
+              </nav>
+            </div>
+            )}
+          </div>
+        </div>
+      </main>
+      
+      <Footer />
+    </div>
+  );
+};
+
+// Petit composant pour gérer le lien
+function Link({ to, children, className = "" }) {
+  return (
+    <a href={to} className={`text-white hover:underline ${className}`}>
+      {children}
+    </a>
+  );
+}
+
+export default CategoryPage;

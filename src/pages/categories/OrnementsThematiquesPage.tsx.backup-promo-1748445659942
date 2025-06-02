@@ -1,0 +1,17 @@
+import React from "react";
+
+import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
+import slugify from 'slugify';
+import { fetchProductDescriptions } from "@/lib/api/products";
+
+const OrnementsThematiquesPage = () => {
+  return (
+    <div className="p-6">
+      <h1 className="text-3xl font-bold mb-4">Catégorie : Ornements thématiques (épaves, statues)</h1>
+      <p>Bienvenue sur la page dédiée à la catégorie "Ornements thématiques (épaves, statues)".</p>
+      <p>Prochainement : contenu spécifique, produits, fiches conseils…</p>
+    </div>
+  );
+};
+
+export default OrnementsThematiquesPage; 
