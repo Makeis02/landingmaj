@@ -266,32 +266,31 @@ export default function CommandesPage() {
     setLoading(true);
     try {
       const { data: allItems, error: fetchError } = await supabase.from("order_items").select("id");
-      if (fetchError) {
-        console.error("Erreur récupération order_items:", fetchError);
-        return;
-      }
+      console.log("[DEBUG] Récupération order_items:", { allItems, fetchError });
       const ids = allItems.map(item => item.id);
       if (ids.length > 0) {
         const { error: itemsError } = await supabase.from("order_items").delete().in("id", ids);
-        console.log("[DEBUG] Delete order items response:", { itemsError });
+        console.log("[DEBUG] Suppression order_items:", { ids, itemsError });
         if (itemsError) {
-          console.error("Erreur suppression order_items:", itemsError);
+          console.error("[DEBUG] Erreur suppression order_items:", itemsError);
           return;
         }
+      } else {
+        console.log("[DEBUG] Aucun order_item à supprimer");
       }
       
       const { data: allOrders, error: fetchOrdersError } = await supabase.from("orders").select("id");
-      if (fetchOrdersError) {
-        console.error("Erreur récupération orders:", fetchOrdersError);
-        return;
-      }
+      console.log("[DEBUG] Récupération orders:", { allOrders, fetchOrdersError });
       const orderIds = allOrders.map(order => order.id);
       if (orderIds.length > 0) {
         const { error: ordersError } = await supabase.from("orders").delete().in("id", orderIds);
+        console.log("[DEBUG] Suppression orders:", { orderIds, ordersError });
         if (ordersError) {
-          console.error("Erreur suppression orders:", ordersError);
+          console.error("[DEBUG] Erreur suppression orders:", ordersError);
           return;
         }
+      } else {
+        console.log("[DEBUG] Aucun order à supprimer");
       }
       
       setOrders([]);
