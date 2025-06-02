@@ -34,7 +34,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:8080',
   'http://192.168.1.14:8080',
-  'https://ton-site-en-prod.com' // remplace par ton domaine prod
+  'https://majemsiteteste.netlify.app',
+  'https://landingmaj.onrender.com'
 ];
 
 app.use(cors({
