@@ -280,12 +280,18 @@ export default function CommandesPage() {
         }
       }
       
-      const { error: ordersError } = await supabase.from("orders").delete().neq("id", "");
-      console.log("[DEBUG] Delete orders response:", { ordersError });
-      
-      if (ordersError) {
-        console.error("[DEBUG] Error deleting orders:", ordersError);
+      const { data: allOrders, error: fetchOrdersError } = await supabase.from("orders").select("id");
+      if (fetchOrdersError) {
+        console.error("Erreur récupération orders:", fetchOrdersError);
         return;
+      }
+      const orderIds = allOrders.map(order => order.id);
+      if (orderIds.length > 0) {
+        const { error: ordersError } = await supabase.from("orders").delete().in("id", orderIds);
+        if (ordersError) {
+          console.error("Erreur suppression orders:", ordersError);
+          return;
+        }
       }
       
       setOrders([]);
