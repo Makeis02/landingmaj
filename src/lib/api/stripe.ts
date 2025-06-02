@@ -26,7 +26,7 @@ function getApiBaseUrl(): string {
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = "https://landingmaj.onrender.com";
   const url = `${baseUrl}/api/stripe/products`;
   
   try {
