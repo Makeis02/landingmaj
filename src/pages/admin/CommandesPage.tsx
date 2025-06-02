@@ -267,7 +267,7 @@ export default function CommandesPage() {
     try {
       const { data: allItems, error: fetchError } = await supabase.from("order_items").select("id");
       console.log("[DEBUG] Récupération order_items:", { allItems, fetchError });
-      const ids = allItems.map(item => item.id);
+      const ids = allItems.map(item => item.id).filter(id => !!id && id !== "");
       if (ids.length > 0) {
         const { error: itemsError } = await supabase.from("order_items").delete().in("id", ids);
         console.log("[DEBUG] Suppression order_items:", { ids, itemsError });
