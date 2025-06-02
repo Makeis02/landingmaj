@@ -265,12 +265,19 @@ export default function CommandesPage() {
     console.log("[DEBUG] Starting to delete all orders");
     setLoading(true);
     try {
-      const { error: itemsError } = await supabase.from("order_items").delete();
-      console.log("[DEBUG] Delete order items response:", { itemsError });
-      
-      if (itemsError) {
-        console.error("[DEBUG] Error deleting order items:", itemsError);
+      const { data: allItems, error: fetchError } = await supabase.from("order_items").select("id");
+      if (fetchError) {
+        console.error("Erreur récupération order_items:", fetchError);
         return;
+      }
+      const ids = allItems.map(item => item.id);
+      if (ids.length > 0) {
+        const { error: itemsError } = await supabase.from("order_items").delete().in("id", ids);
+        console.log("[DEBUG] Delete order items response:", { itemsError });
+        if (itemsError) {
+          console.error("Erreur suppression order_items:", itemsError);
+          return;
+        }
       }
       
       const { error: ordersError } = await supabase.from("orders").delete().neq("id", "");
