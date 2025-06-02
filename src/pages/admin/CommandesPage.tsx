@@ -265,7 +265,7 @@ export default function CommandesPage() {
     console.log("[DEBUG] Starting to delete all orders");
     setLoading(true);
     try {
-      const { error: itemsError } = await supabase.from("order_items").delete().neq("id", "");
+      const { error: itemsError } = await supabase.from("order_items").delete();
       console.log("[DEBUG] Delete order items response:", { itemsError });
       
       if (itemsError) {
