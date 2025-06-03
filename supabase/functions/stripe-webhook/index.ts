@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 // Utilitaire pour vérifier la signature Stripe (HMAC SHA256)
 async function verifyStripeSignature(payload: Uint8Array, sigHeader: string, secret: string): Promise<boolean> {
@@ -48,8 +50,48 @@ serve(async (req) => {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object;
-    console.log("✅ Paiement reçu, session:", session.id, "metadata:", session.metadata);
-    // ... ta logique métier ici ...
+    const metadata = session.metadata || {};
+    const order_id = metadata.order_id;
+    if (!order_id) {
+      console.error("❌ Pas d'order_id dans metadata Stripe");
+      return new Response("order_id manquant dans metadata", { status: 400 });
+    }
+    // Prépare les champs à mettre à jour
+    const updateFields = {
+      status: "active",
+      payment_status: "paid",
+      stripe_session_id: session.id,
+      first_name: metadata.first_name,
+      last_name: metadata.last_name,
+      email: metadata.email,
+      phone: metadata.phone,
+      address1: metadata.address1,
+      address2: metadata.address2,
+      postal_code: metadata.postal_code,
+      city: metadata.city,
+      country: metadata.country,
+      shipping_method: metadata.shipping_method,
+      mondial_relay: metadata.mondial_relay ? metadata.mondial_relay : null,
+      total: parseFloat(metadata.total || "0")
+    };
+    // Appel PATCH Supabase REST API
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${order_id}`, {
+      method: "PATCH",
+      headers: {
+        "apikey": SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "return=representation"
+      },
+      body: JSON.stringify(updateFields)
+    });
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("❌ Erreur update commande:", errorText);
+      return new Response("Failed to update order", { status: 500 });
+    }
+    const updatedOrder = await res.json();
+    console.log("✅ Commande mise à jour avec succès:", order_id, updatedOrder);
   }
 
   return new Response(JSON.stringify({ received: true }), {
