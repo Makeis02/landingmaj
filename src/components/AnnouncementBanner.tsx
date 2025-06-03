@@ -776,10 +776,8 @@ const AnnouncementBanner = () => {
       )}
       
       <div 
-        className={`relative overflow-hidden py-2.5 whitespace-nowrap shadow-sm`}
+        className="relative overflow-hidden py-2.5 whitespace-nowrap shadow-sm"
         style={{ 
-          backgroundColor: backgroundColor,
-          color: textColor,
           height: '40px',
           display: 'flex',
           alignItems: 'center'
