@@ -30,24 +30,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:8080',
-  'http://192.168.1.14:8080',
-  'https://majemsiteteste.netlify.app',
-  'https://landingmaj.onrender.com'
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn('⛔ Origine refusée :', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true
-}));
-
-// Stripe Webhook: doit être AVANT bodyParser.json()
+// Stripe Webhook: doit être AVANT TOUS les middlewares
 app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
   const sig = req.headers['stripe-signature'];
   let event;
@@ -68,6 +51,23 @@ app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (re
 
   res.status(200).json({ received: true });
 });
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://192.168.1.14:8080',
+  'https://majemsiteteste.netlify.app',
+  'https://landingmaj.onrender.com'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn('⛔ Origine refusée :', origin);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
+}));
 
 app.use(bodyParser.json());
 
