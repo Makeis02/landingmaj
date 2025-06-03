@@ -30,12 +30,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Configuration CORS plus permissive
+// Configuration CORS
 app.use(cors({
-  origin: '*',  // Permettre toutes les origines en développement
+  origin: ['https://majemsiteteste.netlify.app', 'http://localhost:8080'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: false
 }));
 
 // Middleware pour logger les requêtes
@@ -80,7 +80,7 @@ app.get('/api/stripe/products', async (_, res) => {
     }
     
     // Ajouter les headers CORS explicitement
-    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Origin', 'https://majemsiteteste.netlify.app');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     

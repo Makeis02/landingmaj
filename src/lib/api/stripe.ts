@@ -14,19 +14,16 @@ export interface StripeProduct {
 function getApiBaseUrl(): string {
   // En développement, utiliser l'URL du serveur backend (port 3000)
   if (import.meta.env.DEV) {
-    // Si on est sur une IP locale, utiliser le port 3000 explicitement
-    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      const host = window.location.hostname;
-      return `http://${host}:3000`;
-    }
+    return 'http://localhost:3000';
   }
   
-  // Par défaut, utiliser l'URL relative
-  return '';
+  // En production, utiliser l'URL de l'API sur Render
+  return 'https://landingmaj.onrender.com';
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const url = '/api/stripe/products';
+  const baseUrl = getApiBaseUrl();
+  const url = `${baseUrl}/api/stripe/products`;
   
   try {
     console.log(`⏳ Appel à l'API Stripe sur: ${url}`);
@@ -41,7 +38,7 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      credentials: 'include'
+      mode: 'cors' // Explicitement demander le mode CORS
     });
     
     clearTimeout(timeoutId);
