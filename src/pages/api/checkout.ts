@@ -101,17 +101,19 @@ export const POST = async ({ request }) => {
     // Créer la session Stripe avec les métadonnées nécessaires
     let session;
     try {
+      // Mettre tous les champs shipping_info à plat dans metadata
+      const flatMetadata = {
+        user_id: user_id || null,
+        items: JSON.stringify(items),
+        total: total.toString(),
+        ...(shipping_info || {})
+      };
       session = await stripe.checkout.sessions.create({
         mode: "payment",
         success_url: `${import.meta.env.VITE_SITE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${import.meta.env.VITE_SITE_URL}/checkout`,
         line_items: lineItems,
-        metadata: {
-          user_id: user_id || null,
-          items: JSON.stringify(items),
-          total: total.toString(),
-          ...shipping_info
-        },
+        metadata: flatMetadata,
       });
       console.log("✅ Stripe session créée avec succès :", session?.url);
       debug.stripe.session = session;
