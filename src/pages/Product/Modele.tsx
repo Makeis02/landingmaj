@@ -830,14 +830,14 @@ const Modele = ({ categoryParam = null }) => {
   // Charger les données du produit
   useEffect(() => {
     const loadProduct = async () => {
-      if (isEditMode) console.group("[DEBUG] CHARGEMENT PRODUIT");
-      logDebug("[DEBUG] DÉBUT loadProduct");
+      if (isEditMode) console.group("🛠️ DEBUG PRODUIT");
+      logDebug("Chargement du produit lancé");
       setIsLoading(true);
       try {
         const productId = getProductIdFromQuery();
-        logDebug(`[DEBUG] productId récupéré: ${productId}`);
+        logDebug("ID produit détecté", productId);
         if (!productId) {
-          logDebug("[DEBUG] Aucun ID valide trouvé");
+          logDebug("Aucun ID valide trouvé");
           toast({
             variant: "destructive",
             title: "Produit introuvable",
@@ -845,20 +845,27 @@ const Modele = ({ categoryParam = null }) => {
           });
           setIsLoading(false);
           setProduct(null);
-          if (isEditMode) console.groupEnd();
           return;
         }
         localStorage.setItem("last_product_id", productId);
-        logDebug("[DEBUG] ID sauvegardé dans localStorage", productId);
-        // 1. Récupération des produits Stripe
-        logDebug("[DEBUG] Appel fetchProducts (Stripe)");
+        logDebug("ID sauvegardé dans localStorage", productId);
         const stripeData = await fetchProducts();
-        logDebug(`[DEBUG] Produits Stripe récupérés: ${stripeData.length}`);
-        // 2. Recherche du produit par ID
+        // Logs de debug pour la recherche
+        console.log("🔍 ID recherché =", productId);
+        console.log("🆔 Produits disponibles :", stripeData.map(p => ({
+          id: p.id,
+          type: typeof p.id,
+          asString: String(p.id)
+        })));
+        // Recherche du produit par ID
         const realProduct = stripeData.find(p => String(p.id) === String(productId));
-        logDebug(`[DEBUG] Produit trouvé dans Stripe: ${!!realProduct}` , realProduct);
+        logDebug("Recherche du produit", {
+          productId,
+          found: !!realProduct,
+          product: realProduct
+        });
         if (!realProduct) {
-          logDebug("[DEBUG] Produit non trouvé dans Stripe");
+          logDebug("Produit non trouvé");
           toast({
             variant: "destructive",
             title: "Erreur",
@@ -866,31 +873,27 @@ const Modele = ({ categoryParam = null }) => {
           });
           setProduct(null);
           setIsLoading(false);
-          if (isEditMode) console.groupEnd();
           return;
         }
-        // 3. Préparation des données produit
         const productData = {
           ...realProduct,
           id: productId,
           specifications: [],
           badges: [],
         };
-        logDebug("[DEBUG] Données produit préparées", productData);
-        // 4. Récupération du contenu éditable Supabase
-        logDebug("[DEBUG] Appel fetchEditableContent (Supabase)");
+        logDebug("Données produit préparées", productData);
+        
+        // Attendre le chargement complet du contenu éditable avant de setProduct
         const updated = await fetchEditableContent(productData.id, productData);
-        logDebug("[DEBUG] fetchEditableContent terminé", updated);
-        // 5. Vérification du priceId
+        
+        // S'assurer que le prix de base existe
         if (updated.price) {
-          logDebug("[DEBUG] Vérification du priceId Stripe");
           await ensureBasePriceId(productData.id, updated.price);
         }
+        
         setProduct(updated);
         setIsLoading(false);
-        logDebug("[DEBUG] Produit chargé et set dans le state");
       } catch (error) {
-        logDebug("[DEBUG] Erreur dans loadProduct", error);
         console.error("Erreur lors du chargement du produit:", error);
         toast({
           variant: "destructive",
@@ -899,7 +902,6 @@ const Modele = ({ categoryParam = null }) => {
         });
         setIsLoading(false);
       }
-      if (isEditMode) console.groupEnd();
     };
     loadProduct();
   }, [location.search, toast, isEditMode]);

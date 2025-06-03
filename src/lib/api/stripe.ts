@@ -14,15 +14,19 @@ export interface StripeProduct {
 function getApiBaseUrl(): string {
   // En développement, utiliser l'URL du serveur backend (port 3000)
   if (import.meta.env.DEV) {
-    return 'http://localhost:3000';
+    // Si on est sur une IP locale, utiliser le port 3000 explicitement
+    if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      const host = window.location.hostname;
+      return `http://${host}:3000`;
+    }
   }
   
-  // En production, utiliser l'URL de l'API sur Render
-  return 'https://landingmaj.onrender.com';
+  // Par défaut, utiliser l'URL relative
+  return '';
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = "https://landingmaj.onrender.com";
   const url = `${baseUrl}/api/stripe/products`;
   
   try {
@@ -37,22 +41,36 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      },
-      mode: 'cors' // Explicitement demander le mode CORS
+      }
     });
     
     clearTimeout(timeoutId);
     
     if (!res.ok) {
       console.error(`❌ Erreur HTTP: ${res.status} - ${res.statusText}`);
-      throw new Error(`HTTP error! status: ${res.status}`);
+      
+      // Important: ne pas essayer de lire à la fois json() et text() sur la même réponse
+      let errorMessage = `HTTP error! status: ${res.status} - ${res.statusText}`;
+      
+      try {
+        const errorData = await res.json();
+        console.error("Détails de l'erreur:", errorData);
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        // Ne pas essayer de lire le texte ici, car ça causerait une erreur "Body already consumed"
+        console.error("Impossible de parser l'erreur comme JSON");
+      }
+      
+      throw new Error(errorMessage);
     }
     
+    // Tenter de lire la réponse comme JSON
     const data = await res.json();
     console.log("✅ Réponse Stripe reçue", {
       count: data.products?.length || 0
     });
     
+    // Vérifier que la structure est correcte
     if (!data || !Array.isArray(data.products)) {
       console.error("❌ Format de réponse invalide:", data);
       return [];
@@ -60,7 +78,11 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
     
     return data.products;
   } catch (error) {
-    console.error("❌ Error fetching Stripe products:", error);
+    if (error.name === 'AbortError') {
+      console.error("❌ La requête Stripe a expiré (timeout)");
+    } else {
+      console.error("❌ Error fetching Stripe products:", error);
+    }
     return [];
   }
 } 

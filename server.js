@@ -30,41 +30,29 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Configuration CORS simple et robuste
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:8080',
+  'http://192.168.1.14:8080',
+  'https://majemsiteteste.netlify.app',
+  'https://landingmaj.onrender.com'
+];
+
 app.use(cors({
-  origin: 'https://majemsiteteste.netlify.app',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false,
-  maxAge: 86400 // 24 heures
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    console.warn('⛔ Origine refusée :', origin);
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true
 }));
-
-// Gestion explicite des requêtes OPTIONS
-app.options('*', cors());
-
-// Middleware pour forcer le content-type JSON sur toutes les routes API
-app.use('/api', (req, res, next) => {
-  res.header('Content-Type', 'application/json');
-  next();
-});
-
-// Middleware pour logger les requêtes
-app.use((req, res, next) => {
-  console.log(`📥 ${req.method} ${req.url}`);
-  console.log('Headers:', req.headers);
-  next();
-});
 
 app.use(bodyParser.json());
 
 // 1. Récupérer les produits Stripe
-console.log('[DEBUG] Route enregistrée : /api/stripe/products');
 app.get('/api/stripe/products', async (_, res) => {
   try {
-    console.log('🔍 Récupération des produits Stripe...');
     const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
-    console.log(`✅ ${stripeProducts.data.length} produits trouvés`);
-    
     const products = [];
     for (const p of stripeProducts.data) {
       // Récupérer les stocks par variante (price)
@@ -76,29 +64,26 @@ app.get('/api/stripe/products', async (_, res) => {
         }
       });
       products.push({
-        id: p.id,
-        title: p.name,
-        price: p.default_price?.unit_amount / 100 || 0,
-        image: p.images[0] || '',
-        description: p.description || '',
-        brand: p.metadata?.brand || '',
+      id: p.id,
+      title: p.name,
+      price: p.default_price?.unit_amount / 100 || 0,
+      image: p.images[0] || '',
+      description: p.description || '',
+      brand: p.metadata?.brand || '',
         reference: p.metadata?.reference || '',
         metadata: p.metadata,
         variantStocks: priceStocks,
         stock: Number(p.metadata?.stock) || 0
       });
     }
-    
     res.json({ products });
   } catch (err) {
-    console.error('❌ Erreur Stripe:', err);
     res.status(500).json({ error: 'Stripe error', message: err.message });
   }
 });
     
 // 2. Créer un fichier .tsx pour chaque produit
 // DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
-console.log('[DEBUG] Route enregistrée : /api/products/create-page');
 app.post('/api/products/create-page', async (req, res) => {
   // Cette API est conservée pour rétrocompatibilité mais ne crée plus de fichiers .tsx
   const p = req.body;
@@ -115,7 +100,6 @@ app.post('/api/products/create-page', async (req, res) => {
 
 // 3. Supprimer un fichier .tsx produit
 // DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
-console.log('[DEBUG] Route enregistrée : /api/products/delete-page');
 app.post('/api/products/delete-page', async (req, res) => {
   res.json({ 
     success: true, 
@@ -124,7 +108,6 @@ app.post('/api/products/delete-page', async (req, res) => {
 });
 
 // 4. Vérifier si une page produit existe (fichier ou Supabase)
-console.log('[DEBUG] Route enregistrée : /api/products/check-pages');
 app.post('/api/products/check-pages', async (req, res) => {
     const { productIds, titles = {} } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
@@ -159,7 +142,6 @@ app.post('/api/products/check-pages', async (req, res) => {
 });
 
 // 5. Extraire les descriptions depuis fichiers .tsx ou Supabase
-console.log('[DEBUG] Route enregistrée : /api/products/descriptions');
 app.post('/api/products/descriptions', async (req, res) => {
   const { productIds } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
@@ -187,8 +169,6 @@ app.post('/api/products/descriptions', async (req, res) => {
     res.json({ descriptions });
 });
 
-// Démarrer le serveur
 app.listen(PORT, () => {
   console.log(`🚀 Serveur en ligne sur http://localhost:${PORT}`);
-  console.log('🌐 CORS configuré pour:', 'https://majemsiteteste.netlify.app');
 });
