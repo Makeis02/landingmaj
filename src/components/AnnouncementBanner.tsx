@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
@@ -633,8 +632,12 @@ const AnnouncementBanner = () => {
 
   return (
     <div
-      className="fixed top-0 left-0 w-full bg-blue-500 text-white z-50"
-      style={{ height: '40px' }}
+      className="fixed top-0 left-0 w-full z-50"
+      style={{ 
+        height: '40px',
+        backgroundColor: backgroundColor,
+        color: textColor
+      }}
     >
       {isEditMode && isMenuOpen && isAdmin && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-60" onClick={() => setIsMenuOpen(false)}>
