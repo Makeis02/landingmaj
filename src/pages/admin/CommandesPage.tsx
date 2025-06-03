@@ -627,20 +627,41 @@ export default function CommandesPage() {
                     <Home className="h-4 w-4 text-gray-500" />
                     <span>{order.address1} {order.address2 && <span className="text-gray-400">({order.address2})</span>}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-gray-500" />
-                    <span>{order.postal_code} {order.city} {order.country && <span>({order.country})</span>}</span>
-                  </div>
+                  {/* Adresse ou Point Relais */}
+                  {order.shipping_method === 'mondial_relay' && order.mondial_relay ? (
+                    (() => {
+                      let relay = null;
+                      try {
+                        relay = typeof order.mondial_relay === 'string' ? JSON.parse(order.mondial_relay) : order.mondial_relay;
+                      } catch (e) {
+                        relay = order.mondial_relay;
+                      }
+                      return (
+                        <div className="bg-blue-50 border border-blue-200 rounded p-2 mt-2 text-xs">
+                          <b>Point Relais :</b><br />
+                          {relay && typeof relay === 'object' ? (
+                            <span>
+                              {relay.LgAdr1}<br />
+                              {relay.LgAdr2 && <>{relay.LgAdr2}<br /></>}
+                              {relay.CP} {relay.Ville}<br />
+                              {relay.Pays}
+                            </span>
+                          ) : (
+                            <span>{String(relay)}</span>
+                          )}
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-gray-500" />
+                      <span>{order.postal_code} {order.city} {order.country && <span>({order.country})</span>}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Truck className="h-4 w-4 text-gray-500" />
                     <span className="font-semibold">{order.shipping_method === 'mondial_relay' ? 'Mondial Relay' : 'Colissimo'}</span>
                   </div>
-                  {order.shipping_method === 'mondial_relay' && order.mondial_relay && (
-                    <div className="bg-blue-50 border border-blue-200 rounded p-2 mt-2 text-xs">
-                      <b>Point Relais :</b>
-                      <pre className="whitespace-pre-wrap break-all mt-1">{JSON.stringify(order.mondial_relay, null, 2)}</pre>
-                    </div>
-                  )}
                   <div className="pt-2">
                     <Button size="sm" variant="outline" className="w-full flex items-center gap-2" onClick={() => handleShowItems(order.id)}>
                       <List className="h-4 w-4" /> Voir les produits

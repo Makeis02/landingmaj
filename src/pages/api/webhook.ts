@@ -28,6 +28,8 @@ export const POST = async ({ request }) => {
     const session = event.data.object;
     
     try {
+      // LOG: Affiche le metadata reçu
+      console.log('🔔 [WEBHOOK] checkout.session.completed reçu. Metadata Stripe:', session.metadata);
       // Récupérer les métadonnées de la session
       const {
         order_id, items, total,
@@ -36,6 +38,7 @@ export const POST = async ({ request }) => {
         address1, address2, postal_code, city, country,
         shipping_method, mondial_relay
       } = session.metadata;
+      console.log('🔔 [WEBHOOK] order_id reçu:', order_id);
       const parsedItems = JSON.parse(items);
 
       // 1. Mettre à jour la commande existante
@@ -62,6 +65,7 @@ export const POST = async ({ request }) => {
         .eq("id", order_id)
         .select()
         .single();
+      console.log('🔔 [WEBHOOK] Résultat update commande:', { order, orderError });
 
       if (orderError) throw orderError;
 
@@ -85,7 +89,10 @@ export const POST = async ({ request }) => {
         .from("order_items")
         .insert(orderItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error('❌ [WEBHOOK] Erreur insertion order_items:', itemsError);
+        throw itemsError;
+      }
 
       console.log("✅ Commande mise à jour avec succès:", order.id);
       
@@ -95,7 +102,7 @@ export const POST = async ({ request }) => {
       });
     } catch (error) {
       console.error("❌ Erreur lors de la mise à jour de la commande:", error);
-      return new Response(JSON.stringify({ error: "Failed to update order" }), {
+      return new Response(JSON.stringify({ error: "Failed to update order", details: error }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });
