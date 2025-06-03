@@ -430,17 +430,17 @@ const Checkout = () => {
           items: finalItems,
           user_id: user?.id || null,
           shipping_info: {
-            first_name: shippingForm.firstName,
-            last_name: shippingForm.lastName,
-            email: shippingForm.email,
-            phone: shippingForm.phone,
-            address1: shippingForm.address1,
-            address2: shippingForm.address2,
-            postal_code: shippingForm.postalCode,
-            city: shippingForm.city,
-            country: shippingForm.country,
-            shipping_method: selectedShipping,
-            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+            first_name: String(shippingForm.firstName || ""),
+            last_name: String(shippingForm.lastName || ""),
+            email: String(shippingForm.email || ""),
+            phone: String(shippingForm.phone || ""),
+            address1: String(shippingForm.address1 || ""),
+            address2: String(shippingForm.address2 || ""),
+            postal_code: String(shippingForm.postalCode || ""),
+            city: String(shippingForm.city || ""),
+            country: String(shippingForm.country || ""),
+            shipping_method: String(selectedShipping || ""),
+            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
           }
         }
       }));
@@ -455,17 +455,17 @@ const Checkout = () => {
           items: finalItems,
           user_id: user?.id || null,
           shipping_info: {
-            first_name: shippingForm.firstName,
-            last_name: shippingForm.lastName,
-            email: shippingForm.email,
-            phone: shippingForm.phone,
-            address1: shippingForm.address1,
-            address2: shippingForm.address2,
-            postal_code: shippingForm.postalCode,
-            city: shippingForm.city,
-            country: shippingForm.country,
-            shipping_method: selectedShipping,
-            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+            first_name: String(shippingForm.firstName || ""),
+            last_name: String(shippingForm.lastName || ""),
+            email: String(shippingForm.email || ""),
+            phone: String(shippingForm.phone || ""),
+            address1: String(shippingForm.address1 || ""),
+            address2: String(shippingForm.address2 || ""),
+            postal_code: String(shippingForm.postalCode || ""),
+            city: String(shippingForm.city || ""),
+            country: String(shippingForm.country || ""),
+            shipping_method: String(selectedShipping || ""),
+            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
           }
         }
       };
