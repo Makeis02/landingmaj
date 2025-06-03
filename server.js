@@ -30,13 +30,41 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Configuration CORS
-app.use(cors({
-  origin: ['https://majemsiteteste.netlify.app', 'http://localhost:8080'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: false
-}));
+// Liste des origines autorisées
+const allowedOrigins = [
+  'https://majemsiteteste.netlify.app',
+  'http://localhost:8080',
+  'http://localhost:3000',
+  'http://localhost:5173'
+];
+
+// Middleware CORS personnalisé
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log('🌐 Requête reçue de:', origin);
+  
+  // Vérifier si l'origine est autorisée
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    // En développement, accepter toutes les origines
+    if (process.env.NODE_ENV === 'development') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+    }
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Max-Age', '86400'); // 24 heures
+  
+  // Gérer les requêtes OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    console.log('🔄 Requête OPTIONS reçue, envoi des headers CORS');
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Middleware pour logger les requêtes
 app.use((req, res, next) => {
@@ -78,11 +106,6 @@ app.get('/api/stripe/products', async (_, res) => {
         stock: Number(p.metadata?.stock) || 0
       });
     }
-    
-    // Ajouter les headers CORS explicitement
-    res.header('Access-Control-Allow-Origin', 'https://majemsiteteste.netlify.app');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     
     res.json({ products });
   } catch (err) {
