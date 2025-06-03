@@ -20,6 +20,7 @@ import slugify from 'slugify';
 import { supabase } from "@/integrations/supabase/client";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { useUserStore } from "@/stores/useUserStore";
+import AnnouncementBanner from "@/components/AnnouncementBanner";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -189,12 +190,8 @@ const Header = () => {
 
   return (
     <>
-      {/* 🔥 Barre d'annonces au-dessus du Header */}
-      {isProductPage && (
-        <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
-          Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
-        </div>
-      )}
+      {/* Bannière modifiable (Supabase) */}
+      <AnnouncementBanner />
       <div className="h-2" />
 
       {/* Header principal */}
