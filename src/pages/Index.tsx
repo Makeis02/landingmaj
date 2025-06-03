@@ -1,6 +1,5 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import AnnouncementBanner from "@/components/AnnouncementBanner";
 import FloatingHeader from "@/components/admin/FloatingHeader";
 import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import EditableCarousel from "@/components/EditableCarousel";
@@ -266,7 +265,6 @@ const Index = () => {
       <Header />
       <AdminHeader />
       <FloatingHeader />
-      <AnnouncementBanner />
       <EditableCarousel />
       
       <main className="flex-grow">

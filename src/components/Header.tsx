@@ -190,14 +190,16 @@ const Header = () => {
 
   return (
     <>
-      {/* Bannière modifiable : toujours tout en haut sauf sur les fiches produit */}
+      {/* Bannière modifiable : visible partout sauf sur les fiches produit */}
       {!isProductPage && <AnnouncementBanner />}
-      {/* Bannière rouge statique : uniquement sur les fiches produit */}
+      {/* Bannière rouge statique : visible uniquement sur les fiches produit */}
       {isProductPage && (
         <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
           Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
         </div>
       )}
+      <div className="h-2" />
+
       {/* Header principal */}
       <header className="relative bg-white/80 backdrop-blur-md z-40 border-b border-gray-200">
         <div className="container mx-auto px-4">
