@@ -762,9 +762,13 @@ export default function CommandesPage() {
                     Livraison : {(() => {
                       const shipping = orderItems.find(item => item.product_id.startsWith('shipping_'));
                       if (!shipping) return '—';
-                      if (shipping.product_id.includes('colissimo')) return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                      if (shipping.product_id.includes('mondial')) return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                      return `Autre (${shipping.price?.toFixed(2)} €)`;
+                      const label = shipping.product_id.includes('colissimo')
+                        ? 'Colissimo'
+                        : shipping.product_id.includes('mondial')
+                          ? 'Mondial Relay'
+                          : 'Autre';
+                      if (shipping.price === 0) return `${label} (Gratuit)`;
+                      return `${label} (${shipping.price?.toFixed(2)} €)`;
                     })()}
                   </div>
                 </>
