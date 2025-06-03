@@ -30,39 +30,21 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Liste des origines autorisées
-const allowedOrigins = [
-  'https://majemsiteteste.netlify.app',
-  'http://localhost:8080',
-  'http://localhost:3000',
-  'http://localhost:5173'
-];
+// Configuration CORS simple et robuste
+app.use(cors({
+  origin: 'https://majemsiteteste.netlify.app',
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+  maxAge: 86400 // 24 heures
+}));
 
-// Middleware CORS personnalisé
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log('🌐 Requête reçue de:', origin);
-  
-  // Vérifier si l'origine est autorisée
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    // En développement, accepter toutes les origines
-    if (process.env.NODE_ENV === 'development') {
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    }
-  }
-  
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400'); // 24 heures
-  
-  // Gérer les requêtes OPTIONS (preflight)
-  if (req.method === 'OPTIONS') {
-    console.log('🔄 Requête OPTIONS reçue, envoi des headers CORS');
-    return res.status(200).end();
-  }
-  
+// Gestion explicite des requêtes OPTIONS
+app.options('*', cors());
+
+// Middleware pour forcer le content-type JSON sur toutes les routes API
+app.use('/api', (req, res, next) => {
+  res.header('Content-Type', 'application/json');
   next();
 });
 
@@ -205,6 +187,8 @@ app.post('/api/products/descriptions', async (req, res) => {
     res.json({ descriptions });
 });
 
+// Démarrer le serveur
 app.listen(PORT, () => {
   console.log(`🚀 Serveur en ligne sur http://localhost:${PORT}`);
+  console.log('🌐 CORS configuré pour:', 'https://majemsiteteste.netlify.app');
 });
