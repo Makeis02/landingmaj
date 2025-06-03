@@ -79,7 +79,7 @@ export default function CommandesPage() {
       try {
         let query = supabase
           .from("orders")
-          .select("*")
+          .select("*, order_items(*)")
           .order("created_at", { ascending: false });
 
         // Filtrage selon l'onglet sélectionné
@@ -96,14 +96,20 @@ export default function CommandesPage() {
 
         const { data, error } = await query;
         
-        console.log("[DEBUG] Supabase response:", { data, error });
-        
+        console.log("[DEBUG] Supabase response orders:", data);
+        if (data) {
+          data.forEach(order => {
+            console.log(`[DEBUG] Commande ${order.id} - total:`, order.total);
+            if (order.order_items) {
+              console.log(`[DEBUG] Commande ${order.id} - order_items:`, order.order_items);
+            }
+          });
+        }
         if (error) {
           console.error("[DEBUG] Error fetching orders:", error);
           return;
         }
         
-        console.log("[DEBUG] Setting orders:", data);
         setOrders(data);
       } catch (err) {
         console.error("[DEBUG] Unexpected error in fetchOrders:", err);
