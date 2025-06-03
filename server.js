@@ -178,6 +178,6 @@ app.post('/api/products/descriptions', async (req, res) => {
     res.json({ descriptions });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur en ligne sur http://0.0.0.0:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur en ligne sur http://localhost:${PORT}`);
 });

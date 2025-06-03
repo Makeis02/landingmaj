@@ -47,9 +47,21 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
     clearTimeout(timeoutId);
     
     if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Erreur API:", res.status, errorText);
-      throw new Error(`Erreur serveur: ${res.status}`);
+      console.error(`❌ Erreur HTTP: ${res.status} - ${res.statusText}`);
+      
+      // Important: ne pas essayer de lire à la fois json() et text() sur la même réponse
+      let errorMessage = `HTTP error! status: ${res.status} - ${res.statusText}`;
+      
+      try {
+        const errorData = await res.json();
+        console.error("Détails de l'erreur:", errorData);
+        errorMessage = errorData.message || errorMessage;
+      } catch (parseError) {
+        // Ne pas essayer de lire le texte ici, car ça causerait une erreur "Body already consumed"
+        console.error("Impossible de parser l'erreur comme JSON");
+      }
+      
+      throw new Error(errorMessage);
     }
     
     // Tenter de lire la réponse comme JSON
