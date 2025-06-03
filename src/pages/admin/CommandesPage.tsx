@@ -96,14 +96,17 @@ export default function CommandesPage() {
 
         const { data, error } = await query;
         
-        console.log("[DEBUG] Supabase response:", { data, error });
-        
+        console.log("[DEBUG] Supabase response orders:", { data, error });
+        if (data) {
+          data.forEach(order => {
+            console.log(`[DEBUG] Commande ID: ${order.id} | total:`, order.total);
+          });
+        }
         if (error) {
           console.error("[DEBUG] Error fetching orders:", error);
           return;
         }
         
-        console.log("[DEBUG] Setting orders:", data);
         setOrders(data);
       } catch (err) {
         console.error("[DEBUG] Unexpected error in fetchOrders:", err);
@@ -139,8 +142,12 @@ export default function CommandesPage() {
         .select("*")
         .eq("order_id", orderId);
       
-      console.log("[DEBUG] Order items response:", { data, error });
-      
+      console.log(`[DEBUG] Order items for order ${orderId}:`, data);
+      if (data) {
+        data.forEach(item => {
+          console.log(`[DEBUG] Item: ${item.product_id} | price: ${item.price} | quantity: ${item.quantity}`);
+        });
+      }
       if (error) {
         console.error("[DEBUG] Error fetching order items:", error);
         return;
