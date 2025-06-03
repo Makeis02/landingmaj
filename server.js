@@ -47,7 +47,16 @@ app.use(cors({
   credentials: true
 }));
 
+// Gérer toutes les requêtes OPTIONS (preflight)
+app.options('*', cors());
+
 app.use(bodyParser.json());
+
+// Forcer le content-type pour les réponses API
+app.use('/api', (req, res, next) => {
+  res.header('Content-Type', 'application/json');
+  next();
+});
 
 // 1. Récupérer les produits Stripe
 app.get('/api/stripe/products', async (_, res) => {

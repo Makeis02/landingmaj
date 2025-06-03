@@ -496,40 +496,33 @@ const Modele = ({ categoryParam = null }) => {
     try {
       logDebug("Appel de fetchProducts");
       const response = await fetch('/api/stripe/products');
-      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Erreur API:", response.status, errorText);
+        setFetchStatus({ status: response.status, success: false, error: errorText, response: null });
+        throw new Error(`Erreur serveur: ${response.status}`);
+      }
+      const data = await response.json();
       const status = {
         status: response.status,
-        success: response.ok,
+        success: true,
         error: null,
-        response: null
+        response: data
       };
-      
-      if (!response.ok) {
-        status.error = `Erreur HTTP ${response.status}: ${response.statusText}`;
-        setFetchStatus(status);
-        throw new Error(status.error);
-      }
-      
-      const data = await response.json();
-      status.response = data;
-      
       // Vérifier la structure de la réponse
       if (!data.products || !Array.isArray(data.products)) {
         status.error = "La réponse ne contient pas de tableau 'products'";
         setFetchStatus(status);
         throw new Error(status.error);
       }
-      
       if (data.products.length === 0) {
         status.error = "La liste des produits est vide";
       }
-      
       setFetchStatus(status);
       logDebug("Produits récupérés", {
         count: data.products?.length || 0,
         ids: data.products?.map(p => p.id)
       });
-      
       setStripeData(data.products);
       return data.products;
     } catch (error) {
