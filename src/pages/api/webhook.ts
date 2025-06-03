@@ -116,10 +116,13 @@ export const POST = async ({ request }) => {
         0
       );
 
+      // Log pour vérifier l'ID et le total calculé
+      console.log('[WEBHOOK] Mise à jour du total pour la commande', order_id, '=>', totalFromDb);
+
       await supabase
         .from("orders")
         .update({ total: totalFromDb })
-        .eq("id", order.id);
+        .eq("id", order_id);
 
       console.log("✅ Commande mise à jour avec succès:", order.id);
       
