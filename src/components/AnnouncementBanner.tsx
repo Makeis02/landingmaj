@@ -632,7 +632,7 @@ const AnnouncementBanner = () => {
 
   return (
     <div
-      className="fixed top-0 left-0 w-full z-50"
+      className="top-0 left-0 w-full z-50"
       style={{ 
         height: '40px',
         backgroundColor: backgroundColor,
