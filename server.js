@@ -30,31 +30,20 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:8080',
-  'http://192.168.1.14:8080',
-  'https://majemsiteteste.netlify.app',
-  'https://landingmaj.onrender.com',
-  'https://landingmaj.netlify.app',
-  'http://localhost:5173'
-];
-
+// Configuration CORS plus permissive
 app.use(cors({
-  origin: function (origin, callback) {
-    if (process.env.NODE_ENV === 'development') {
-      return callback(null, true);
-    }
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    console.warn('⛔ Origine refusée :', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
+  origin: '*',  // Permettre toutes les origines en développement
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
+
+// Middleware pour logger les requêtes
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  next();
+});
 
 app.use(bodyParser.json());
 
@@ -62,7 +51,10 @@ app.use(bodyParser.json());
 console.log('[DEBUG] Route enregistrée : /api/stripe/products');
 app.get('/api/stripe/products', async (_, res) => {
   try {
+    console.log('🔍 Récupération des produits Stripe...');
     const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
+    console.log(`✅ ${stripeProducts.data.length} produits trouvés`);
+    
     const products = [];
     for (const p of stripeProducts.data) {
       // Récupérer les stocks par variante (price)
@@ -86,8 +78,15 @@ app.get('/api/stripe/products', async (_, res) => {
         stock: Number(p.metadata?.stock) || 0
       });
     }
+    
+    // Ajouter les headers CORS explicitement
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
     res.json({ products });
   } catch (err) {
+    console.error('❌ Erreur Stripe:', err);
     res.status(500).json({ error: 'Stripe error', message: err.message });
   }
 });

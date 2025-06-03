@@ -26,8 +26,7 @@ function getApiBaseUrl(): string {
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = "https://landingmaj.onrender.com";
-  const url = `${baseUrl}/api/stripe/products`;
+  const url = '/api/stripe/products';
   
   try {
     console.log(`⏳ Appel à l'API Stripe sur: ${url}`);
@@ -41,36 +40,22 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      credentials: 'include'
     });
     
     clearTimeout(timeoutId);
     
     if (!res.ok) {
       console.error(`❌ Erreur HTTP: ${res.status} - ${res.statusText}`);
-      
-      // Important: ne pas essayer de lire à la fois json() et text() sur la même réponse
-      let errorMessage = `HTTP error! status: ${res.status} - ${res.statusText}`;
-      
-      try {
-        const errorData = await res.json();
-        console.error("Détails de l'erreur:", errorData);
-        errorMessage = errorData.message || errorMessage;
-      } catch (parseError) {
-        // Ne pas essayer de lire le texte ici, car ça causerait une erreur "Body already consumed"
-        console.error("Impossible de parser l'erreur comme JSON");
-      }
-      
-      throw new Error(errorMessage);
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
     
-    // Tenter de lire la réponse comme JSON
     const data = await res.json();
     console.log("✅ Réponse Stripe reçue", {
       count: data.products?.length || 0
     });
     
-    // Vérifier que la structure est correcte
     if (!data || !Array.isArray(data.products)) {
       console.error("❌ Format de réponse invalide:", data);
       return [];
@@ -78,11 +63,7 @@ export async function fetchStripeProducts(): Promise<StripeProduct[]> {
     
     return data.products;
   } catch (error) {
-    if (error.name === 'AbortError') {
-      console.error("❌ La requête Stripe a expiré (timeout)");
-    } else {
-      console.error("❌ Error fetching Stripe products:", error);
-    }
+    console.error("❌ Error fetching Stripe products:", error);
     return [];
   }
 } 
