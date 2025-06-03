@@ -613,7 +613,15 @@ export default function CommandesPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Euro className="h-4 w-4 text-green-700" />
-                    <span className="font-bold text-green-700">{order.total?.toFixed(2)} €</span>
+                    <span className="font-bold text-green-700">
+                      {(
+                        (order.total && order.total > 0)
+                          ? order.total
+                          : (order.order_items
+                              ? order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                              : 0)
+                      ).toFixed(2)} €
+                    </span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
