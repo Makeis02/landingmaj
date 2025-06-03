@@ -35,16 +35,25 @@ const allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.1.14:8080',
   'https://majemsiteteste.netlify.app',
-  'https://landingmaj.onrender.com'
+  'https://landingmaj.onrender.com',
+  'https://landingmaj.netlify.app',
+  'http://localhost:5173'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     console.warn('⛔ Origine refusée :', origin);
     callback(new Error('Not allowed by CORS'));
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(bodyParser.json());
