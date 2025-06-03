@@ -30,17 +30,18 @@ export const POST = async ({ request }) => {
     try {
       // Récupérer les métadonnées de la session
       const {
-        user_id, items, total,
+        order_id, items, total,
+        user_id,
         first_name, last_name, email, phone,
         address1, address2, postal_code, city, country,
         shipping_method, mondial_relay
       } = session.metadata;
       const parsedItems = JSON.parse(items);
 
-      // 1. Créer la commande
+      // 1. Mettre à jour la commande existante
       const { data: order, error: orderError } = await supabase
         .from("orders")
-        .insert({
+        .update({
           total: parseFloat(total),
           user_id: user_id || null,
           status: "active",
@@ -58,12 +59,16 @@ export const POST = async ({ request }) => {
           shipping_method,
           mondial_relay: mondial_relay ? JSON.stringify(mondial_relay) : null
         })
+        .eq("id", order_id)
         .select()
         .single();
 
       if (orderError) throw orderError;
 
-      // 2. Créer les order_items
+      // 2. Supprimer les anciens order_items (optionnel mais recommandé)
+      await supabase.from("order_items").delete().eq("order_id", order.id);
+
+      // 3. Insérer les nouveaux order_items
       const orderItems = parsedItems
         .filter(item => !item.price_data)
         .map(item => ({
@@ -82,15 +87,15 @@ export const POST = async ({ request }) => {
 
       if (itemsError) throw itemsError;
 
-      console.log("✅ Commande créée avec succès:", order.id);
+      console.log("✅ Commande mise à jour avec succès:", order.id);
       
       return new Response(JSON.stringify({ success: true, order_id: order.id }), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });
     } catch (error) {
-      console.error("❌ Erreur lors de la création de la commande:", error);
-      return new Response(JSON.stringify({ error: "Failed to create order" }), {
+      console.error("❌ Erreur lors de la mise à jour de la commande:", error);
+      return new Response(JSON.stringify({ error: "Failed to update order" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
       });

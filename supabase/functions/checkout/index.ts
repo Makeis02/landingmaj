@@ -94,7 +94,8 @@ serve(async (req) => {
       postal_code,
       city,
       country,
-      shipping_method
+      shipping_method,
+      status: "pending_payment"
     };
     const { data: order, error: orderError } = await supabase
       .from("orders")
@@ -156,6 +157,7 @@ serve(async (req) => {
     if (country) params.append("metadata[country]", country);
     if (shipping_method) params.append("metadata[shipping_method]", shipping_method);
     if (mondial_relay) params.append("metadata[mondial_relay]", typeof mondial_relay === 'string' ? mondial_relay : JSON.stringify(mondial_relay));
+    params.append("metadata[order_id]", order.id);
 
     debug.stripe.payload = Object.fromEntries(params.entries());
 
