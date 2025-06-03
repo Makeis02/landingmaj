@@ -467,13 +467,14 @@ const Checkout = () => {
       };
       setApiDebug(debugInfo);
 
+      console.log("[Checkout] Envoi de la commande à l'API checkout", debugInfo.payload);
       const response = await fetch(debugInfo.url, {
         method: "POST",
         headers: debugInfo.headers,
         body: JSON.stringify(debugInfo.payload)
       });
-
       const data = await response.json();
+      console.log("[Checkout] Réponse de l'API checkout", data);
 
       // Update debug avec la réponse
       setDebugStripe((prev) => ({
@@ -487,12 +488,13 @@ const Checkout = () => {
       }
 
       if (data.url) {
+        console.log("[Checkout] Redirection vers Stripe :", data.url);
         window.location.href = data.url;
       } else {
         throw new Error("Pas d'URL de redirection Stripe");
       }
     } catch (error) {
-      console.error("Erreur checkout:", error);
+      console.error("[Checkout] Erreur lors du checkout :", error);
       setDebugStripe((prev) => ({
         ...prev,
         apiError: error,

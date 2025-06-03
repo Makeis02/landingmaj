@@ -6,6 +6,10 @@ export default function SuccessPage() {
 
   useEffect(() => {
     clearCart();
+    // Log de debug : retour Stripe
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("session_id");
+    console.log("[Success] Page de succès Stripe chargée. session_id:", sessionId);
   }, []);
 
   return (
