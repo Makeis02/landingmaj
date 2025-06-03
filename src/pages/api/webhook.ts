@@ -41,11 +41,17 @@ export const POST = async ({ request }) => {
       console.log('🔔 [WEBHOOK] order_id reçu:', order_id);
       const parsedItems = JSON.parse(items);
 
+      // Calculer le total à partir des items reçus
+      const totalCalculated = parsedItems.reduce(
+        (sum, item) => sum + (item.price * item.quantity),
+        0
+      );
+
       // 1. Mettre à jour la commande existante
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .update({
-          total: parseFloat(total),
+          total: totalCalculated,
           user_id: user_id || null,
           status: "active",
           stripe_session_id: session.id,
