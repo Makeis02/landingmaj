@@ -144,6 +144,18 @@ serve(async (req) => {
     });
     params.append("metadata[supabase_order_id]", order.id);
     if (user_id) params.append("metadata[user_id]", user_id);
+    // Ajout de TOUS les champs client à plat dans metadata
+    if (first_name) params.append("metadata[first_name]", first_name);
+    if (last_name) params.append("metadata[last_name]", last_name);
+    if (email) params.append("metadata[email]", email);
+    if (phone) params.append("metadata[phone]", phone);
+    if (address1) params.append("metadata[address1]", address1);
+    if (address2) params.append("metadata[address2]", address2);
+    if (postal_code) params.append("metadata[postal_code]", postal_code);
+    if (city) params.append("metadata[city]", city);
+    if (country) params.append("metadata[country]", country);
+    if (shipping_method) params.append("metadata[shipping_method]", shipping_method);
+    if (mondial_relay) params.append("metadata[mondial_relay]", typeof mondial_relay === 'string' ? mondial_relay : JSON.stringify(mondial_relay));
 
     debug.stripe.payload = Object.fromEntries(params.entries());
 
