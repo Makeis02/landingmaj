@@ -100,30 +100,6 @@ export const POST = async ({ request }) => {
         throw itemsError;
       }
 
-      // 🔥 AJOUT : recalculer le total à partir des order_items en base
-      const { data: itemsInDb, error: fetchItemsError } = await supabase
-        .from("order_items")
-        .select("price, quantity")
-        .eq("order_id", order.id);
-
-      if (fetchItemsError) {
-        console.error('❌ [WEBHOOK] Erreur fetch order_items:', fetchItemsError);
-        throw fetchItemsError;
-      }
-
-      const totalFromDb = (itemsInDb || []).reduce(
-        (sum, item) => sum + (item.price * item.quantity),
-        0
-      );
-
-      // Log pour vérifier l'ID et le total calculé
-      console.log('[WEBHOOK] Mise à jour du total pour la commande', order_id, '=>', totalFromDb);
-
-      await supabase
-        .from("orders")
-        .update({ total: totalFromDb })
-        .eq("id", order_id);
-
       console.log("✅ Commande mise à jour avec succès:", order.id);
       
       return new Response(JSON.stringify({ success: true, order_id: order.id }), {

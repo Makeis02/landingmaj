@@ -119,8 +119,6 @@ serve(async (req) => {
       product_id: i.id,
       quantity: i.quantity,
       price: i.price,
-      variant: i.variant || null,
-      product_title: i.title || null,
     }));
     const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
     debug.supabase.items = { input: orderItems, error: itemsError };

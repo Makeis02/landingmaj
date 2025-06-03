@@ -79,7 +79,7 @@ export default function CommandesPage() {
       try {
         let query = supabase
           .from("orders")
-          .select("*, order_items(*)")
+          .select("*")
           .order("created_at", { ascending: false });
 
         // Filtrage selon l'onglet sélectionné
@@ -96,20 +96,14 @@ export default function CommandesPage() {
 
         const { data, error } = await query;
         
-        console.log("[DEBUG] Supabase response orders:", data);
-        if (data) {
-          data.forEach(order => {
-            console.log(`[DEBUG] Commande ${order.id} - total:`, order.total);
-            if (order.order_items) {
-              console.log(`[DEBUG] Commande ${order.id} - order_items:`, order.order_items);
-            }
-          });
-        }
+        console.log("[DEBUG] Supabase response:", { data, error });
+        
         if (error) {
           console.error("[DEBUG] Error fetching orders:", error);
           return;
         }
         
+        console.log("[DEBUG] Setting orders:", data);
         setOrders(data);
       } catch (err) {
         console.error("[DEBUG] Unexpected error in fetchOrders:", err);
@@ -613,15 +607,7 @@ export default function CommandesPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Euro className="h-4 w-4 text-green-700" />
-                    <span className="font-bold text-green-700">
-                      {(
-                        (order.total && order.total > 0)
-                          ? order.total
-                          : (order.order_items
-                              ? order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-                              : 0)
-                      ).toFixed(2)} €
-                    </span>
+                    <span className="font-bold text-green-700">{order.total?.toFixed(2)} €</span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -745,12 +731,7 @@ export default function CommandesPage() {
                     <tbody>
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
-                          <td className="p-2 border">
-                            {item.product_title || productTitles[item.product_id] || item.product_id}
-                            {item.variant && (
-                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
-                            )}
-                          </td>
+                          <td className="p-2 border font-mono">{productTitles[item.product_id] || item.product_id}</td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
                           <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
@@ -762,13 +743,9 @@ export default function CommandesPage() {
                     Livraison : {(() => {
                       const shipping = orderItems.find(item => item.product_id.startsWith('shipping_'));
                       if (!shipping) return '—';
-                      const label = shipping.product_id.includes('colissimo')
-                        ? 'Colissimo'
-                        : shipping.product_id.includes('mondial')
-                          ? 'Mondial Relay'
-                          : 'Autre';
-                      if (shipping.price === 0) return `${label} (Gratuit)`;
-                      return `${label} (${shipping.price?.toFixed(2)} €)`;
+                      if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
+                      if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
+                      return `Autre (${shipping.price?.toFixed(2)} €)`;
                     })()}
                   </div>
                 </>
