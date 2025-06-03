@@ -429,19 +429,17 @@ const Checkout = () => {
         apiPayload: {
           items: finalItems,
           user_id: user?.id || null,
-          shipping_info: {
-            first_name: String(shippingForm.firstName || ""),
-            last_name: String(shippingForm.lastName || ""),
-            email: String(shippingForm.email || ""),
-            phone: String(shippingForm.phone || ""),
-            address1: String(shippingForm.address1 || ""),
-            address2: String(shippingForm.address2 || ""),
-            postal_code: String(shippingForm.postalCode || ""),
-            city: String(shippingForm.city || ""),
-            country: String(shippingForm.country || ""),
-            shipping_method: String(selectedShipping || ""),
-            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
-          }
+          first_name: String(shippingForm.firstName || ""),
+          last_name: String(shippingForm.lastName || ""),
+          email: String(shippingForm.email || ""),
+          phone: String(shippingForm.phone || ""),
+          address1: String(shippingForm.address1 || ""),
+          address2: String(shippingForm.address2 || ""),
+          postal_code: String(shippingForm.postalCode || ""),
+          city: String(shippingForm.city || ""),
+          country: String(shippingForm.country || ""),
+          shipping_method: String(selectedShipping || ""),
+          ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
         }
       }));
 
@@ -454,19 +452,17 @@ const Checkout = () => {
         payload: {
           items: finalItems,
           user_id: user?.id || null,
-          shipping_info: {
-            first_name: String(shippingForm.firstName || ""),
-            last_name: String(shippingForm.lastName || ""),
-            email: String(shippingForm.email || ""),
-            phone: String(shippingForm.phone || ""),
-            address1: String(shippingForm.address1 || ""),
-            address2: String(shippingForm.address2 || ""),
-            postal_code: String(shippingForm.postalCode || ""),
-            city: String(shippingForm.city || ""),
-            country: String(shippingForm.country || ""),
-            shipping_method: String(selectedShipping || ""),
-            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
-          }
+          first_name: String(shippingForm.firstName || ""),
+          last_name: String(shippingForm.lastName || ""),
+          email: String(shippingForm.email || ""),
+          phone: String(shippingForm.phone || ""),
+          address1: String(shippingForm.address1 || ""),
+          address2: String(shippingForm.address2 || ""),
+          postal_code: String(shippingForm.postalCode || ""),
+          city: String(shippingForm.city || ""),
+          country: String(shippingForm.country || ""),
+          shipping_method: String(selectedShipping || ""),
+          ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
         }
       };
       setApiDebug(debugInfo);
