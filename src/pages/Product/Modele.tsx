@@ -108,6 +108,22 @@ const getProductIdFromQuery = () => {
   return productId;
 };
 
+// Get API base URL from environment variables with fallback
+const getApiBaseUrl = () => {
+  // Use environment variable if available
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback to current origin if in browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Default fallback for SSR or other contexts
+  return '';
+};
+
 // Fonction utilitaire pour générer des clés de contenu cohérentes
 const generateContentKey = (id: string, field: string) => {
   if (!id || typeof id !== 'string') {
@@ -495,7 +511,8 @@ const Modele = ({ categoryParam = null }) => {
   const fetchProducts = async () => {
     try {
       logDebug("Appel de fetchProducts");
-      const response = await fetch('/api/stripe/products');
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
       
       const status = {
         status: response.status,
@@ -1618,7 +1635,8 @@ const Modele = ({ categoryParam = null }) => {
     }
         
     // Décrémenter le stock côté Supabase
-    fetch('/api/stock/decrement', {
+    const apiBaseUrl = getApiBaseUrl();
+    fetch(`${apiBaseUrl}/api/stock/decrement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

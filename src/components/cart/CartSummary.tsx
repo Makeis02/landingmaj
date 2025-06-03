@@ -4,6 +4,22 @@ import { useCartStore } from "@/stores/useCartStore";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
+// Get API base URL from environment variables with fallback
+const getApiBaseUrl = () => {
+  // Use environment variable if available
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Fallback to current origin if in browser
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  
+  // Default fallback for SSR or other contexts
+  return '';
+};
+
 const CartSummary = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { items, getTotal } = useCartStore();
@@ -63,7 +79,8 @@ const CartSummary = () => {
         }));
       
       // Appeler l'API pour créer une session de paiement Stripe
-      const response = await fetch('/api/stripe/create-checkout', {
+      const apiBaseUrl = getApiBaseUrl();
+      const response = await fetch(`${apiBaseUrl}/api/stripe/create-checkout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
