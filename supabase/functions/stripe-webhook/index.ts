@@ -1,3 +1,4 @@
+// @invokeWithoutAuth
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const STRIPE_WEBHOOK_SECRET = Deno.env.get("STRIPE_WEBHOOK_SECRET")!;
