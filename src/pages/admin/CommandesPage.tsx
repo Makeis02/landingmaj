@@ -745,7 +745,12 @@ export default function CommandesPage() {
                     <tbody>
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
-                          <td className="p-2 border font-mono">{productTitles[item.product_id] || item.product_id}</td>
+                          <td className="p-2 border">
+                            {item.product_title || productTitles[item.product_id] || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
+                          </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
                           <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
