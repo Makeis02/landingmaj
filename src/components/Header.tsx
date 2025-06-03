@@ -190,8 +190,14 @@ const Header = () => {
 
   return (
     <>
-      {/* Bannière modifiable (Supabase) */}
-      <AnnouncementBanner />
+      {/* Bannière modifiable : visible partout sauf sur les fiches produit */}
+      {!isProductPage && <AnnouncementBanner />}
+      {/* Bannière rouge statique : visible uniquement sur les fiches produit */}
+      {isProductPage && (
+        <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
+          Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
+        </div>
+      )}
       <div className="h-2" />
 
       {/* Header principal */}
