@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import CartDrawer from "./cart/CartDrawer";
 import { useQuery } from "@tanstack/react-query";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchActiveCategories } from "@/lib/api/categories";
 import { useCartStore } from "@/stores/useCartStore";
 import { Badge } from "@/components/ui/badge";
@@ -38,6 +38,7 @@ const Header = () => {
   const totalFavorites = favorites.length;
   const navigate = useNavigate();
   const user = useUserStore((s) => s.user);
+  const location = useLocation();
 
   const { data: categories = [] } = useQuery({
     queryKey: ["active-categories"],
@@ -183,12 +184,17 @@ const Header = () => {
     }
   };
 
+  // Afficher la bannière rouge uniquement sur les fiches produit
+  const isProductPage = /^\/produits\//.test(location.pathname);
+
   return (
     <>
       {/* 🔥 Barre d'annonces au-dessus du Header */}
-      <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
-        Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
-      </div>
+      {isProductPage && (
+        <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
+          Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
+        </div>
+      )}
       <div className="h-2" />
 
       {/* Header principal */}
