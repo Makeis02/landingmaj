@@ -50,6 +50,7 @@ app.use(cors({
 app.use(bodyParser.json());
 
 // 1. Récupérer les produits Stripe
+console.log('[DEBUG] Route enregistrée : /api/stripe/products');
 app.get('/api/stripe/products', async (_, res) => {
   try {
     const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
@@ -64,12 +65,12 @@ app.get('/api/stripe/products', async (_, res) => {
         }
       });
       products.push({
-      id: p.id,
-      title: p.name,
-      price: p.default_price?.unit_amount / 100 || 0,
-      image: p.images[0] || '',
-      description: p.description || '',
-      brand: p.metadata?.brand || '',
+        id: p.id,
+        title: p.name,
+        price: p.default_price?.unit_amount / 100 || 0,
+        image: p.images[0] || '',
+        description: p.description || '',
+        brand: p.metadata?.brand || '',
         reference: p.metadata?.reference || '',
         metadata: p.metadata,
         variantStocks: priceStocks,
@@ -84,6 +85,7 @@ app.get('/api/stripe/products', async (_, res) => {
     
 // 2. Créer un fichier .tsx pour chaque produit
 // DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
+console.log('[DEBUG] Route enregistrée : /api/products/create-page');
 app.post('/api/products/create-page', async (req, res) => {
   // Cette API est conservée pour rétrocompatibilité mais ne crée plus de fichiers .tsx
   const p = req.body;
@@ -100,6 +102,7 @@ app.post('/api/products/create-page', async (req, res) => {
 
 // 3. Supprimer un fichier .tsx produit
 // DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
+console.log('[DEBUG] Route enregistrée : /api/products/delete-page');
 app.post('/api/products/delete-page', async (req, res) => {
   res.json({ 
     success: true, 
@@ -108,6 +111,7 @@ app.post('/api/products/delete-page', async (req, res) => {
 });
 
 // 4. Vérifier si une page produit existe (fichier ou Supabase)
+console.log('[DEBUG] Route enregistrée : /api/products/check-pages');
 app.post('/api/products/check-pages', async (req, res) => {
     const { productIds, titles = {} } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
@@ -142,6 +146,7 @@ app.post('/api/products/check-pages', async (req, res) => {
 });
 
 // 5. Extraire les descriptions depuis fichiers .tsx ou Supabase
+console.log('[DEBUG] Route enregistrée : /api/products/descriptions');
 app.post('/api/products/descriptions', async (req, res) => {
   const { productIds } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
