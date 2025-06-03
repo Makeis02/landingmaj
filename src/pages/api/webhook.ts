@@ -29,7 +29,12 @@ export const POST = async ({ request }) => {
     
     try {
       // Récupérer les métadonnées de la session
-      const { user_id, items, total } = session.metadata;
+      const {
+        user_id, items, total,
+        first_name, last_name, email, phone,
+        address1, address2, postal_code, city, country,
+        shipping_method, mondial_relay
+      } = session.metadata;
       const parsedItems = JSON.parse(items);
 
       // 1. Créer la commande
@@ -41,6 +46,17 @@ export const POST = async ({ request }) => {
           status: "active",
           stripe_session_id: session.id,
           payment_status: "paid",
+          first_name,
+          last_name,
+          email,
+          phone,
+          address1,
+          address2,
+          postal_code,
+          city,
+          country,
+          shipping_method,
+          mondial_relay: mondial_relay ? JSON.stringify(mondial_relay) : null
         })
         .select()
         .single();

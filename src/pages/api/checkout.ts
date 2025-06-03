@@ -45,7 +45,7 @@ export const POST = async ({ request }) => {
   
   try {
     const body = await request.json();
-    const { items, user_id } = body;
+    const { items, user_id, shipping_info } = body;
     debug.user_id = user_id;
     debug.items = items;
 
@@ -108,8 +108,9 @@ export const POST = async ({ request }) => {
         line_items: lineItems,
         metadata: {
           user_id: user_id || null,
-          items: JSON.stringify(items), // Stocker les items pour la création de la commande après paiement
+          items: JSON.stringify(items),
           total: total.toString(),
+          ...shipping_info
         },
       });
       console.log("✅ Stripe session créée avec succès :", session?.url);

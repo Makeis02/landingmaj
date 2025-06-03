@@ -429,7 +429,19 @@ const Checkout = () => {
         apiPayload: {
           items: finalItems,
           user_id: user?.id || null,
-          ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+          shipping_info: {
+            first_name: shippingForm.firstName,
+            last_name: shippingForm.lastName,
+            email: shippingForm.email,
+            phone: shippingForm.phone,
+            address1: shippingForm.address1,
+            address2: shippingForm.address2,
+            postal_code: shippingForm.postalCode,
+            city: shippingForm.city,
+            country: shippingForm.country,
+            shipping_method: selectedShipping,
+            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+          }
         }
       }));
 
@@ -442,7 +454,19 @@ const Checkout = () => {
         payload: {
           items: finalItems,
           user_id: user?.id || null,
-          ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+          shipping_info: {
+            first_name: shippingForm.firstName,
+            last_name: shippingForm.lastName,
+            email: shippingForm.email,
+            phone: shippingForm.phone,
+            address1: shippingForm.address1,
+            address2: shippingForm.address2,
+            postal_code: shippingForm.postalCode,
+            city: shippingForm.city,
+            country: shippingForm.country,
+            shipping_method: selectedShipping,
+            ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: selectedRelais } : {})
+          }
         }
       };
       setApiDebug(debugInfo);
