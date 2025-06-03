@@ -33,6 +33,7 @@ async function verifyStripeSignature(payload: Uint8Array, sigHeader: string, sec
 }
 
 serve(async (req) => {
+  console.log("🔥 Webhook Stripe appelé !");
   const sig = req.headers.get("stripe-signature");
   if (!sig) return new Response("Missing signature", { status: 400 });
 
