@@ -47,6 +47,28 @@ app.use(cors({
   credentials: true
 }));
 
+// Stripe Webhook: doit être AVANT bodyParser.json()
+app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error('❌ Erreur de signature webhook:', err.message);
+    return res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+
+  // Gère l'événement de paiement réussi
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    // Ici, tu peux mettre à jour la commande dans Supabase, etc.
+    console.log('✅ Paiement reçu, session:', session.id, 'metadata:', session.metadata);
+    // ... ta logique métier ici ...
+  }
+
+  res.status(200).json({ received: true });
+});
+
 app.use(bodyParser.json());
 
 // 1. Récupérer les produits Stripe
