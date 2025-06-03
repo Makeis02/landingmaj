@@ -13,3 +13,6 @@ entrypoint = "./functions/checkout/index.ts"
 
 [functions.mondial-relay]
 verify_jwt = false
+
+[functions.stripe-webhook]
+verify_jwt = false
