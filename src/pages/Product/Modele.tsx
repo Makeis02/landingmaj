@@ -850,26 +850,24 @@ const Modele = ({ categoryParam = null }) => {
         localStorage.setItem("last_product_id", productId);
         logDebug("ID sauvegardé dans localStorage", productId);
         const stripeData = await fetchProducts();
-        // Logs de debug pour la recherche
-        console.log("🔍 ID recherché =", productId);
-        console.log("🆔 Produits disponibles :", stripeData.map(p => ({
-          id: p.id,
-          type: typeof p.id,
-          asString: String(p.id)
-        })));
+        // PATCH: Ajout logs détaillés
+        console.log("[PATCH] Liste complète des produits reçus :", stripeData);
+        console.log("[PATCH] ID recherché :", productId, typeof productId);
+        if (!stripeData || stripeData.length === 0) {
+          setIsLoading(true);
+          return;
+        }
+        console.log("[PATCH] Tous les IDs produits :", stripeData.map(p => [p.id, typeof p.id]));
         // Recherche du produit par ID
         const realProduct = stripeData.find(p => String(p.id) === String(productId));
-        logDebug("Recherche du produit", {
-          productId,
-          found: !!realProduct,
-          product: realProduct
-        });
+        console.log("[PATCH] Produit trouvé :", realProduct);
         if (!realProduct) {
-          logDebug("Produit non trouvé");
+          // PATCH: Affiche tous les IDs pour debug
+          console.error("[PATCH] Produit non trouvé ! IDs reçus :", stripeData.map(p => p.id));
           toast({
             variant: "destructive",
             title: "Erreur",
-            description: "Le produit n'a pas été trouvé."
+            description: `Le produit n'a pas été trouvé. IDs reçus: ${stripeData.map(p => p.id).join(", ")}`
           });
           setProduct(null);
           setIsLoading(false);
@@ -882,15 +880,12 @@ const Modele = ({ categoryParam = null }) => {
           badges: [],
         };
         logDebug("Données produit préparées", productData);
-        
         // Attendre le chargement complet du contenu éditable avant de setProduct
         const updated = await fetchEditableContent(productData.id, productData);
-        
         // S'assurer que le prix de base existe
         if (updated.price) {
           await ensureBasePriceId(productData.id, updated.price);
         }
-        
         setProduct(updated);
         setIsLoading(false);
       } catch (error) {
@@ -2722,6 +2717,19 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
+  // PATCH: Protection du rendu si data pas prête
+  if (isLoading || !stripeData || stripeData.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -3570,9 +3578,8 @@ const Modele = ({ categoryParam = null }) => {
                             </tr>
                           </thead>
                           <tbody>
-                            {/* Générer toutes les combinaisons jusqu'à ce niveau */}
+                            {/* Génère le cartésien des options jusqu'à vIdx inclus */}
                             {(() => {
-                              // Génère le cartésien des options jusqu'à vIdx inclus
                               const getCombinations = (arr) => arr.reduce((a, b) => a.flatMap(d => b.map(e => [].concat(d, e))), [[]]);
                               const optionArrays = variants.slice(0, vIdx + 1).map(v => v.options);
                               const combos = optionArrays.length > 0 ? getCombinations(optionArrays) : [];
