@@ -525,12 +525,12 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
       if (data?.content) {
         const selectedIds = JSON.parse(data.content);
         setSelectedProductIds(selectedIds);
-        await updateDisplayedProducts(selectedIds);
+        updateDisplayedProducts(selectedIds);
       } else {
         // Par défaut, prendre les 8 premiers produits
         const defaultIds = allProducts.slice(0, 8).map(p => p.id);
         setSelectedProductIds(defaultIds);
-        await updateDisplayedProducts(defaultIds);
+        updateDisplayedProducts(defaultIds);
       }
     } catch (error) {
       console.error('Erreur lors du chargement de la sélection:', error);
@@ -538,14 +538,9 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
   };
 
   // Mettre à jour les produits affichés
-  const updateDisplayedProducts = async (selectedIds: string[]) => {
-    // Filtrer les produits sélectionnés
-    const selectedProducts = allProducts.filter(p => selectedIds.includes(p.id));
-    
-    // Enrichir avec les données de promotions
-    const enrichedProducts = await enrichProductsWithPromotions(selectedProducts);
-    
-    setDisplayedProducts(enrichedProducts);
+  const updateDisplayedProducts = (selectedIds: string[]) => {
+    const products = allProducts.filter(p => selectedIds.includes(p.id));
+    setDisplayedProducts(products);
   };
 
   // Sauvegarder la sélection
@@ -573,7 +568,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
           });
       }
 
-      await updateDisplayedProducts(selectedProductIds);
+      updateDisplayedProducts(selectedProductIds);
       setShowEditModal(false);
       
       toast({
