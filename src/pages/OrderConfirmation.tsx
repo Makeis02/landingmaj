@@ -162,9 +162,6 @@ const OrderConfirmation = () => {
                       <span>{livraison.price?.toFixed(2)} €</span>
                     )}
                   </div>
-                  {(!livraison || livraison.price === 0) && (
-                    <div className="text-xs text-green-700 mt-1">Livraison gratuite offerte !</div>
-                  )}
                   <div className="flex justify-between font-medium text-lg mt-2">
                     <span>Total payé</span>
                     <span>{total.toFixed(2)} €</span>
