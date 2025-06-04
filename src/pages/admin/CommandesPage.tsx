@@ -112,6 +112,7 @@ export default function CommandesPage() {
   const [selectedClientOrder, setSelectedClientOrder] = useState(null);
   const [selectedClientOrderItems, setSelectedClientOrderItems] = useState([]);
   const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
+  const [productImages, setProductImages] = useState({});
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -217,8 +218,10 @@ export default function CommandesPage() {
         products?.forEach(p => { titles[p.shopify_id] = p.title; });
         console.log("[DEBUG] Setting product titles:", titles);
         setProductTitles(titles);
+        await fetchProductImages(data);
       } else {
         setProductTitles({});
+        setProductImages({});
       }
     } catch (err) {
       console.error("[DEBUG] Unexpected error in handleShowItems:", err);
@@ -559,8 +562,10 @@ export default function CommandesPage() {
         .eq("order_id", order.id);
       if (!error) {
         setSelectedClientOrderItems(data || []);
+        await fetchProductImages(data || []);
       } else {
         setSelectedClientOrderItems([]);
+        setProductImages({});
       }
     } finally {
       setLoadingClientOrderItems(false);
@@ -569,6 +574,21 @@ export default function CommandesPage() {
   const handleCloseClientOrderItems = () => {
     setSelectedClientOrder(null);
     setSelectedClientOrderItems([]);
+  };
+
+  // Fonction utilitaire pour charger les images produits pour une liste d'items
+  const fetchProductImages = async (items) => {
+    const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
+    if (ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('products')
+      .select('shopify_id, image')
+      .in('shopify_id', ids);
+    if (!error && data) {
+      const mapping = {};
+      data.forEach(p => { mapping[p.shopify_id] = p.image; });
+      setProductImages(mapping);
+    }
   };
 
   return (
@@ -827,10 +847,21 @@ export default function CommandesPage() {
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
-                            {item.product_title || productTitles[item.product_id] || item.product_id}
-                            {item.variant && (
-                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {productImages[item.product_id] ? (
+                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
+                              ) : (
+                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
+                                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium">{item.product_title || productTitles?.[item.product_id] || item.product_id}</span>
+                                {item.variant && (
+                                  <span className="block text-xs text-gray-500">{item.variant}</span>
+                                )}
+                              </div>
+                            </div>
                           </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
@@ -1090,10 +1121,21 @@ export default function CommandesPage() {
                       {selectedClientOrderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
-                            {item.product_title || item.product_id}
-                            {item.variant && (
-                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {productImages[item.product_id] ? (
+                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
+                              ) : (
+                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
+                                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
+                                </div>
+                              )}
+                              <div>
+                                <span className="font-medium">{item.product_title || productTitles?.[item.product_id] || item.product_id}</span>
+                                {item.variant && (
+                                  <span className="block text-xs text-gray-500">{item.variant}</span>
+                                )}
+                              </div>
+                            </div>
                           </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
