@@ -95,6 +95,7 @@ import SuccessPage from "@/pages/success";
 import CheckoutSettings from "@/pages/admin/CheckoutSettings";
 import CommandesPage from "@/pages/admin/CommandesPage";
 import OrderConfirmation from "@/pages/OrderConfirmation";
+import CookieBanner from "@/components/CookieBanner";
 
 const queryClient = new QueryClient();
 
@@ -185,6 +186,7 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
+      <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
 );
