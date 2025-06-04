@@ -261,6 +261,12 @@ const Checkout = () => {
     }));
   };
 
+  // Fonction utilitaire pour retrouver le titre d'un produit à partir de son id dans le panier
+  function getProductTitleById(id) {
+    const item = items.find(p => p.id === id);
+    return item ? (item.title || '') : '';
+  }
+
   const handleCheckout = async () => {
     setLoading(true);
     try {
@@ -422,7 +428,7 @@ const Checkout = () => {
       // On conserve tous les champs existants (dont stripe_price_id), et on ajoute/force title et variant
       const payloadItems = finalItems.map(item => ({
         ...item,
-        title: item.title || item.product_title || '',
+        title: item.title || getProductTitleById(item.id) || '',
         variant: item.variant || null
       }));
 
