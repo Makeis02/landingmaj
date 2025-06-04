@@ -112,6 +112,7 @@ export default function CommandesPage() {
   const [selectedClientOrder, setSelectedClientOrder] = useState(null);
   const [selectedClientOrderItems, setSelectedClientOrderItems] = useState([]);
   const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
+  const [clientOrderProductImages, setClientOrderProductImages] = useState({});
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -557,10 +558,28 @@ export default function CommandesPage() {
         .from("order_items")
         .select("*")
         .eq("order_id", order.id);
-      if (!error) {
-        setSelectedClientOrderItems(data || []);
+      if (!error && data) {
+        setSelectedClientOrderItems(data);
+        // Récupérer les images des produits (hors shipping)
+        const productIds = data.filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id);
+        if (productIds.length > 0) {
+          const { data: products, error: prodError } = await supabase
+            .from("products")
+            .select("shopify_id,image")
+            .in("shopify_id", productIds);
+          if (!prodError && products) {
+            const images = {};
+            products.forEach(p => { images[p.shopify_id] = p.image; });
+            setClientOrderProductImages(images);
+          } else {
+            setClientOrderProductImages({});
+          }
+        } else {
+          setClientOrderProductImages({});
+        }
       } else {
         setSelectedClientOrderItems([]);
+        setClientOrderProductImages({});
       }
     } finally {
       setLoadingClientOrderItems(false);
@@ -569,6 +588,7 @@ export default function CommandesPage() {
   const handleCloseClientOrderItems = () => {
     setSelectedClientOrder(null);
     setSelectedClientOrderItems([]);
+    setClientOrderProductImages({});
   };
 
   return (
@@ -827,7 +847,10 @@ export default function CommandesPage() {
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
-                            {item.product_title || productTitles[item.product_id] || item.product_id}
+                            {clientOrderProductImages[item.product_id] && (
+                              <img src={clientOrderProductImages[item.product_id]} alt={item.product_title || item.product_id} className="inline-block w-10 h-10 object-contain rounded mr-2 align-middle" />
+                            )}
+                            {item.product_title || item.product_id}
                             {item.variant && (
                               <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
                             )}
@@ -1090,6 +1113,9 @@ export default function CommandesPage() {
                       {selectedClientOrderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
+                            {clientOrderProductImages[item.product_id] && (
+                              <img src={clientOrderProductImages[item.product_id]} alt={item.product_title || item.product_id} className="inline-block w-10 h-10 object-contain rounded mr-2 align-middle" />
+                            )}
                             {item.product_title || item.product_id}
                             {item.variant && (
                               <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
