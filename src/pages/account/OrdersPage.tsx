@@ -21,6 +21,8 @@ interface OrderItem {
   price: number;
   title?: string;
   image_url?: string;
+  variant?: string;
+  product_title?: string;
 }
 
 interface Order {
@@ -34,6 +36,7 @@ interface Order {
   tracking_numbers?: string[];
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
+  mondial_relay?: any;
 }
 
 // Fonction utilitaire pour transformer les liens en <a> et images
@@ -135,6 +138,7 @@ const OrdersPage = () => {
   const messagesEndRef = useRef(null);
   const [lastSentTime, setLastSentTime] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [orderProductImages, setOrderProductImages] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!user?.id) {
@@ -163,6 +167,7 @@ const OrdersPage = () => {
           // Récupérer les titres des produits
           const productIds = ordersData
             .flatMap(order => order.order_items)
+            .filter(item => !item.product_id.startsWith('shipping_'))
             .map(item => item.product_id);
 
           if (productIds.length > 0) {
@@ -177,6 +182,21 @@ const OrdersPage = () => {
                 [product.shopify_id]: product.title
               }), {});
               setProductTitles(titles);
+            }
+
+            // Récupérer les images principales via editable_content
+            const keys = productIds.map(id => `product_${id}_image_0`);
+            const { data: imagesData, error: imagesError } = await supabase
+              .from("editable_content")
+              .select("content_key, content")
+              .in("content_key", keys);
+            if (!imagesError && imagesData) {
+              const imageMap = {};
+              for (const item of imagesData) {
+                const id = item.content_key.replace("product_", "").replace("_image_0", "");
+                imageMap[id] = item.content;
+              }
+              setOrderProductImages(imageMap);
             }
           }
         }
@@ -578,43 +598,66 @@ const OrdersPage = () => {
                       )}
                     </div>
 
-                    {/* Aperçu des articles */}
+                    {/* Affichage détaillé des produits */}
                     <div className="border-t border-gray-200 pt-4">
                       <div className="space-y-3">
-                        {order.order_items
-                          ?.filter(item => !item.product_id.startsWith('shipping_'))
-                          .slice(0, 2)
-                          .map((item) => (
-                            <div key={item.id} className="flex items-center gap-3">
+                        {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
+                          <div key={item.id} className="flex items-center gap-3">
+                            {orderProductImages[item.product_id] ? (
+                              <img src={orderProductImages[item.product_id]} alt="img" className="w-12 h-12 object-contain rounded bg-white border" />
+                            ) : (
                               <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
                                 <Package className="h-6 w-6 text-gray-400" />
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 truncate">
-                                  {productTitles[item.product_id] || item.product_id}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                                </p>
-                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-sm text-gray-900 truncate">
+                                {item.product_title || productTitles[item.product_id] || item.product_id}
+                                {item.variant && <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                Quantité: {item.quantity} • {item.price.toFixed(2)}€
+                              </p>
                             </div>
-                          ))}
-                        {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).length > 2 && (
-                          <p className="text-sm text-gray-500">
-                            + {order.order_items.filter(item => !item.product_id.startsWith('shipping_')).length - 2} autre(s) article(s)
-                          </p>
-                        )}
+                            <div className="text-right">
+                              <span className="font-medium text-blue-600">{(item.price * item.quantity).toFixed(2)}€</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                      {/* Livraison et point relais */}
                       <div className="mt-2 font-semibold text-sm">
                         Livraison : {
                           (() => {
                             const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
                             if (!shipping) return '—';
-                            if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                            if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                            return `Autre (${shipping.price?.toFixed(2)} €)`;
+                            let label = 'Autre';
+                            if (shipping.product_id === 'shipping_colissimo') label = 'Colissimo';
+                            if (shipping.product_id === 'shipping_mondialrelay') label = 'Mondial Relay';
+                            let prix = shipping.price === 0 ? <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded ml-1">Gratuit</span> : `${shipping.price?.toFixed(2)} €`;
+                            let relay = null;
+                            if (label === 'Mondial Relay' && order.mondial_relay) {
+                              try {
+                                relay = typeof order.mondial_relay === 'string' ? JSON.parse(order.mondial_relay) : order.mondial_relay;
+                              } catch (e) { relay = order.mondial_relay; }
+                            }
+                            return <>
+                              {label} {prix}
+                              {relay && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  <b>Point Relais :</b> {relay.LgAdr1}<br />
+                                  {relay.LgAdr2 && <>{relay.LgAdr2}<br /></>}
+                                  {relay.CP} {relay.Ville} {relay.Pays && <>({relay.Pays})</>}
+                                </div>
+                              )}
+                            </>;
                           })()
                         }
+                      </div>
+                      {/* Sous-total et total */}
+                      <div className="mt-2 flex justify-end gap-4 text-sm">
+                        <span className="text-gray-600">Sous-total : <b>{order.order_items.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} €</b></span>
+                        <span className="text-gray-600">Total payé : <b>{order.total?.toFixed(2)} €</b></span>
                       </div>
                     </div>
                   </CardContent>
