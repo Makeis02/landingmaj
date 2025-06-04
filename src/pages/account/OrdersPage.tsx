@@ -21,7 +21,6 @@ interface OrderItem {
   price: number;
   title?: string;
   image_url?: string;
-  variant?: string;
 }
 
 interface Order {
@@ -36,42 +35,6 @@ interface Order {
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
 }
-
-// Ajout d'un état pour les images produits
-const [productImages, setProductImages] = useState<Record<string, string>>({});
-
-// Fonction utilitaire pour charger les images produits pour une liste d'items (comme admin)
-const fetchProductMainImages = async (items: OrderItem[]) => {
-  const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
-  if (ids.length === 0) return;
-  // 1. Chercher dans editable_content
-  const keys = ids.map(id => `product_${id}_image_0`);
-  const { data: editableData, error: editableError } = await supabase
-    .from('editable_content')
-    .select('content_key, content')
-    .in('content_key', keys);
-  const imageMap: Record<string, string> = {};
-  if (!editableError && editableData) {
-    (editableData as Array<{ content_key: string; content: string }>).forEach(item => {
-      const id = item.content_key.replace('product_', '').replace('_image_0', '');
-      if (item.content) imageMap[id as string] = item.content;
-    });
-  }
-  // 2. Pour ceux qui n'ont pas d'image editable_content, fallback sur products.image
-  const missingIds = ids.filter(id => !imageMap[id as string]);
-  if (missingIds.length > 0) {
-    const { data: prodData, error: prodError } = await supabase
-      .from('products')
-      .select('shopify_id, image')
-      .in('shopify_id', missingIds);
-    if (!prodError && prodData) {
-      (prodData as Array<{ shopify_id: string; image: string }>).forEach(p => {
-        if (p.image) imageMap[p.shopify_id as string] = p.image;
-      });
-    }
-  }
-  setProductImages(imageMap);
-};
 
 // Fonction utilitaire pour transformer les liens en <a> et images
 function renderMessageContent(msg) {
@@ -155,6 +118,36 @@ function LitigeChat({ order, litigeMessages, loadingMessages, newMessage, setNew
   );
 }
 
+// Ajout utilitaire pour récupérer l'image principale produit (editable_content puis fallback products.image)
+const fetchProductMainImages = async (productIds, setProductImages) => {
+  if (!productIds.length) return;
+  const keys = productIds.map(id => `product_${id}_image_0`);
+  const { data: editableData } = await supabase
+    .from('editable_content')
+    .select('content_key, content')
+    .in('content_key', keys);
+  const imageMap = {};
+  if (editableData) {
+    editableData.forEach(item => {
+      const id = item.content_key.replace('product_', '').replace('_image_0', '');
+      if (item.content) imageMap[id] = item.content;
+    });
+  }
+  const missingIds = productIds.filter(id => !imageMap[id]);
+  if (missingIds.length > 0) {
+    const { data: prodData } = await supabase
+      .from('products')
+      .select('shopify_id, image')
+      .in('shopify_id', missingIds);
+    if (prodData) {
+      prodData.forEach(p => {
+        if (p.image) imageMap[p.shopify_id] = p.image;
+      });
+    }
+  }
+  setProductImages(imageMap);
+};
+
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,62 +165,42 @@ const OrdersPage = () => {
   const messagesEndRef = useRef(null);
   const [lastSentTime, setLastSentTime] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [productImages, setProductImages] = useState({});
 
   useEffect(() => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
-
     const fetchOrders = async () => {
       try {
-        // Récupérer les commandes de l'utilisateur
-        const { data: ordersData, error: ordersError } = await supabase
+        const { data: ordersData } = await supabase
           .from("orders")
           .select("*, order_items(*)")
           .eq("user_id", user.id)
           .eq("archived", false)
           .order("created_at", { ascending: false });
-
-        if (ordersError) {
-          console.error("Erreur lors de la récupération des commandes:", ordersError);
-          return;
-        }
-
         if (ordersData) {
           setOrders(ordersData);
-
-          // Récupérer les titres des produits
-          const productIds = ordersData
-            .flatMap(order => order.order_items)
-            .map(item => item.product_id);
-
+          // Récupérer titres produits
+          const productIds = ordersData.flatMap(order => order.order_items).map(item => item.product_id);
           if (productIds.length > 0) {
-            const { data: products, error: productsError } = await supabase
+            const { data: products } = await supabase
               .from("products")
               .select("shopify_id, title")
               .in("shopify_id", productIds);
-
-            if (!productsError && products) {
-              const titles = products.reduce((acc, product) => ({
-                ...acc,
-                [product.shopify_id]: product.title
-              }), {});
+            if (products) {
+              const titles = products.reduce((acc, product) => ({ ...acc, [product.shopify_id]: product.title }), {});
               setProductTitles(titles);
             }
+            // Récupérer les images produits enrichies
+            await fetchProductMainImages(productIds, setProductImages);
           }
-
-          // Charger les images produits pour tous les items de toutes les commandes
-          const allItems = ordersData.flatMap(order => order.order_items);
-          fetchProductMainImages(allItems);
         }
-      } catch (err) {
-        console.error("Erreur inattendue:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchOrders();
   }, [user]);
 
@@ -355,12 +328,7 @@ const OrdersPage = () => {
         .eq("archived", false)
         .order("created_at", { ascending: false });
 
-      if (ordersData) {
-        setOrders(ordersData);
-        // Charger les images produits pour tous les items de toutes les commandes
-        const allItems = ordersData.flatMap(order => order.order_items);
-        fetchProductMainImages(allItems);
-      }
+      if (ordersData) setOrders(ordersData);
     } catch (err) {
       console.error("Erreur lors du signalement:", err);
       toast.error("Une erreur est survenue lors du signalement");
@@ -463,6 +431,42 @@ const OrdersPage = () => {
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
   };
+
+  // Ajout d'un composant OrderTotalDetails adapté client
+  function OrderTotalDetailsClient({ order, orderItems }) {
+    const hasItems = Array.isArray(orderItems) && orderItems.length > 0;
+    const sousTotal = hasItems
+      ? orderItems.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0)
+      : null;
+    const livraison = hasItems
+      ? (orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'))?.price ?? null)
+      : null;
+    const totalPaye = order.total && order.total > 0
+      ? order.total
+      : (hasItems ? orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0);
+    return (
+      <div className="mb-2 p-2 bg-gray-50 rounded border flex flex-col gap-1">
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Sous-total produits</span>
+          <span>{sousTotal !== null ? sousTotal.toFixed(2) + ' €' : '—'}</span>
+        </div>
+        <div className="flex justify-between text-sm items-center">
+          <span className="text-gray-600">Livraison</span>
+          {livraison === 0 ? (
+            <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
+          ) : livraison !== null ? (
+            <span>{livraison.toFixed(2)} €</span>
+          ) : (
+            <span>—</span>
+          )}
+        </div>
+        <div className="flex justify-between font-medium text-base mt-2">
+          <span>Total payé</span>
+          <span>{totalPaye.toFixed(2)} €</span>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -631,28 +635,16 @@ const OrdersPage = () => {
                           ?.filter(item => !item.product_id.startsWith('shipping_'))
                           .slice(0, 2)
                           .map((item) => (
-                            <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                              {productImages[item.product_id] ? (
-                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
-                              ) : (
-                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
-                                  <Package className="h-6 w-6" />
-                                </div>
-                              )}
+                            <div key={item.id} className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="max-w-[48px] max-h-[48px] rounded" />
+                              </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm text-gray-900 truncate">
                                   {productTitles[item.product_id] || item.title || item.product_id}
                                 </p>
-                                {item.variant && (
-                                  <span className="block text-xs text-gray-500">{item.variant}</span>
-                                )}
                                 <p className="text-sm text-gray-500">
                                   Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="font-medium text-blue-600">
-                                  {(item.price * item.quantity).toFixed(2)}€
                                 </p>
                               </div>
                             </div>
@@ -663,17 +655,7 @@ const OrdersPage = () => {
                           </p>
                         )}
                       </div>
-                      <div className="mt-2 font-semibold text-sm">
-                        Livraison : {
-                          (() => {
-                            const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
-                            if (!shipping) return '—';
-                            if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                            if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                            return `Autre (${shipping.price?.toFixed(2)} €)`;
-                          })()
-                        }
-                      </div>
+                      <OrderTotalDetailsClient order={order} orderItems={order.order_items} />
                     </div>
                   </CardContent>
                 </Card>
@@ -704,20 +686,13 @@ const OrdersPage = () => {
                 <div className="space-y-4">
                   {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
                     <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                      {productImages[item.product_id] ? (
-                        <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
-                      ) : (
-                        <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
-                          <Package className="h-6 w-6" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm text-gray-900 truncate">
+                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
+                        <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="max-w-[48px] max-h-[48px] rounded" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-gray-900">
                           {productTitles[item.product_id] || item.title || item.product_id}
                         </p>
-                        {item.variant && (
-                          <span className="block text-xs text-gray-500">{item.variant}</span>
-                        )}
                         <p className="text-sm text-gray-500">
                           Quantité: {item.quantity} • {item.price.toFixed(2)}€
                         </p>
@@ -730,19 +705,7 @@ const OrdersPage = () => {
                     </div>
                   ))}
                 </div>
-                <div className="mt-4 font-semibold">
-                  Livraison : {
-                    (() => {
-                      const order = orders.find(o => o.id === selectedOrder);
-                      if (!order) return '—';
-                      const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
-                      if (!shipping) return '—';
-                      if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                      if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                      return `Autre (${shipping.price?.toFixed(2)} €)`;
-                    })()
-                  }
-                </div>
+                <OrderTotalDetailsClient order={orders.find(o => o.id === selectedOrder)} orderItems={orders.find(o => o.id === selectedOrder)?.order_items} />
                 <LitigeChat
                   order={orders.find(o => o.id === selectedOrder)}
                   litigeMessages={litigeMessages}
