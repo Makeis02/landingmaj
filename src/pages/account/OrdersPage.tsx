@@ -21,6 +21,7 @@ interface OrderItem {
   price: number;
   title?: string;
   image_url?: string;
+  variant?: string;
 }
 
 interface Order {
@@ -35,6 +36,42 @@ interface Order {
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
 }
+
+// Ajout d'un état pour les images produits
+const [productImages, setProductImages] = useState<Record<string, string>>({});
+
+// Fonction utilitaire pour charger les images produits pour une liste d'items (comme admin)
+const fetchProductMainImages = async (items: OrderItem[]) => {
+  const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
+  if (ids.length === 0) return;
+  // 1. Chercher dans editable_content
+  const keys = ids.map(id => `product_${id}_image_0`);
+  const { data: editableData, error: editableError } = await supabase
+    .from('editable_content')
+    .select('content_key, content')
+    .in('content_key', keys);
+  const imageMap: Record<string, string> = {};
+  if (!editableError && editableData) {
+    (editableData as Array<{ content_key: string; content: string }>).forEach(item => {
+      const id = item.content_key.replace('product_', '').replace('_image_0', '');
+      if (item.content) imageMap[id as string] = item.content;
+    });
+  }
+  // 2. Pour ceux qui n'ont pas d'image editable_content, fallback sur products.image
+  const missingIds = ids.filter(id => !imageMap[id as string]);
+  if (missingIds.length > 0) {
+    const { data: prodData, error: prodError } = await supabase
+      .from('products')
+      .select('shopify_id, image')
+      .in('shopify_id', missingIds);
+    if (!prodError && prodData) {
+      (prodData as Array<{ shopify_id: string; image: string }>).forEach(p => {
+        if (p.image) imageMap[p.shopify_id as string] = p.image;
+      });
+    }
+  }
+  setProductImages(imageMap);
+};
 
 // Fonction utilitaire pour transformer les liens en <a> et images
 function renderMessageContent(msg) {
@@ -179,6 +216,10 @@ const OrdersPage = () => {
               setProductTitles(titles);
             }
           }
+
+          // Charger les images produits pour tous les items de toutes les commandes
+          const allItems = ordersData.flatMap(order => order.order_items);
+          fetchProductMainImages(allItems);
         }
       } catch (err) {
         console.error("Erreur inattendue:", err);
@@ -314,7 +355,12 @@ const OrdersPage = () => {
         .eq("archived", false)
         .order("created_at", { ascending: false });
 
-      if (ordersData) setOrders(ordersData);
+      if (ordersData) {
+        setOrders(ordersData);
+        // Charger les images produits pour tous les items de toutes les commandes
+        const allItems = ordersData.flatMap(order => order.order_items);
+        fetchProductMainImages(allItems);
+      }
     } catch (err) {
       console.error("Erreur lors du signalement:", err);
       toast.error("Une erreur est survenue lors du signalement");
@@ -585,16 +631,28 @@ const OrdersPage = () => {
                           ?.filter(item => !item.product_id.startsWith('shipping_'))
                           .slice(0, 2)
                           .map((item) => (
-                            <div key={item.id} className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                                <Package className="h-6 w-6 text-gray-400" />
-                              </div>
+                            <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                              {productImages[item.product_id] ? (
+                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
+                              ) : (
+                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
+                                  <Package className="h-6 w-6" />
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm text-gray-900 truncate">
-                                  {productTitles[item.product_id] || item.product_id}
+                                  {productTitles[item.product_id] || item.title || item.product_id}
                                 </p>
+                                {item.variant && (
+                                  <span className="block text-xs text-gray-500">{item.variant}</span>
+                                )}
                                 <p className="text-sm text-gray-500">
                                   Quantité: {item.quantity} • {item.price.toFixed(2)}€
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium text-blue-600">
+                                  {(item.price * item.quantity).toFixed(2)}€
                                 </p>
                               </div>
                             </div>
@@ -646,13 +704,20 @@ const OrdersPage = () => {
                 <div className="space-y-4">
                   {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
                     <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
-                        <Package className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-gray-900">
-                          {productTitles[item.product_id] || item.product_id}
+                      {productImages[item.product_id] ? (
+                        <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
+                      ) : (
+                        <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
+                          <Package className="h-6 w-6" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm text-gray-900 truncate">
+                          {productTitles[item.product_id] || item.title || item.product_id}
                         </p>
+                        {item.variant && (
+                          <span className="block text-xs text-gray-500">{item.variant}</span>
+                        )}
                         <p className="text-sm text-gray-500">
                           Quantité: {item.quantity} • {item.price.toFixed(2)}€
                         </p>
