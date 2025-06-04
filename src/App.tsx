@@ -96,11 +96,17 @@ import CheckoutSettings from "@/pages/admin/CheckoutSettings";
 import CommandesPage from "@/pages/admin/CommandesPage";
 import OrderConfirmation from "@/pages/OrderConfirmation";
 import CookieBanner from "@/components/CookieBanner";
+import LuckyWheelPopup from "@/components/WheelPopup";
+import { useEditStore } from "@/stores/useEditStore";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
 const App = () => {
   useRestoreSession();
+  const { isEditMode } = useEditStore();
+  const [showWheel, setShowWheel] = useState(false);
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -184,8 +190,25 @@ const App = () => {
 
           <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
+          <Route path="/lucky-wheel" element={
+            <div className="flex flex-col items-center justify-center min-h-screen">
+              <Button onClick={() => setShowWheel(true)} className="mb-6">Tester la roue aquatique</Button>
+              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} />
+            </div>
+          } />
+
           <Route path="*" element={<NotFound />} />
           </Routes>
+        {/* Bouton flottant pour ouvrir la roue en mode édition */}
+        {isEditMode && (
+          <button
+            onClick={() => setShowWheel(true)}
+            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+          >
+            🎡 Tester la roue
+          </button>
+        )}
+        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
