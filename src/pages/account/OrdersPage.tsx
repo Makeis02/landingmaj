@@ -457,21 +457,21 @@ const OrdersPage = () => {
       <div className="mb-2 p-2 bg-gray-50 rounded border flex flex-col gap-1">
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Sous-total produits</span>
-          <span>{sousTotal !== null ? sousTotal.toFixed(2) + ' €' : '—'}</span>
+          <span style={{ color: '#0074b3' }}>{sousTotal !== null ? sousTotal.toFixed(2) + ' €' : '—'}</span>
         </div>
         <div className="flex justify-between text-sm items-center">
           <span className="text-gray-600">Livraison</span>
           {livraison === 0 ? (
             <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
           ) : livraison !== null ? (
-            <span>{livraison.toFixed(2)} €</span>
+            <span style={{ color: '#0074b3' }}>{livraison.toFixed(2)} €</span>
           ) : (
             <span>—</span>
           )}
         </div>
         <div className="flex justify-between font-medium text-base mt-2">
           <span>Total payé</span>
-          <span>{totalPaye.toFixed(2)} €</span>
+          <span style={{ color: '#0074b3' }}>{totalPaye.toFixed(2)} €</span>
         </div>
       </div>
     );
@@ -659,7 +659,7 @@ const OrdersPage = () => {
                                 {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
                                 <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                               </div>
-                              <div className="text-right min-w-[70px] font-semibold text-blue-700 text-base">{(item.price * item.quantity).toFixed(2)}€</div>
+                              <div className="text-right min-w-[70px] font-semibold text-base"><span style={{ color: '#0074b3' }}>{(item.price * item.quantity).toFixed(2)}€</span></div>
                             </div>
                           ))}
                         {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).length > 2 && (
@@ -734,7 +734,7 @@ const OrdersPage = () => {
                         {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
                         <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                       </div>
-                      <div className="text-right min-w-[70px] font-semibold text-blue-700 text-base">{(item.price * item.quantity).toFixed(2)}€</div>
+                      <div className="text-right min-w-[70px] font-semibold text-base"><span style={{ color: '#0074b3' }}>{(item.price * item.quantity).toFixed(2)}€</span></div>
                     </div>
                   ))}
                 </div>
