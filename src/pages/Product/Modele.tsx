@@ -1427,7 +1427,8 @@ const Modele = ({ categoryParam = null }) => {
     
     const loadSimilarProducts = async () => {
       try {
-        const response = await fetch("/api/stripe/products");
+        const apiBaseUrl = getApiBaseUrl();
+        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
         const data = await response.json();
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
