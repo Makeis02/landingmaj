@@ -11,29 +11,25 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
-  // Segments de la roue adaptés au thème aquarium
+  // Segments de la roue harmonisés avec le site
   const segments = [
-    { text: "-15%", color: "bg-blue-400" },
-    { text: "Poisson gratuit", color: "bg-cyan-300" },
-    { text: "-10%", color: "bg-teal-400" },
-    { text: "Plante offerte", color: "bg-green-400" },
-    { text: "-20%", color: "bg-blue-500" },
-    { text: "Perdu", color: "bg-gray-300" },
-    { text: "-5%", color: "bg-cyan-400" },
-    { text: "Décor gratuit", color: "bg-emerald-400" },
-    { text: "-25%", color: "bg-blue-600" },
-    { text: "Perdu", color: "bg-slate-300" }
+    { text: "-15%", color: "bg-cyan-200" },
+    { text: "Poisson gratuit", color: "bg-blue-100" },
+    { text: "-10%", color: "bg-cyan-300" },
+    { text: "Plante offerte", color: "bg-green-100" },
+    { text: "-20%", color: "bg-blue-200" },
+    { text: "Perdu", color: "bg-gray-100" },
+    { text: "-5%", color: "bg-cyan-100" },
+    { text: "Décor gratuit", color: "bg-emerald-100" },
+    { text: "-25%", color: "bg-blue-300" },
+    { text: "Perdu", color: "bg-slate-100" }
   ];
 
   const handleSpin = () => {
     if (isSpinning) return;
-    
     setIsSpinning(true);
-    // Rotation aléatoire entre 1440° et 2160° (4 à 6 tours complets)
     const randomRotation = Math.floor(Math.random() * 720) + 1440;
     setRotation(prev => prev + randomRotation);
-    
-    // Arrêter l'animation après 3 secondes
     setTimeout(() => {
       setIsSpinning(false);
     }, 3000);
@@ -42,24 +38,24 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
         {/* Header avec bouton fermer */}
         <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-          <h2 className="text-2xl font-bold text-slate-800">🐠 Roue Aquatique</h2>
+          <h2 className="text-2xl font-bold text-blue-800 tracking-tight">🐠 Roue Aquatique</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-400 hover:text-blue-700"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Contenu principal */}
-        <div className="p-6 text-center bg-gradient-to-br from-cyan-50 to-blue-50">
-          <p className="text-slate-600 mb-8">
+        <div className="p-6 text-center">
+          <p className="text-blue-700 mb-8 text-base font-medium">
             🌊 Plongez dans l'aventure et gagnez des cadeaux aquatiques ! 🐟
           </p>
 
@@ -80,7 +76,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
               >
                 🐠
               </div>
-              
               {/* Poisson 2 - tourne dans le sens antihoraire */}
               <div 
                 className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
@@ -93,7 +88,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
               >
                 🐟
               </div>
-              
               {/* Poisson 3 - plus petit, tourne plus vite */}
               <div 
                 className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
@@ -111,7 +105,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
 
             {/* Indicateur fixe (flèche) */}
             <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
-              <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-500 drop-shadow-lg"></div>
+              <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
             </div>
 
             {/* La roue */}
@@ -128,7 +122,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
               {segments.map((segment, index) => {
                 const angle = (360 / segments.length) * index;
                 const nextAngle = (360 / segments.length) * (index + 1);
-                
                 return (
                   <div
                     key={index}
@@ -139,7 +132,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
                     }}
                   >
                     <div 
-                      className="text-white font-bold text-sm drop-shadow-lg"
+                      className="text-blue-900 font-bold text-sm drop-shadow-lg"
                       style={{
                         transform: `rotate(${angle + 18}deg) translateY(-60px)`,
                         transformOrigin: 'center'
@@ -150,10 +143,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
                   </div>
                 );
               })}
-              
               {/* Centre de la roue avec poisson */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-cyan-600 rounded-full border-3 border-white shadow-lg z-10 flex items-center justify-center">
-                <span className="text-white text-lg">🐠</span>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
+                <span className="text-white text-2xl">🐠</span>
               </div>
             </div>
           </div>
@@ -174,7 +166,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             )}
           </Button>
 
-          <p className="text-xs text-slate-500 mt-4">
+          <p className="text-xs text-blue-500 mt-4">
             🐟 Une seule tentative par jour par aquariophile
           </p>
         </div>
@@ -190,7 +182,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             transform: translateX(-50%) rotate(360deg) translateX(140px) rotate(-360deg);
           }
         }
-        
         @keyframes swim-counter-clockwise {
           from {
             transform: rotate(0deg) translateX(140px) rotate(0deg);
@@ -199,7 +190,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             transform: rotate(-360deg) translateX(140px) rotate(360deg);
           }
         }
-        
         @keyframes swim-fast {
           from {
             transform: translateY(-50%) rotate(0deg) translateX(120px) rotate(0deg);
@@ -208,7 +198,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             transform: translateY(-50%) rotate(360deg) translateX(120px) rotate(-360deg);
           }
         }
-        
         @keyframes float {
           0%, 100% {
             transform: translateY(0px);
