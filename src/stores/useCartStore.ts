@@ -154,69 +154,86 @@ export const useCartStore = create<CartStore>()(
   addItem: async (item) => {
     try {
       set({ isLoading: true });
-          
-          const existingItem = get().items.find((i) => {
-            // Si les deux articles ont une variante, vérifier aussi la correspondance de variante
-            if (i.id === item.id) {
-              if (item.variant && i.variant) {
-                return i.variant === item.variant;
-              }
-              return true;
-            }
-            return false;
-          });
-
-          // Quantité par défaut de 1 si non spécifiée
-          const quantity = item.quantity || 1;
-          
-          let updatedItems;
-          if (existingItem) {
-            // Mettre à jour la quantité de l'article existant
-            updatedItems = get().items.map((i) => {
-              if (i.id === item.id && i.variant === item.variant) {
-                return { ...i, quantity: i.quantity + quantity };
-              }
-              return i;
-            });
-          } else {
-            // Ajouter un nouvel article
-            updatedItems = [...get().items, { ...item, quantity }];
-          }
-          
-          set({ items: updatedItems });
-          
-          // Synchro serveur si connecté
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            try {
-      if (existingItem) {
-                await supabase
-          .from("cart_items")
-                  .update({ quantity: existingItem.quantity + quantity })
-          .eq("user_id", session.user.id)
-          .eq("product_id", item.id);
-      } else {
-                await supabase
-          .from("cart_items")
-          .insert({
-            user_id: session.user.id,
-            product_id: item.id,
-                    quantity,
-                    variant: item.variant,
-                    price_id: item.stripe_price_id,
-                    discount_price_id: item.stripe_discount_price_id,
-                    original_price: item.original_price,
-                    discount_percentage: item.discount_percentage,
-                    has_discount: item.has_discount
-          });
+      // Enrichir l'item avec le titre si manquant
+      let enrichedItem = { ...item };
+      if (!item.title || item.title === "") {
+        const { data: product } = await supabase
+          .from("products")
+          .select("title")
+          .eq("shopify_id", item.id)
+          .maybeSingle();
+        if (product && product.title) {
+          enrichedItem.title = product.title;
+        }
+      }
+      // Enrichir la variante avec un label lisible si besoin
+      if (item.variant && typeof item.variant === "string") {
+        // Ex: "Taille:120|Couleur:Rouge" => "Taille 120, Couleur Rouge"
+        const variantLabel = item.variant
+          .split("|")
+          .map(v => v.replace(":", " "))
+          .join(", ");
+        enrichedItem.variant = variantLabel;
       }
 
-      await get().manageGiftItem();
-            } catch (error) {
-              console.error("Error syncing with Supabase:", error);
-            }
+      const existingItem = get().items.find((i) => {
+        if (i.id === enrichedItem.id) {
+          if (enrichedItem.variant && i.variant) {
+            return i.variant === enrichedItem.variant;
           }
-          
+          return true;
+        }
+        return false;
+      });
+
+      const quantity = enrichedItem.quantity || 1;
+      
+      let updatedItems;
+      if (existingItem) {
+        updatedItems = get().items.map((i) => {
+          if (i.id === enrichedItem.id && i.variant === enrichedItem.variant) {
+            return { ...i, quantity: i.quantity + quantity };
+          }
+          return i;
+        });
+      } else {
+        updatedItems = [...get().items, { ...enrichedItem, quantity }];
+      }
+      
+      set({ items: updatedItems });
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        try {
+          if (existingItem) {
+            await supabase
+              .from("cart_items")
+              .update({ quantity: existingItem.quantity + quantity })
+              .eq("user_id", session.user.id)
+              .eq("product_id", enrichedItem.id);
+          } else {
+            await supabase
+              .from("cart_items")
+              .insert({
+                user_id: session.user.id,
+                product_id: enrichedItem.id,
+                quantity,
+                variant: enrichedItem.variant,
+                price_id: enrichedItem.stripe_price_id,
+                discount_price_id: enrichedItem.stripe_discount_price_id,
+                original_price: enrichedItem.original_price,
+                discount_percentage: enrichedItem.discount_percentage,
+                has_discount: enrichedItem.has_discount,
+                title: enrichedItem.title
+              });
+          }
+
+          await get().manageGiftItem();
+        } catch (error) {
+          console.error("Error syncing with Supabase:", error);
+        }
+      }
+      
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
