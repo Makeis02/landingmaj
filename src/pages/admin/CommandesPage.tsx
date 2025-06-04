@@ -56,6 +56,12 @@ function OrderTotalDetails({ order, orderItems }) {
   const livraison = hasItems
     ? (orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'))?.price ?? null)
     : null;
+  
+  // Calcul du total : utilise order.total si disponible et > 0, sinon calcule à partir des items
+  const totalPaye = order.total && order.total > 0 
+    ? order.total 
+    : (hasItems ? orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0);
+  
   return (
     <div className="mb-4 p-3 bg-gray-50 rounded border flex flex-col gap-1">
       <div className="flex justify-between text-sm">
@@ -74,7 +80,7 @@ function OrderTotalDetails({ order, orderItems }) {
       </div>
       <div className="flex justify-between font-medium text-lg mt-2">
         <span>Total payé</span>
-        <span>{order.total !== undefined ? order.total.toFixed(2) + ' €' : '—'}</span>
+        <span>{totalPaye.toFixed(2)} €</span>
       </div>
     </div>
   );
