@@ -555,15 +555,6 @@ const OrdersPage = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-[#0074b3] text-[#0074b3] hover:bg-[#e6f4fa] hover:border-[#005a8c]"
-                          onClick={() => handleShowOrderDetails(order.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-2" />
-                          Détails
-                        </Button>
                         {order.status !== "litige" && (
                           <Button 
                             variant="outline" 
@@ -590,7 +581,15 @@ const OrdersPage = () => {
                       <div className="flex items-center gap-2">
                         <Euro className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600">Total:</span>
-                        <span className="font-medium text-blue-600">{order.total?.toFixed(2)}€</span>
+                        <span className="font-medium text-blue-600">
+                          {(
+                            order.total && order.total > 0
+                              ? order.total
+                              : order.order_items
+                                ? order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                                : 0
+                          ).toFixed(2)}€
+                        </span>
                       </div>
 
                       {order.tracking_numbers && order.tracking_numbers.length > 0 && (
@@ -669,7 +668,13 @@ const OrdersPage = () => {
                       {/* Sous-total et total */}
                       <div className="mt-2 flex justify-end gap-4 text-sm">
                         <span className="text-gray-600">Sous-total : <b>{order.order_items.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)} €</b></span>
-                        <span className="text-gray-600">Total payé : <b>{order.total?.toFixed(2)} €</b></span>
+                        <span className="text-gray-600">Total payé : <b>{(
+                          order.total && order.total > 0
+                            ? order.total
+                            : order.order_items
+                              ? order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                              : 0
+                        ).toFixed(2)} €</b></span>
                       </div>
                     </div>
                   </CardContent>
@@ -679,78 +684,6 @@ const OrdersPage = () => {
           </div>
         </div>
       </main>
-
-      {/* Modal détails commande */}
-      {selectedOrder && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
-            <button 
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl" 
-              onClick={handleCloseOrderDetails}
-            >
-              &times;
-            </button>
-            <h2 className="text-xl font-bold mb-4">Détails de la commande</h2>
-            {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-3 text-blue-700">Chargement...</span>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-4">
-                  {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
-                        <Package className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-gray-900">
-                          {productTitles[item.product_id] || item.product_id}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-blue-600">
-                          {(item.price * item.quantity).toFixed(2)}€
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 font-semibold">
-                  Livraison : {
-                    (() => {
-                      const order = orders.find(o => o.id === selectedOrder);
-                      if (!order) return '—';
-                      const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
-                      if (!shipping) return '—';
-                      if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                      if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                      return `Autre (${shipping.price?.toFixed(2)} €)`;
-                    })()
-                  }
-                </div>
-                <LitigeChat
-                  order={orders.find(o => o.id === selectedOrder)}
-                  litigeMessages={litigeMessages}
-                  loadingMessages={loadingMessages}
-                  newMessage={newMessage}
-                  setNewMessage={setNewMessage}
-                  handleSendLitigeMessage={handleSendLitigeMessage}
-                  messagesEndRef={messagesEndRef}
-                  canSend={canSend}
-                  spamMsg={spamMsg}
-                  handleUploadImage={handleUploadImage}
-                  uploadingImage={uploadingImage}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Modal de signalement de litige */}
       {showLitigeModal && selectedOrderForLitige && (
