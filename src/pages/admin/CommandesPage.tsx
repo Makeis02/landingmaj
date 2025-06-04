@@ -949,7 +949,7 @@ export default function CommandesPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {clientOrders.map((order) => (
+                    {clientOrders.filter(order => order.payment_status === 'paid' || order.status === 'active').map((order) => (
                       <Card key={order.id} className="bg-white/80 backdrop-blur-sm">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
