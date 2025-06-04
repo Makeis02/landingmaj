@@ -118,6 +118,7 @@ export default function CommandesPage() {
         let query = supabase
           .from("orders")
           .select("*, order_items(*)")
+          .eq("payment_status", "paid")
           .order("created_at", { ascending: false });
 
         // Filtrage selon l'onglet sélectionné
@@ -163,6 +164,7 @@ export default function CommandesPage() {
       const { count } = await supabase
         .from("orders")
         .select("*", { count: "exact", head: true })
+        .eq("payment_status", "paid")
         .eq("status", "litige")
         .eq("archived", false);
       

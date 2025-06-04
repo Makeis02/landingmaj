@@ -418,31 +418,11 @@ const Checkout = () => {
         return;
       }
       
-      // 🔥 NOUVEAU : Enrichir avec les vraies données produits depuis la base
-      const productIds = finalItems
-        .filter(item => !item.is_shipping) // Exclure les frais de port
-        .map(item => item.id);
-      
-      let productTitles = {};
-      if (productIds.length > 0) {
-        const { data: products, error: productsError } = await supabase
-          .from("products")
-          .select("shopify_id, title")
-          .in("shopify_id", productIds);
-        
-        if (!productsError && products) {
-          productTitles = products.reduce((acc, p) => {
-            acc[p.shopify_id] = p.title;
-            return acc;
-          }, {});
-        }
-      }
-      
       // Créer le payload final pour le backend (Supabase ou API)
-      // Enrichir avec les vraies données de la base
+      // On conserve tous les champs existants (dont stripe_price_id), et on ajoute/force title et variant
       const payloadItems = finalItems.map(item => ({
         ...item,
-        title: productTitles[item.id] || item.title || item.product_title || (item.is_shipping ? item.title : ''),
+        title: item.title || item.product_title || '',
         variant: item.variant || null
       }));
 
