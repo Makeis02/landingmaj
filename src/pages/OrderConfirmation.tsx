@@ -164,10 +164,17 @@ const OrderConfirmation = () => {
                       <span>—</span>
                     )}
                   </div>
+                  {livraison?.price === 0 && (
+                    <div className="text-xs text-green-700 mt-1">Livraison gratuite offerte !</div>
+                  )}
                   <div className="flex justify-between font-medium text-lg mt-2">
                     <span>Total payé</span>
                     <span>{total.toFixed(2)} €</span>
                   </div>
+                </div>
+                {/* Message suivi */}
+                <div className="mt-4 text-xs text-blue-700 text-center">
+                  Un numéro de suivi vous sera communiqué par email dès l'expédition de votre commande.
                 </div>
                 <div className="mt-6 text-center">
                   <Button asChild className="w-full bg-[#0074b3] text-white hover:bg-[#005a8c]">
