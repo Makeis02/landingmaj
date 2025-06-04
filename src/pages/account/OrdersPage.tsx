@@ -37,6 +37,11 @@ interface Order {
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
   mondial_relay?: any;
+  address1?: string;
+  address2?: string;
+  postal_code?: string;
+  city?: string;
+  country?: string;
 }
 
 // Fonction utilitaire pour transformer les liens en <a> et images
@@ -604,7 +609,7 @@ const OrdersPage = () => {
                         {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
                           <div key={item.id} className="flex items-center gap-3">
                             {orderProductImages[item.product_id] ? (
-                              <img src={orderProductImages[item.product_id]} alt="img" className="w-12 h-12 object-contain rounded bg-white border" />
+                              <img src={orderProductImages[item.product_id]} alt="img" className="w-12 h-12 object-contain rounded border" />
                             ) : (
                               <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
                                 <Package className="h-6 w-6 text-gray-400" />
@@ -632,8 +637,8 @@ const OrdersPage = () => {
                             const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
                             if (!shipping) return '—';
                             let label = 'Autre';
-                            if (shipping.product_id === 'shipping_colissimo') label = 'Colissimo';
-                            if (shipping.product_id === 'shipping_mondialrelay') label = 'Mondial Relay';
+                            if (shipping.product_id.includes('colissimo')) label = 'Colissimo';
+                            else if (shipping.product_id.includes('mondial')) label = 'Mondial Relay';
                             let prix = shipping.price === 0 ? <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded ml-1">Gratuit</span> : `${shipping.price?.toFixed(2)} €`;
                             let relay = null;
                             if (label === 'Mondial Relay' && order.mondial_relay) {
@@ -648,6 +653,13 @@ const OrdersPage = () => {
                                   <b>Point Relais :</b> {relay.LgAdr1}<br />
                                   {relay.LgAdr2 && <>{relay.LgAdr2}<br /></>}
                                   {relay.CP} {relay.Ville} {relay.Pays && <>({relay.Pays})</>}
+                                </div>
+                              )}
+                              {/* Adresse classique si pas Mondial Relay */}
+                              {label !== 'Mondial Relay' && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  <b>Adresse :</b> {order.address1} {order.address2 && <span>({order.address2})</span>}<br />
+                                  {order.postal_code} {order.city} {order.country && <span>({order.country})</span>}
                                 </div>
                               )}
                             </>;
