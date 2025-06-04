@@ -449,10 +449,10 @@ const Header = () => {
           {/* Menu Mobile */}
           <div
             className={`
-              fixed top-0 left-0 w-full max-h-screen z-50 overflow-y-auto overscroll-contain transition-transform duration-300
+              fixed left-0 w-full max-h-screen z-50 overflow-y-auto overscroll-contain transition-transform duration-300
               ${isMenuOpen ? 'translate-x-0 pointer-events-auto' : '-translate-x-full pointer-events-none'}
             `}
-            style={{ background: 'linear-gradient(to bottom, #e6f2f8, #ffffff)' }}
+            style={{ background: 'linear-gradient(to bottom, #e6f2f8, #ffffff)', top: 32 }}
           >
             {/* Barre supérieure avec logo + bouton de fermeture */}
             <div className="sticky top-0 left-0 right-0 flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm border-b">
