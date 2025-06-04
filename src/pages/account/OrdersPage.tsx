@@ -450,6 +450,9 @@ const OrdersPage = () => {
       return sum;
     }, 0);
 
+  // Nombre de commandes actives/payées
+  const totalCommandes = displayedOrders.length;
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
@@ -490,10 +493,9 @@ const OrdersPage = () => {
 
           {/* Statistiques */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="bg-gradient-to-br from-blue-50 to-purple-50 border-0">
-              <CardContent className="p-4 text-center">
-                <Package className="h-6 w-6 text-blue-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-blue-600">{orders.length}</div>
+            <Card className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-0">
+              <CardContent className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">{loading ? '...' : totalCommandes}</div>
                 <p className="text-sm text-gray-600">Total commandes</p>
               </CardContent>
             </Card>
