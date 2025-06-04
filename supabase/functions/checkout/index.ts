@@ -139,8 +139,8 @@ serve(async (req) => {
 
     const params = new URLSearchParams();
     params.append("mode", "payment");
-    params.append("success_url", `${siteUrl}/success`);
-    params.append("cancel_url", `${siteUrl}/checkout`);
+    params.append("success_url", `https://majemsiteteste.netlify.app/checkout?success=true`);
+    params.append("cancel_url", `https://majemsiteteste.netlify.app/checkout?canceled=true`);
     items.forEach((item: any, idx: number) => {
       params.append(`line_items[${idx}][price]`, item.stripe_price_id);
       params.append(`line_items[${idx}][quantity]`, String(item.quantity));
