@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell, MapPin } from "lucide-react";
+import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,6 @@ interface OrderItem {
   price: number;
   title?: string;
   image_url?: string;
-  variant?: string;
-  product_title?: string;
 }
 
 interface Order {
@@ -36,13 +34,6 @@ interface Order {
   tracking_numbers?: string[];
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
-  shipping_method?: string;
-  mondial_relay?: string;
-  address1?: string;
-  address2?: string;
-  postal_code?: string;
-  city?: string;
-  country?: string;
 }
 
 // Fonction utilitaire pour transformer les liens en <a> et images
@@ -127,36 +118,6 @@ function LitigeChat({ order, litigeMessages, loadingMessages, newMessage, setNew
   );
 }
 
-// Ajout utilitaire pour récupérer l'image principale produit (editable_content puis fallback products.image)
-const fetchProductMainImages = async (productIds, setProductImages) => {
-  if (!productIds.length) return;
-  const keys = productIds.map(id => `product_${id}_image_0`);
-  const { data: editableData } = await supabase
-    .from('editable_content')
-    .select('content_key, content')
-    .in('content_key', keys);
-  const imageMap = {};
-  if (editableData) {
-    editableData.forEach(item => {
-      const id = item.content_key.replace('product_', '').replace('_image_0', '');
-      if (item.content) imageMap[id] = item.content;
-    });
-  }
-  const missingIds = productIds.filter(id => !imageMap[id]);
-  if (missingIds.length > 0) {
-    const { data: prodData } = await supabase
-      .from('products')
-      .select('shopify_id, image')
-      .in('shopify_id', missingIds);
-    if (prodData) {
-      prodData.forEach(p => {
-        if (p.image) imageMap[p.shopify_id] = p.image;
-      });
-    }
-  }
-  setProductImages(imageMap);
-};
-
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -174,42 +135,58 @@ const OrdersPage = () => {
   const messagesEndRef = useRef(null);
   const [lastSentTime, setLastSentTime] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [productImages, setProductImages] = useState({});
 
   useEffect(() => {
     if (!user?.id) {
       setLoading(false);
       return;
     }
+
     const fetchOrders = async () => {
       try {
-        const { data: ordersData } = await supabase
+        // Récupérer les commandes de l'utilisateur
+        const { data: ordersData, error: ordersError } = await supabase
           .from("orders")
           .select("*, order_items(*)")
           .eq("user_id", user.id)
           .eq("archived", false)
           .order("created_at", { ascending: false });
+
+        if (ordersError) {
+          console.error("Erreur lors de la récupération des commandes:", ordersError);
+          return;
+        }
+
         if (ordersData) {
           setOrders(ordersData);
-          // Récupérer titres produits
-          const productIds = ordersData.flatMap(order => order.order_items).map(item => item.product_id);
+
+          // Récupérer les titres des produits
+          const productIds = ordersData
+            .flatMap(order => order.order_items)
+            .map(item => item.product_id);
+
           if (productIds.length > 0) {
-            const { data: products } = await supabase
+            const { data: products, error: productsError } = await supabase
               .from("products")
               .select("shopify_id, title")
               .in("shopify_id", productIds);
-            if (products) {
-              const titles = products.reduce((acc, product) => ({ ...acc, [product.shopify_id]: product.title }), {});
+
+            if (!productsError && products) {
+              const titles = products.reduce((acc, product) => ({
+                ...acc,
+                [product.shopify_id]: product.title
+              }), {});
               setProductTitles(titles);
             }
-            // Récupérer les images produits enrichies
-            await fetchProductMainImages(productIds, setProductImages);
           }
         }
+      } catch (err) {
+        console.error("Erreur inattendue:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchOrders();
   }, [user]);
 
@@ -441,42 +418,6 @@ const OrdersPage = () => {
     if (ordersData) setOrders(ordersData);
   };
 
-  // Ajout d'un composant OrderTotalDetails adapté client
-  function OrderTotalDetailsClient({ order, orderItems }) {
-    const hasItems = Array.isArray(orderItems) && orderItems.length > 0;
-    const sousTotal = hasItems
-      ? orderItems.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0)
-      : null;
-    const livraison = hasItems
-      ? (orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'))?.price ?? null)
-      : null;
-    const totalPaye = order.total && order.total > 0
-      ? order.total
-      : (hasItems ? orderItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0);
-    return (
-      <div className="mb-2 p-2 bg-gray-50 rounded border flex flex-col gap-1">
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Sous-total produits</span>
-          <span style={{ color: '#0074b3' }}>{sousTotal !== null ? sousTotal.toFixed(2) + ' €' : '—'}</span>
-        </div>
-        <div className="flex justify-between text-sm items-center">
-          <span className="text-gray-600">Livraison</span>
-          {livraison === 0 ? (
-            <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
-          ) : livraison !== null ? (
-            <span style={{ color: '#0074b3' }}>{livraison.toFixed(2)} €</span>
-          ) : (
-            <span>—</span>
-          )}
-        </div>
-        <div className="flex justify-between font-medium text-base mt-2">
-          <span>Total payé</span>
-          <span style={{ color: '#0074b3' }}>{totalPaye.toFixed(2)} €</span>
-        </div>
-      </div>
-    );
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
@@ -644,22 +585,18 @@ const OrdersPage = () => {
                           ?.filter(item => !item.product_id.startsWith('shipping_'))
                           .slice(0, 2)
                           .map((item) => (
-                            <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
-                              {productImages[item.product_id] ? (
-                                <img src={productImages[item.product_id]} alt={item.product_title || productTitles[item.product_id] || item.title || item.product_id} className="w-14 h-14 object-cover rounded-md" />
-                              ) : (
-                                <div className="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-300">
-                                  <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-base text-gray-900 truncate">
-                                  {item.product_title || productTitles[item.product_id] || item.title || item.product_id}
-                                </p>
-                                {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
-                                <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
+                            <div key={item.id} className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <Package className="h-6 w-6 text-gray-400" />
                               </div>
-                              <div className="text-right min-w-[70px] font-semibold text-base"><span style={{ color: '#0074b3' }}>{(item.price * item.quantity).toFixed(2)}€</span></div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-gray-900 truncate">
+                                  {productTitles[item.product_id] || item.product_id}
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Quantité: {item.quantity} • {item.price.toFixed(2)}€
+                                </p>
+                              </div>
                             </div>
                           ))}
                         {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).length > 2 && (
@@ -668,28 +605,17 @@ const OrdersPage = () => {
                           </p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 mt-2 mb-2">
-                        <MapPin className="h-5 w-5 text-gray-400" />
-                        <span className="text-sm text-gray-700">
-                          {order.shipping_method === 'mondial_relay' && order.mondial_relay ? (
-                            (() => {
-                              let relay = null;
-                              try { relay = typeof order.mondial_relay === 'string' ? JSON.parse(order.mondial_relay) : order.mondial_relay; } catch (e) { relay = order.mondial_relay; }
-                              return relay && typeof relay === 'object' ? (
-                                <span>
-                                  <b>Point Relais :</b> {relay.LgAdr1} {relay.LgAdr2 && <span>({relay.LgAdr2})</span>}<br />
-                                  {relay.CP} {relay.Ville} {relay.Pays && <span>({relay.Pays})</span>}
-                                </span>
-                              ) : <span>{String(relay)}</span>;
-                            })()
-                          ) : (
-                            <span>
-                              <b>Adresse :</b> {order.address1} {order.address2 && <span>({order.address2})</span>}, {order.postal_code} {order.city} {order.country && <span>({order.country})</span>}
-                            </span>
-                          )}
-                        </span>
+                      <div className="mt-2 font-semibold text-sm">
+                        Livraison : {
+                          (() => {
+                            const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
+                            if (!shipping) return '—';
+                            if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
+                            if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
+                            return `Autre (${shipping.price?.toFixed(2)} €)`;
+                          })()
+                        }
                       </div>
-                      <OrderTotalDetailsClient order={order} orderItems={order.order_items} />
                     </div>
                   </CardContent>
                 </Card>
@@ -719,26 +645,39 @@ const OrdersPage = () => {
               <>
                 <div className="space-y-4">
                   {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
-                      {productImages[item.product_id] ? (
-                        <img src={productImages[item.product_id]} alt={item.product_title || productTitles[item.product_id] || item.title || item.product_id} className="w-14 h-14 object-cover rounded-md" />
-                      ) : (
-                        <div className="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-300">
-                          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-base text-gray-900 truncate">
-                          {item.product_title || productTitles[item.product_id] || item.title || item.product_id}
-                        </p>
-                        {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
-                        <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
+                    <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
+                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
+                        <Package className="h-6 w-6 text-gray-400" />
                       </div>
-                      <div className="text-right min-w-[70px] font-semibold text-base"><span style={{ color: '#0074b3' }}>{(item.price * item.quantity).toFixed(2)}€</span></div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm text-gray-900">
+                          {productTitles[item.product_id] || item.product_id}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Quantité: {item.quantity} • {item.price.toFixed(2)}€
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-medium text-blue-600">
+                          {(item.price * item.quantity).toFixed(2)}€
+                        </p>
+                      </div>
                     </div>
                   ))}
                 </div>
-                <OrderTotalDetailsClient order={orders.find(o => o.id === selectedOrder)} orderItems={orders.find(o => o.id === selectedOrder)?.order_items} />
+                <div className="mt-4 font-semibold">
+                  Livraison : {
+                    (() => {
+                      const order = orders.find(o => o.id === selectedOrder);
+                      if (!order) return '—';
+                      const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
+                      if (!shipping) return '—';
+                      if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
+                      if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
+                      return `Autre (${shipping.price?.toFixed(2)} €)`;
+                    })()
+                  }
+                </div>
                 <LitigeChat
                   order={orders.find(o => o.id === selectedOrder)}
                   litigeMessages={litigeMessages}

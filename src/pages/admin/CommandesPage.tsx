@@ -86,39 +86,6 @@ function OrderTotalDetails({ order, orderItems }) {
   );
 }
 
-// Ajout d'un utilitaire pour récupérer l'image principale comme en page catégorie
-const fetchProductMainImages = async (items, setProductImages) => {
-  const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
-  if (ids.length === 0) return;
-  // 1. Chercher dans editable_content
-  const keys = ids.map(id => `product_${id}_image_0`);
-  const { data: editableData, error: editableError } = await supabase
-    .from('editable_content')
-    .select('content_key, content')
-    .in('content_key', keys);
-  const imageMap: Record<string, string> = {};
-  if (!editableError && editableData) {
-    (editableData as Array<{ content_key: string; content: string }>).forEach(item => {
-      const id = item.content_key.replace('product_', '').replace('_image_0', '');
-      if (item.content) imageMap[id as string] = item.content;
-    });
-  }
-  // 2. Pour ceux qui n'ont pas d'image editable_content, fallback sur products.image
-  const missingIds = ids.filter(id => !imageMap[id as string]);
-  if (missingIds.length > 0) {
-    const { data: prodData, error: prodError } = await supabase
-      .from('products')
-      .select('shopify_id, image')
-      .in('shopify_id', missingIds);
-    if (!prodError && prodData) {
-      (prodData as Array<{ shopify_id: string; image: string }>).forEach(p => {
-        if (p.image) imageMap[p.shopify_id as string] = p.image;
-      });
-    }
-  }
-  setProductImages(imageMap);
-};
-
 export default function CommandesPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -145,7 +112,6 @@ export default function CommandesPage() {
   const [selectedClientOrder, setSelectedClientOrder] = useState(null);
   const [selectedClientOrderItems, setSelectedClientOrderItems] = useState([]);
   const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
-  const [productImages, setProductImages] = useState({});
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -251,10 +217,8 @@ export default function CommandesPage() {
         products?.forEach(p => { titles[p.shopify_id] = p.title; });
         console.log("[DEBUG] Setting product titles:", titles);
         setProductTitles(titles);
-        await fetchProductMainImages(data, setProductImages);
       } else {
         setProductTitles({});
-        setProductImages({});
       }
     } catch (err) {
       console.error("[DEBUG] Unexpected error in handleShowItems:", err);
@@ -595,10 +559,8 @@ export default function CommandesPage() {
         .eq("order_id", order.id);
       if (!error) {
         setSelectedClientOrderItems(data || []);
-        await fetchProductMainImages(data || [], setProductImages);
       } else {
         setSelectedClientOrderItems([]);
-        setProductImages({});
       }
     } finally {
       setLoadingClientOrderItems(false);
@@ -865,21 +827,10 @@ export default function CommandesPage() {
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
-                            <div className="flex items-center gap-2">
-                              {productImages[item.product_id] ? (
-                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
-                              ) : (
-                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
-                                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-medium">{item.product_title || productTitles?.[item.product_id] || item.product_id}</span>
-                                {item.variant && (
-                                  <span className="block text-xs text-gray-500">{item.variant}</span>
-                                )}
-                              </div>
-                            </div>
+                            {item.product_title || productTitles[item.product_id] || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
                           </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
@@ -1139,21 +1090,10 @@ export default function CommandesPage() {
                       {selectedClientOrderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
                           <td className="p-2 border">
-                            <div className="flex items-center gap-2">
-                              {productImages[item.product_id] ? (
-                                <img src={productImages[item.product_id]} alt="img" className="w-12 h-12 object-cover rounded border bg-white" />
-                              ) : (
-                                <div className="w-12 h-12 rounded border bg-gray-100 flex items-center justify-center text-gray-400">
-                                  <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
-                                </div>
-                              )}
-                              <div>
-                                <span className="font-medium">{item.product_title || productTitles?.[item.product_id] || item.product_id}</span>
-                                {item.variant && (
-                                  <span className="block text-xs text-gray-500">{item.variant}</span>
-                                )}
-                              </div>
-                            </div>
+                            {item.product_title || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
                           </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
