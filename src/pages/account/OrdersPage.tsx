@@ -437,9 +437,11 @@ const OrdersPage = () => {
     if (ordersData) setOrders(ordersData);
   };
 
-  // Calcul du total dépensé (somme des commandes payées)
-  const totalDepense = orders
-    .filter(order => order.payment_status === 'paid' || order.status === 'active')
+  // Filtrer les commandes à afficher (uniquement actives/payées)
+  const displayedOrders = orders.filter(order => order.payment_status === 'paid' || order.status === 'active');
+
+  // Calcul du total dépensé (somme des commandes affichées)
+  const totalDepense = displayedOrders
     .reduce((sum, order) => {
       if (order.total && order.total > 0) return sum + order.total;
       if (order.order_items) {
@@ -541,7 +543,7 @@ const OrdersPage = () => {
                 </Button>
               </Card>
             ) : (
-              orders.map((order) => (
+              displayedOrders.map((order) => (
                 <Card key={order.id} className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
@@ -637,17 +639,17 @@ const OrdersPage = () => {
                         Livraison : {
                           (() => {
                             const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
-                            let label = 'Autre';
+                            let label = '';
                             if (shipping?.product_id?.includes('colissimo')) label = 'Colissimo';
                             else if (shipping?.product_id?.includes('mondial')) label = 'Mondial Relay';
                             return <>
                               {(!shipping || shipping.price === 0) ? (
                                 <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">
-                                  {label} Gratuit{label === 'Mondial Relay' ? 'e' : ''}
+                                  {label ? label + ' ' : ''}Gratuit{label === 'Mondial Relay' ? 'e' : ''}
                                 </span>
                               ) : (
                                 <span>
-                                  {label} {shipping.price?.toFixed(2)} €
+                                  {label ? label + ' ' : ''}{shipping.price?.toFixed(2)} €
                                 </span>
                               )}
                             </>;
