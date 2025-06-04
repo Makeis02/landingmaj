@@ -49,26 +49,32 @@ function renderMessageContent(msg) {
 }
 
 function OrderTotalDetails({ order, orderItems }) {
-  const shipping = orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'));
-  const sousTotal = orderItems.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const livraison = shipping ? shipping.price : 0;
+  const hasItems = Array.isArray(orderItems) && orderItems.length > 0;
+  const sousTotal = hasItems
+    ? orderItems.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    : null;
+  const livraison = hasItems
+    ? (orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'))?.price ?? null)
+    : null;
   return (
     <div className="mb-4 p-3 bg-gray-50 rounded border flex flex-col gap-1">
       <div className="flex justify-between text-sm">
         <span className="text-gray-600">Sous-total produits</span>
-        <span>{sousTotal.toFixed(2)} €</span>
+        <span>{sousTotal !== null ? sousTotal.toFixed(2) + ' €' : '—'}</span>
       </div>
       <div className="flex justify-between text-sm items-center">
         <span className="text-gray-600">Livraison</span>
         {livraison === 0 ? (
           <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
-        ) : (
+        ) : livraison !== null ? (
           <span>{livraison.toFixed(2)} €</span>
+        ) : (
+          <span>—</span>
         )}
       </div>
       <div className="flex justify-between font-medium text-lg mt-2">
         <span>Total payé</span>
-        <span>{(order.total || (sousTotal + livraison)).toFixed(2)} €</span>
+        <span>{order.total !== undefined ? order.total.toFixed(2) + ' €' : '—'}</span>
       </div>
     </div>
   );
