@@ -419,11 +419,9 @@ const Checkout = () => {
       }
       
       // Créer le payload final pour le backend (Supabase ou API)
-      // On s'assure que chaque item contient bien id, quantity, price, title, variant
+      // On conserve tous les champs existants (dont stripe_price_id), et on ajoute/force title et variant
       const payloadItems = finalItems.map(item => ({
-        id: item.id,
-        quantity: item.quantity,
-        price: item.price,
+        ...item,
         title: item.title || item.product_title || '',
         variant: item.variant || null
       }));
