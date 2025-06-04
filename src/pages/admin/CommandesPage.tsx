@@ -622,14 +622,14 @@ export default function CommandesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {orders.map((order) => (
-              <Card key={order.id} className="shadow-lg border-0 bg-white/90 backdrop-blur-sm relative">
-                <CardHeader className="pb-2 flex flex-col gap-2">
+              <Card key={order.id} className="shadow-lg border-0 bg-white/90 backdrop-blur-sm relative overflow-hidden min-h-[340px] flex flex-col justify-between p-0">
+                <CardHeader className="pb-2 flex flex-col gap-2 px-6 pt-6">
                   <div className="flex items-center gap-2">
                     <Package className="h-5 w-5 text-blue-700" />
-                    <CardTitle className="text-lg font-mono">{order.id}</CardTitle>
-                    <Badge className="bg-blue-100 text-blue-700 ml-2">{formatDate(order.created_at)}</Badge>
+                    <CardTitle className="text-lg font-mono break-all">{order.id}</CardTitle>
+                    <Badge className="bg-blue-100 text-blue-700 ml-2 whitespace-nowrap">{formatDate(order.created_at)}</Badge>
                     {/* Badge couleur selon le statut */}
-                    <div className={`rounded-full px-2 py-1 text-xs font-bold ml-2 ${
+                    <div className={`rounded-full px-2 py-1 text-xs font-bold ml-2 whitespace-nowrap ${
                       order.status === 'active' ? 'bg-green-200 text-green-800' :
                       order.status === 'en_cours' ? 'bg-blue-200 text-blue-800' :
                       order.status === 'litige' ? 'bg-red-200 text-red-800' :
@@ -643,17 +643,15 @@ export default function CommandesPage() {
                         order.status || 'Inconnue'}
                     </div>
                     {order.status === 'litige' && order.litige_reason && (
-                      <div className="ml-2 text-xs text-red-600">
-                        Raison: {order.litige_reason}
-                      </div>
+                      <div className="ml-2 text-xs text-red-600">Raison: {order.litige_reason}</div>
                     )}
                     {/* Menu déroulant */}
-                    <div className="ml-auto relative">
+                    <div className="ml-auto relative z-20">
                       <button onClick={() => setDropdownOpen(dropdownOpen === order.id ? null : order.id)} className="p-1 rounded hover:bg-gray-200">
                         <MoreVertical className="h-5 w-5 text-gray-500" />
                       </button>
                       {dropdownOpen === order.id && (
-                        <div className="absolute right-0 mt-2 bg-white border rounded shadow z-10 min-w-[140px]">
+                        <div className="absolute right-0 mt-2 bg-white border rounded shadow z-50 min-w-[140px] overflow-hidden">
                           {tab === 'archived' ? (
                             <button
                               className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-left"
@@ -714,7 +712,7 @@ export default function CommandesPage() {
                     </span>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
+                <CardContent className="space-y-2 text-sm px-6 pb-6 flex-1 flex flex-col justify-between">
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-500" />
                     <span>{order.first_name} {order.last_name}</span>
