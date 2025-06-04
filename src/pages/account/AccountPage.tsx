@@ -166,6 +166,22 @@ const AccountPage = () => {
     });
   };
 
+  // Filtrer les commandes à afficher (uniquement actives/payées)
+  const displayedOrders = orders.filter(order => order.payment_status === 'paid' || order.status === 'active');
+
+  // Calcul du total dépensé (somme des commandes affichées)
+  const totalDepense = displayedOrders
+    .reduce((sum, order) => {
+      if (order.total && order.total > 0) return sum + order.total;
+      if (order.order_items) {
+        return sum + order.order_items.reduce((s, i) => s + (i.price * i.quantity), 0);
+      }
+      return sum;
+    }, 0);
+
+  // Nombre de commandes actives/payées
+  const totalCommandes = displayedOrders.length;
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <Header />
@@ -311,16 +327,14 @@ const AccountPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-0">
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-blue-600">{ordersLoading ? '...' : orders.length}</div>
+                <div className="text-2xl font-bold text-blue-600">{ordersLoading ? '...' : totalCommandes}</div>
                 <p className="text-sm text-gray-600">Commandes passées</p>
               </CardContent>
             </Card>
 
             <Card className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-0">
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-purple-600">
-                  €{ordersLoading ? '...' : orders.reduce((sum, order) => sum + (order.total && order.total > 0 ? order.total : (order.order_items ? order.order_items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0)), 0).toFixed(2)}
-                </div>
+                <span className="text-3xl font-bold text-yellow-600">{totalDepense.toFixed(2)}€</span>
                 <p className="text-sm text-gray-600">Total dépensé</p>
               </CardContent>
             </Card>
