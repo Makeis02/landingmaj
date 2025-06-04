@@ -22,6 +22,7 @@ interface OrderItem {
   title?: string;
   image_url?: string;
   variant?: string;
+  product_title?: string;
 }
 
 interface Order {
@@ -637,9 +638,17 @@ const OrdersPage = () => {
                           .slice(0, 2)
                           .map((item) => (
                             <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
-                              <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="w-12 h-12 object-cover rounded border bg-gray-100" />
+                              {productImages[item.product_id] ? (
+                                <img src={productImages[item.product_id]} alt={item.product_title || productTitles[item.product_id] || item.title || item.product_id} className="w-14 h-14 object-cover rounded-md" />
+                              ) : (
+                                <div className="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-300">
+                                  <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
+                                </div>
+                              )}
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-base text-gray-900 truncate">{productTitles[item.product_id] || item.title || item.product_id}</p>
+                                <p className="font-medium text-base text-gray-900 truncate">
+                                  {item.product_title || productTitles[item.product_id] || item.title || item.product_id}
+                                </p>
                                 {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
                                 <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                               </div>
@@ -683,9 +692,17 @@ const OrdersPage = () => {
                 <div className="space-y-4">
                   {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
                     <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
-                      <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="w-12 h-12 object-cover rounded border bg-gray-100" />
+                      {productImages[item.product_id] ? (
+                        <img src={productImages[item.product_id]} alt={item.product_title || productTitles[item.product_id] || item.title || item.product_id} className="w-14 h-14 object-cover rounded-md" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-md bg-gray-100 flex items-center justify-center text-gray-300">
+                          <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 17l6-6 4 4 8-8"/></svg>
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-base text-gray-900 truncate">{productTitles[item.product_id] || item.title || item.product_id}</p>
+                        <p className="font-medium text-base text-gray-900 truncate">
+                          {item.product_title || productTitles[item.product_id] || item.title || item.product_id}
+                        </p>
                         {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
                         <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                       </div>
