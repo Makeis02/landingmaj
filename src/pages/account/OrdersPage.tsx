@@ -250,19 +250,13 @@ const OrdersPage = () => {
     }
   };
 
-  const getStatusText = (status: Order["status"]) => {
-    switch (status) {
-      case "active":
-        return "Active";
-      case "en_cours":
-        return "En cours de livraison";
-      case "litige":
-        return "En litige";
-      case "archived":
-        return "Archivée";
-      default:
-        return "Inconnue";
-    }
+  const getStatusText = (status) => {
+    if (!status || status === "") return "Active";
+    if (status === "active") return "Active";
+    if (status === "en_cours") return "En cours";
+    if (status === "litige") return "Litige";
+    if (status === "archived") return "Archivée";
+    return status;
   };
 
   const getStatusColor = (status: Order["status"]) => {
@@ -443,6 +437,17 @@ const OrdersPage = () => {
     if (ordersData) setOrders(ordersData);
   };
 
+  // Calcul du total dépensé (somme des commandes payées)
+  const totalDepense = orders
+    .filter(order => order.payment_status === 'paid' || order.status === 'active')
+    .reduce((sum, order) => {
+      if (order.total && order.total > 0) return sum + order.total;
+      if (order.order_items) {
+        return sum + order.order_items.reduce((s, i) => s + (i.price * i.quantity), 0);
+      }
+      return sum;
+    }, 0);
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
@@ -514,9 +519,7 @@ const OrdersPage = () => {
             <Card className="bg-gradient-to-br from-yellow-50 to-orange-50 border-0">
               <CardContent className="p-4 text-center">
                 <Euro className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-yellow-600">
-                  {orders.reduce((sum, order) => sum + (order.total || 0), 0).toFixed(0)}€
-                </div>
+                <span className="text-3xl font-bold text-yellow-600">{totalDepense.toFixed(2)}€</span>
                 <p className="text-sm text-gray-600">Total dépensé</p>
               </CardContent>
             </Card>
@@ -634,32 +637,18 @@ const OrdersPage = () => {
                         Livraison : {
                           (() => {
                             const shipping = order.order_items.find(item => item.product_id.startsWith('shipping_'));
-                            if (!shipping) return '—';
                             let label = 'Autre';
-                            if (shipping.product_id.includes('colissimo')) label = 'Colissimo';
-                            else if (shipping.product_id.includes('mondial')) label = 'Mondial Relay';
-                            let prix = shipping.price === 0 ? <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded ml-1">Gratuit</span> : `${shipping.price?.toFixed(2)} €`;
-                            let relay = null;
-                            if (label === 'Mondial Relay' && order.mondial_relay) {
-                              try {
-                                relay = typeof order.mondial_relay === 'string' ? JSON.parse(order.mondial_relay) : order.mondial_relay;
-                              } catch (e) { relay = order.mondial_relay; }
-                            }
+                            if (shipping?.product_id?.includes('colissimo')) label = 'Colissimo';
+                            else if (shipping?.product_id?.includes('mondial')) label = 'Mondial Relay';
                             return <>
-                              {label} {prix}
-                              {relay && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  <b>Point Relais :</b> {relay.LgAdr1}<br />
-                                  {relay.LgAdr2 && <>{relay.LgAdr2}<br /></>}
-                                  {relay.CP} {relay.Ville} {relay.Pays && <>({relay.Pays})</>}
-                                </div>
-                              )}
-                              {/* Adresse classique si pas Mondial Relay */}
-                              {label !== 'Mondial Relay' && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  <b>Adresse :</b> {order.address1} {order.address2 && <span>({order.address2})</span>}<br />
-                                  {order.postal_code} {order.city} {order.country && <span>({order.country})</span>}
-                                </div>
+                              {(!shipping || shipping.price === 0) ? (
+                                <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">
+                                  {label} Gratuit{label === 'Mondial Relay' ? 'e' : ''}
+                                </span>
+                              ) : (
+                                <span>
+                                  {label} {shipping.price?.toFixed(2)} €
+                                </span>
                               )}
                             </>;
                           })()
