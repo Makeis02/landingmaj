@@ -345,7 +345,7 @@ export default function CommandesPage() {
       // Récupérer toutes les commandes du même client (par email)
       const { data: orders, error } = await supabase
         .from("orders")
-        .select("*")
+        .select("*, order_items(*)")
         .eq("email", order.email)
         .order("created_at", { ascending: false });
 
@@ -354,6 +354,21 @@ export default function CommandesPage() {
         return;
       }
 
+      // Récupérer tous les order_items pour tous les order_id du client (sécurité)
+      const orderIds = orders.map(o => o.id);
+      const { data: allItems, error: itemsError } = await supabase
+        .from("order_items")
+        .select("*")
+        .in("order_id", orderIds);
+      if (itemsError) {
+        console.error("[DEBUG] Error fetching all order_items:", itemsError);
+      }
+      // Injecte les items dans chaque commande
+      const ordersWithItems = orders.map(o => ({
+        ...o,
+        order_items: allItems ? allItems.filter(item => item.order_id === o.id) : (o.order_items || [])
+      }));
+
       // Vérifier si le client a un compte
       const { data: user } = await supabase
         .from("users")
@@ -361,7 +376,7 @@ export default function CommandesPage() {
         .eq("email", order.email)
         .single();
 
-      setClientOrders(orders);
+      setClientOrders(ordersWithItems);
       setSelectedClient({
         ...order,
         hasAccount: !!user,
