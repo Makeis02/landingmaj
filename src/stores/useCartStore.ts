@@ -154,54 +154,44 @@ export const useCartStore = create<CartStore>()(
   addItem: async (item) => {
     try {
       set({ isLoading: true });
-      // Enrichir l'item avec le titre si manquant
-      let enrichedItem = { ...item };
-      if (!item.title || item.title === "") {
+      // Patch: garantir title et variant
+      let patchedItem = { ...item };
+      if (!patchedItem.title) {
+        // Essayer de récupérer le titre depuis la base produits
         const { data: product } = await supabase
-          .from("products")
-          .select("title")
-          .eq("shopify_id", item.id)
+          .from('products')
+          .select('title')
+          .eq('shopify_id', item.id)
           .maybeSingle();
-        if (product && product.title) {
-          enrichedItem.title = product.title;
-        }
+        patchedItem.title = product?.title || 'Produit inconnu';
       }
-      // Enrichir la variante avec un label lisible si besoin
-      if (item.variant && typeof item.variant === "string") {
-        // Ex: "Taille:120|Couleur:Rouge" => "Taille 120, Couleur Rouge"
-        const variantLabel = item.variant
-          .split("|")
-          .map(v => v.replace(":", " "))
-          .join(", ");
-        enrichedItem.variant = variantLabel;
+      if (typeof patchedItem.variant === 'undefined') {
+        patchedItem.variant = null;
       }
-
+      
       const existingItem = get().items.find((i) => {
-        if (i.id === enrichedItem.id) {
-          if (enrichedItem.variant && i.variant) {
-            return i.variant === enrichedItem.variant;
+        if (i.id === patchedItem.id) {
+          if (patchedItem.variant && i.variant) {
+            return i.variant === patchedItem.variant;
           }
           return true;
         }
         return false;
       });
-
-      const quantity = enrichedItem.quantity || 1;
-      
+      const quantity = patchedItem.quantity || 1;
       let updatedItems;
       if (existingItem) {
         updatedItems = get().items.map((i) => {
-          if (i.id === enrichedItem.id && i.variant === enrichedItem.variant) {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
             return { ...i, quantity: i.quantity + quantity };
           }
           return i;
         });
       } else {
-        updatedItems = [...get().items, { ...enrichedItem, quantity }];
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
       }
-      
       set({ items: updatedItems });
-      
+      // Synchro serveur si connecté
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         try {
@@ -210,30 +200,28 @@ export const useCartStore = create<CartStore>()(
               .from("cart_items")
               .update({ quantity: existingItem.quantity + quantity })
               .eq("user_id", session.user.id)
-              .eq("product_id", enrichedItem.id);
+              .eq("product_id", patchedItem.id);
           } else {
             await supabase
               .from("cart_items")
               .insert({
                 user_id: session.user.id,
-                product_id: enrichedItem.id,
+                product_id: patchedItem.id,
                 quantity,
-                variant: enrichedItem.variant,
-                price_id: enrichedItem.stripe_price_id,
-                discount_price_id: enrichedItem.stripe_discount_price_id,
-                original_price: enrichedItem.original_price,
-                discount_percentage: enrichedItem.discount_percentage,
-                has_discount: enrichedItem.has_discount,
-                title: enrichedItem.title
+                variant: patchedItem.variant,
+                price_id: patchedItem.stripe_price_id,
+                discount_price_id: patchedItem.stripe_discount_price_id,
+                original_price: patchedItem.original_price,
+                discount_percentage: patchedItem.discount_percentage,
+                has_discount: patchedItem.has_discount,
+                title: patchedItem.title
               });
           }
-
           await get().manageGiftItem();
         } catch (error) {
           console.error("Error syncing with Supabase:", error);
         }
       }
-      
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
