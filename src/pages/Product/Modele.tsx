@@ -1336,24 +1336,29 @@ const Modele = ({ categoryParam = null }) => {
           const match = content_key.match(/^product_(.+?)_variant_\d+_price_map$/);
           if (match && match[1]) {
             const id = match[1];
-          try {
-            const parsed = JSON.parse(content);
-            const prices = Object.values(parsed).map(v => parseFloat(String(v)));
-            if (prices.length > 0) {
+            try {
+              // Correction : ignorer les contenus vides ou non JSON
+              if (!content || typeof content !== 'string' || !content.trim().startsWith('{')) {
+                console.warn(`❌ [SIMILAR-PROMO] Contenu non JSON pour ${id}:`, content);
+                return;
+              }
+              const parsed = JSON.parse(content);
+              const prices = Object.values(parsed).map(v => parseFloat(String(v)));
+              if (prices.length > 0) {
                 // Si le produit a déjà des prix, on étend la fourchette
                 if (priceMap[id]) {
                   const newMin = Math.min(priceMap[id].min, ...prices);
                   const newMax = Math.max(priceMap[id].max, ...prices);
                   priceMap[id] = { min: newMin, max: newMax };
                 } else {
-              const min = Math.min(...prices);
-              const max = Math.max(...prices);
-              priceMap[id] = { min, max };
+                  const min = Math.min(...prices);
+                  const max = Math.max(...prices);
+                  priceMap[id] = { min, max };
                 }
                 console.log(`💰 [SIMILAR-PROMO] Prix pour ${id}: ${priceMap[id].min} - ${priceMap[id].max} €`);
-            }
-          } catch (e) {
-              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e);
+              }
+            } catch (e) {
+              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e, content);
             }
           }
         });
