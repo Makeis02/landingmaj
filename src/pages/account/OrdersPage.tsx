@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell } from "lucide-react";
+import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,13 @@ interface Order {
   tracking_numbers?: string[];
   last_admin_litige_message_at?: string;
   last_client_litige_read_at?: string;
+  shipping_method?: string;
+  mondial_relay?: string;
+  address1?: string;
+  address2?: string;
+  postal_code?: string;
+  city?: string;
+  country?: string;
 }
 
 // Fonction utilitaire pour transformer les liens en <a> et images
@@ -660,6 +667,27 @@ const OrdersPage = () => {
                             + {order.order_items.filter(item => !item.product_id.startsWith('shipping_')).length - 2} autre(s) article(s)
                           </p>
                         )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2 mb-2">
+                        <MapPin className="h-5 w-5 text-gray-400" />
+                        <span className="text-sm text-gray-700">
+                          {order.shipping_method === 'mondial_relay' && order.mondial_relay ? (
+                            (() => {
+                              let relay = null;
+                              try { relay = typeof order.mondial_relay === 'string' ? JSON.parse(order.mondial_relay) : order.mondial_relay; } catch (e) { relay = order.mondial_relay; }
+                              return relay && typeof relay === 'object' ? (
+                                <span>
+                                  <b>Point Relais :</b> {relay.LgAdr1} {relay.LgAdr2 && <span>({relay.LgAdr2})</span>}<br />
+                                  {relay.CP} {relay.Ville} {relay.Pays && <span>({relay.Pays})</span>}
+                                </span>
+                              ) : <span>{String(relay)}</span>;
+                            })()
+                          ) : (
+                            <span>
+                              <b>Adresse :</b> {order.address1} {order.address2 && <span>({order.address2})</span>}, {order.postal_code} {order.city} {order.country && <span>({order.country})</span>}
+                            </span>
+                          )}
+                        </span>
                       </div>
                       <OrderTotalDetailsClient order={order} orderItems={order.order_items} />
                     </div>
