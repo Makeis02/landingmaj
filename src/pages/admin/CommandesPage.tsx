@@ -112,6 +112,7 @@ export default function CommandesPage() {
   const [selectedClientOrder, setSelectedClientOrder] = useState(null);
   const [selectedClientOrderItems, setSelectedClientOrderItems] = useState([]);
   const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
+  const [orderProductImages, setOrderProductImages] = useState({});
   const [clientOrderProductImages, setClientOrderProductImages] = useState({});
 
   useEffect(() => {
@@ -199,27 +200,13 @@ export default function CommandesPage() {
       setOrderItems(data || []);
       
       if (data && data.length > 0) {
-        const ids = [...new Set(data.map(item => item.product_id))];
+        const ids = [...new Set(data.filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id))];
         console.log("[DEBUG] Fetching product titles for IDs:", ids);
         
-        const { data: products, error: productsError } = await supabase
-          .from("products")
-          .select("shopify_id,title,id")
-          .in("shopify_id", ids);
-        
-        console.log("[DEBUG] Products response:", { products, productsError });
-        
-        if (productsError) {
-          console.error("[DEBUG] Error fetching products:", productsError);
-          return;
-        }
-        
-        const titles = {};
-        products?.forEach(p => { titles[p.shopify_id] = p.title; });
-        console.log("[DEBUG] Setting product titles:", titles);
-        setProductTitles(titles);
+        const images = await fetchProductImages(ids);
+        setOrderProductImages(images);
       } else {
-        setProductTitles({});
+        setOrderProductImages({});
       }
     } catch (err) {
       console.error("[DEBUG] Unexpected error in handleShowItems:", err);
@@ -558,25 +545,11 @@ export default function CommandesPage() {
         .from("order_items")
         .select("*")
         .eq("order_id", order.id);
-      if (!error && data) {
-        setSelectedClientOrderItems(data);
-        // Récupérer les images des produits (hors shipping)
-        const productIds = data.filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id);
-        if (productIds.length > 0) {
-          const { data: products, error: prodError } = await supabase
-            .from("products")
-            .select("shopify_id,image")
-            .in("shopify_id", productIds);
-          if (!prodError && products) {
-            const images = {};
-            products.forEach(p => { images[p.shopify_id] = p.image; });
-            setClientOrderProductImages(images);
-          } else {
-            setClientOrderProductImages({});
-          }
-        } else {
-          setClientOrderProductImages({});
-        }
+      if (!error) {
+        setSelectedClientOrderItems(data || []);
+        const ids = [...new Set((data || []).filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id))];
+        const images = await fetchProductImages(ids);
+        setClientOrderProductImages(images);
       } else {
         setSelectedClientOrderItems([]);
         setClientOrderProductImages({});
@@ -588,8 +561,24 @@ export default function CommandesPage() {
   const handleCloseClientOrderItems = () => {
     setSelectedClientOrder(null);
     setSelectedClientOrderItems([]);
-    setClientOrderProductImages({});
   };
+
+  // Fonction utilitaire pour récupérer les images principales
+  async function fetchProductImages(productIds) {
+    if (!productIds || productIds.length === 0) return {};
+    const keys = productIds.map(id => `product_${id}_image_0`);
+    const { data, error } = await supabase
+      .from("editable_content")
+      .select("content_key, content")
+      .in("content_key", keys);
+    if (error) return {};
+    const imageMap = {};
+    for (const item of data) {
+      const id = item.content_key.replace("product_", "").replace("_image_0", "");
+      imageMap[id] = item.content;
+    }
+    return imageMap;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
@@ -846,11 +835,11 @@ export default function CommandesPage() {
                     <tbody>
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
-                          <td className="p-2 border">
-                            {clientOrderProductImages[item.product_id] && (
-                              <img src={clientOrderProductImages[item.product_id]} alt={item.product_title || item.product_id} className="inline-block w-10 h-10 object-contain rounded mr-2 align-middle" />
+                          <td className="p-2 border flex items-center gap-2">
+                            {orderProductImages[item.product_id] && (
+                              <img src={orderProductImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded bg-white border mr-2" />
                             )}
-                            {item.product_title || item.product_id}
+                            {item.product_title || productTitles[item.product_id] || item.product_id}
                             {item.variant && (
                               <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
                             )}
@@ -1112,9 +1101,9 @@ export default function CommandesPage() {
                     <tbody>
                       {selectedClientOrderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
-                          <td className="p-2 border">
+                          <td className="p-2 border flex items-center gap-2">
                             {clientOrderProductImages[item.product_id] && (
-                              <img src={clientOrderProductImages[item.product_id]} alt={item.product_title || item.product_id} className="inline-block w-10 h-10 object-contain rounded mr-2 align-middle" />
+                              <img src={clientOrderProductImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded bg-white border mr-2" />
                             )}
                             {item.product_title || item.product_id}
                             {item.variant && (
