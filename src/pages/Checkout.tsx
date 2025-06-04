@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { User, ShoppingCart, CreditCard, Truck, Lock, Minus, Plus, Trash2, User as UserIcon, Mail, Phone, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -116,6 +116,8 @@ const Checkout = () => {
     apiDebug?: any
   } | null>(null);
   const [apiDebug, setApiDebug] = useState<any>({});
+  const location = useLocation();
+  const clearCart = useCartStore((state) => state.clearCart);
 
   // Formulaire d'adresse
   const [shippingForm, setShippingForm] = useState({
@@ -218,6 +220,13 @@ const Checkout = () => {
   useEffect(() => {
     setSelectedShipping('colissimo');
   }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("success") === "true") {
+      clearCart();
+    }
+  }, [location.search, clearCart]);
 
   const total = getTotal();
 
