@@ -884,41 +884,48 @@ export default function CommandesPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {clientOrders.map((order) => (
-                      <Card key={order.id} className="bg-white/80 backdrop-blur-sm">
-                        <CardHeader className="pb-2">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Package className="h-5 w-5 text-blue-700" />
-                              <CardTitle className="text-lg font-mono">{order.id}</CardTitle>
-                              <Badge className="bg-blue-100 text-blue-700">
-                                {formatDate(order.created_at)}
-                              </Badge>
-                              <div className={`rounded-full px-2 py-1 text-xs font-bold ${
-                                order.status === 'active' ? 'bg-green-200 text-green-800' :
-                                order.status === 'en_cours' ? 'bg-blue-200 text-blue-800' :
-                                order.status === 'litige' ? 'bg-red-200 text-red-800' :
-                                order.archived ? 'bg-gray-200 text-gray-800' :
-                                'bg-gray-200 text-gray-800'
-                              }`}>
-                                {order.status === 'active' ? 'Active' :
-                                 order.status === 'en_cours' ? 'En cours' :
-                                 order.status === 'litige' ? 'Litige' :
-                                 order.archived ? 'Archivée' :
-                                 order.status || 'Inconnue'}
+                    {clientOrders.map((order) => {
+                      const shipping = order.order_items?.find(item => item.product_id && item.product_id.startsWith('shipping_'));
+                      const sousTotal = order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0) || 0;
+                      const livraison = shipping ? shipping.price : 0;
+                      return (
+                        <Card key={order.id} className="bg-white/80 backdrop-blur-sm">
+                          <CardHeader className="pb-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Package className="h-5 w-5 text-blue-700" />
+                                <CardTitle className="text-lg font-mono">{order.id}</CardTitle>
+                                <Badge className="bg-blue-100 text-blue-700">
+                                  {formatDate(order.created_at)}
+                                </Badge>
+                                <div className={`rounded-full px-2 py-1 text-xs font-bold ${
+                                  order.status === 'active' ? 'bg-green-200 text-green-800' :
+                                  order.status === 'en_cours' ? 'bg-blue-200 text-blue-800' :
+                                  order.status === 'litige' ? 'bg-red-200 text-red-800' :
+                                  order.archived ? 'bg-gray-200 text-gray-800' :
+                                  'bg-gray-200 text-gray-800'
+                                }`}>
+                                  {order.status === 'active' ? 'Active' :
+                                   order.status === 'en_cours' ? 'En cours' :
+                                   order.status === 'litige' ? 'Litige' :
+                                   order.archived ? 'Archivée' :
+                                   order.status || 'Inconnue'}
+                                </div>
                               </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-green-700">{order.total?.toFixed(2)} €</span>
+                              <div className="flex flex-col items-end gap-1">
+                                <span className="font-bold text-green-700">{(order.total || (sousTotal + livraison)).toFixed(2)} €</span>
+                                <span className="text-xs text-gray-500">Sous-total : {sousTotal.toFixed(2)} €</span>
+                                <span className="text-xs text-gray-500 flex items-center gap-1">Livraison : {livraison === 0 ? <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span> : `${livraison.toFixed(2)} €`}</span>
+                              </div>
                               <Button size="sm" variant="outline" onClick={() => handleShowItems(order.id)}>
                                 <List className="h-4 w-4 mr-2" />
                                 Produits
                               </Button>
                             </div>
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    ))}
+                          </CardHeader>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </div>
