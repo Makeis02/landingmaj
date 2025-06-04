@@ -94,6 +94,7 @@ import Checkout from "@/pages/Checkout";
 import SuccessPage from "@/pages/success";
 import CheckoutSettings from "@/pages/admin/CheckoutSettings";
 import CommandesPage from "@/pages/admin/CommandesPage";
+import OrderConfirmation from "@/pages/OrderConfirmation";
 
 const queryClient = new QueryClient();
 
@@ -179,6 +180,8 @@ const App = () => {
           <Route path="/admin/checkout-settings" element={<CheckoutSettings />} />
 
           <Route path="/admin/commandes" element={<CommandesPage />} />
+
+          <Route path="/order-confirmation" element={<OrderConfirmation />} />
 
           <Route path="*" element={<NotFound />} />
           </Routes>
