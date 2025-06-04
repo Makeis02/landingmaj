@@ -109,6 +109,9 @@ export default function CommandesPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [trackingInput, setTrackingInput] = useState("");
   const [trackingLoading, setTrackingLoading] = useState(false);
+  const [selectedClientOrder, setSelectedClientOrder] = useState(null);
+  const [selectedClientOrderItems, setSelectedClientOrderItems] = useState([]);
+  const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -545,6 +548,29 @@ export default function CommandesPage() {
     }
   };
 
+  // Fonction pour ouvrir la modale produits depuis le profil client
+  const handleShowClientOrderItems = async (order) => {
+    setSelectedClientOrder(order);
+    setLoadingClientOrderItems(true);
+    try {
+      const { data, error } = await supabase
+        .from("order_items")
+        .select("*")
+        .eq("order_id", order.id);
+      if (!error) {
+        setSelectedClientOrderItems(data || []);
+      } else {
+        setSelectedClientOrderItems([]);
+      }
+    } finally {
+      setLoadingClientOrderItems(false);
+    }
+  };
+  const handleCloseClientOrderItems = () => {
+    setSelectedClientOrder(null);
+    setSelectedClientOrderItems([]);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 to-white">
       <AdminHeader />
@@ -937,7 +963,7 @@ export default function CommandesPage() {
                                  order.status || 'Inconnue'}
                               </div>
                             </div>
-                            <Button size="sm" variant="outline" onClick={() => handleShowItems(order.id)}>
+                            <Button size="sm" variant="outline" onClick={() => handleShowClientOrderItems(order)}>
                               <List className="h-4 w-4 mr-2" />
                               Produits
                             </Button>
@@ -1034,6 +1060,65 @@ export default function CommandesPage() {
         {/* Détail du total */}
         {selectedOrder && orders.length > 0 && (
           <OrderTotalDetails order={orders.find(o => o.id === selectedOrder) || {}} orderItems={orderItems} />
+        )}
+
+        {/* Modal détail produits client */}
+        {selectedClientOrder && (
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-lg max-w-lg w-full p-6 relative">
+              <button className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl" onClick={handleCloseClientOrderItems}>&times;</button>
+              <h2 className="text-xl font-bold mb-4">Produits de la commande</h2>
+              {loadingClientOrderItems ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-blue-700">Chargement...</span>
+                </div>
+              ) : selectedClientOrderItems.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">Aucun produit trouvé pour cette commande.</div>
+              ) : (
+                <>
+                  <table className="min-w-full text-sm border mt-2">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2 border">Produit</th>
+                        <th className="p-2 border">Quantité</th>
+                        <th className="p-2 border">Prix unitaire</th>
+                        <th className="p-2 border">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedClientOrderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
+                        <tr key={item.id || idx}>
+                          <td className="p-2 border">
+                            {item.product_title || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
+                          </td>
+                          <td className="p-2 border text-center">{item.quantity}</td>
+                          <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
+                          <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <div className="mt-4 font-semibold">
+                    Livraison : {(() => {
+                      const shipping = selectedClientOrderItems.find(item => item.product_id.startsWith('shipping_'));
+                      if (!shipping) return '—';
+                      const label = shipping.product_id.includes('colissimo')
+                        ? 'Colissimo'
+                        : shipping.product_id.includes('mondial')
+                          ? 'Mondial Relay'
+                          : 'Autre';
+                      if (shipping.price === 0) return `${label} (Gratuit)`;
+                      return `${label} (${shipping.price?.toFixed(2)} €)`;
+                    })()}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </main>
       <Footer />
