@@ -21,6 +21,7 @@ interface OrderItem {
   price: number;
   title?: string;
   image_url?: string;
+  variant?: string;
 }
 
 interface Order {
@@ -635,18 +636,14 @@ const OrdersPage = () => {
                           ?.filter(item => !item.product_id.startsWith('shipping_'))
                           .slice(0, 2)
                           .map((item) => (
-                            <div key={item.id} className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
-                                <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="max-w-[48px] max-h-[48px] rounded" />
-                              </div>
+                            <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
+                              <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="w-12 h-12 object-cover rounded border bg-gray-100" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 truncate">
-                                  {productTitles[item.product_id] || item.title || item.product_id}
-                                </p>
-                                <p className="text-sm text-gray-500">
-                                  Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                                </p>
+                                <p className="font-medium text-base text-gray-900 truncate">{productTitles[item.product_id] || item.title || item.product_id}</p>
+                                {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
+                                <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                               </div>
+                              <div className="text-right min-w-[70px] font-semibold text-blue-700 text-base">{(item.price * item.quantity).toFixed(2)}€</div>
                             </div>
                           ))}
                         {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).length > 2 && (
@@ -685,23 +682,14 @@ const OrdersPage = () => {
               <>
                 <div className="space-y-4">
                   {orders.find(o => o.id === selectedOrder)?.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
-                    <div key={item.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                      <div className="w-12 h-12 rounded-lg bg-white flex items-center justify-center">
-                        <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="max-w-[48px] max-h-[48px] rounded" />
+                    <div key={item.id} className="flex items-center gap-3 py-3 flex-wrap md:flex-nowrap">
+                      <img src={productImages[item.product_id] || item.image_url} alt={item.title || item.product_id} className="w-12 h-12 object-cover rounded border bg-gray-100" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-base text-gray-900 truncate">{productTitles[item.product_id] || item.title || item.product_id}</p>
+                        {item.variant && <p className="text-xs text-gray-500 mt-0.5">{item.variant}</p>}
+                        <p className="text-sm text-gray-500 mt-1">Quantité: {item.quantity} • {item.price.toFixed(2)}€</p>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm text-gray-900">
-                          {productTitles[item.product_id] || item.title || item.product_id}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-blue-600">
-                          {(item.price * item.quantity).toFixed(2)}€
-                        </p>
-                      </div>
+                      <div className="text-right min-w-[70px] font-semibold text-blue-700 text-base">{(item.price * item.quantity).toFixed(2)}€</div>
                     </div>
                   ))}
                 </div>
