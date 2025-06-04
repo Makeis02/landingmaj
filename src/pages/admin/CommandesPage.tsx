@@ -653,7 +653,16 @@ export default function CommandesPage() {
                         <MoreVertical className="h-5 w-5 text-gray-500" />
                       </button>
                       {dropdownOpen === order.id && (
-                        <div className="absolute right-0 mt-2 bg-white border rounded shadow z-10 min-w-[140px]">
+                        <div
+                          className="absolute right-0 mt-2 bg-white border rounded shadow z-30 min-w-[140px]"
+                          style={{
+                            top: '100%',
+                            marginTop: 8,
+                            zIndex: 30,
+                            // En mobile, forcer le dropdown à s'afficher sous le bouton et non sous la bannière sticky
+                            ...(window.innerWidth < 768 ? { position: 'fixed', left: 16, right: 16, top: undefined, marginTop: 0 } : {})
+                          }}
+                        >
                           {tab === 'archived' ? (
                             <button
                               className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-left"
