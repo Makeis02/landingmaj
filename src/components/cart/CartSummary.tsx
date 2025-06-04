@@ -75,7 +75,8 @@ const CartSummary = () => {
           // Informations supplémentaires pour le suivi
           has_discount: item.has_discount,
           discount_percentage: item.discount_percentage,
-          original_price: item.original_price
+          original_price: item.original_price,
+          price: item.price // ✅ on ajoute le prix unitaire ici
         }));
       
       // Appeler l'API pour créer une session de paiement Stripe

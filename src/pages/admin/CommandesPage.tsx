@@ -48,6 +48,32 @@ function renderMessageContent(msg) {
   });
 }
 
+function OrderTotalDetails({ order, orderItems }) {
+  const shipping = orderItems.find(item => item.product_id && item.product_id.startsWith('shipping_'));
+  const sousTotal = orderItems.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const livraison = shipping ? shipping.price : 0;
+  return (
+    <div className="mb-4 p-3 bg-gray-50 rounded border flex flex-col gap-1">
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-600">Sous-total produits</span>
+        <span>{sousTotal.toFixed(2)} €</span>
+      </div>
+      <div className="flex justify-between text-sm items-center">
+        <span className="text-gray-600">Livraison</span>
+        {livraison === 0 ? (
+          <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
+        ) : (
+          <span>{livraison.toFixed(2)} €</span>
+        )}
+      </div>
+      <div className="flex justify-between font-medium text-lg mt-2">
+        <span>Total payé</span>
+        <span>{(order.total || (sousTotal + livraison)).toFixed(2)} €</span>
+      </div>
+    </div>
+  );
+}
+
 export default function CommandesPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -79,7 +105,7 @@ export default function CommandesPage() {
       try {
         let query = supabase
           .from("orders")
-          .select("*")
+          .select("*, order_items(*)")
           .order("created_at", { ascending: false });
 
         // Filtrage selon l'onglet sélectionné
@@ -96,14 +122,20 @@ export default function CommandesPage() {
 
         const { data, error } = await query;
         
-        console.log("[DEBUG] Supabase response:", { data, error });
-        
+        console.log("[DEBUG] Supabase response orders:", data);
+        if (data) {
+          data.forEach(order => {
+            console.log(`[DEBUG] Commande ${order.id} - total:`, order.total);
+            if (order.order_items) {
+              console.log(`[DEBUG] Commande ${order.id} - order_items:`, order.order_items);
+            }
+          });
+        }
         if (error) {
           console.error("[DEBUG] Error fetching orders:", error);
           return;
         }
         
-        console.log("[DEBUG] Setting orders:", data);
         setOrders(data);
       } catch (err) {
         console.error("[DEBUG] Unexpected error in fetchOrders:", err);
@@ -607,7 +639,15 @@ export default function CommandesPage() {
                   </div>
                   <div className="flex items-center gap-2 mt-1">
                     <Euro className="h-4 w-4 text-green-700" />
-                    <span className="font-bold text-green-700">{order.total?.toFixed(2)} €</span>
+                    <span className="font-bold text-green-700">
+                      {(
+                        (order.total && order.total > 0)
+                          ? order.total
+                          : (order.order_items
+                              ? order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                              : 0)
+                      ).toFixed(2)} €
+                    </span>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-2 text-sm">
@@ -731,7 +771,12 @@ export default function CommandesPage() {
                     <tbody>
                       {orderItems.filter(item => !item.product_id.startsWith('shipping_')).map((item, idx) => (
                         <tr key={item.id || idx}>
-                          <td className="p-2 border font-mono">{productTitles[item.product_id] || item.product_id}</td>
+                          <td className="p-2 border">
+                            {item.product_title || productTitles[item.product_id] || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
+                          </td>
                           <td className="p-2 border text-center">{item.quantity}</td>
                           <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
                           <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
@@ -743,9 +788,13 @@ export default function CommandesPage() {
                     Livraison : {(() => {
                       const shipping = orderItems.find(item => item.product_id.startsWith('shipping_'));
                       if (!shipping) return '—';
-                      if (shipping.product_id === 'shipping_colissimo') return `Colissimo (${shipping.price?.toFixed(2)} €)`;
-                      if (shipping.product_id === 'shipping_mondialrelay') return `Mondial Relay (${shipping.price?.toFixed(2)} €)`;
-                      return `Autre (${shipping.price?.toFixed(2)} €)`;
+                      const label = shipping.product_id.includes('colissimo')
+                        ? 'Colissimo'
+                        : shipping.product_id.includes('mondial')
+                          ? 'Mondial Relay'
+                          : 'Autre';
+                      if (shipping.price === 0) return `${label} (Gratuit)`;
+                      return `${label} (${shipping.price?.toFixed(2)} €)`;
                     })()}
                   </div>
                 </>
@@ -952,6 +1001,11 @@ export default function CommandesPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* Détail du total */}
+        {selectedOrder && orders.length > 0 && (
+          <OrderTotalDetails order={orders.find(o => o.id === selectedOrder) || {}} orderItems={orderItems} />
         )}
       </main>
       <Footer />
