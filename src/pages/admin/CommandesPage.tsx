@@ -86,6 +86,39 @@ function OrderTotalDetails({ order, orderItems }) {
   );
 }
 
+// Ajout d'un utilitaire pour récupérer l'image principale comme en page catégorie
+const fetchProductMainImages = async (items, setProductImages) => {
+  const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
+  if (ids.length === 0) return;
+  // 1. Chercher dans editable_content
+  const keys = ids.map(id => `product_${id}_image_0`);
+  const { data: editableData, error: editableError } = await supabase
+    .from('editable_content')
+    .select('content_key, content')
+    .in('content_key', keys);
+  const imageMap: Record<string, string> = {};
+  if (!editableError && editableData) {
+    (editableData as Array<{ content_key: string; content: string }>).forEach(item => {
+      const id = item.content_key.replace('product_', '').replace('_image_0', '');
+      if (item.content) imageMap[id as string] = item.content;
+    });
+  }
+  // 2. Pour ceux qui n'ont pas d'image editable_content, fallback sur products.image
+  const missingIds = ids.filter(id => !imageMap[id as string]);
+  if (missingIds.length > 0) {
+    const { data: prodData, error: prodError } = await supabase
+      .from('products')
+      .select('shopify_id, image')
+      .in('shopify_id', missingIds);
+    if (!prodError && prodData) {
+      (prodData as Array<{ shopify_id: string; image: string }>).forEach(p => {
+        if (p.image) imageMap[p.shopify_id as string] = p.image;
+      });
+    }
+  }
+  setProductImages(imageMap);
+};
+
 export default function CommandesPage() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -218,7 +251,7 @@ export default function CommandesPage() {
         products?.forEach(p => { titles[p.shopify_id] = p.title; });
         console.log("[DEBUG] Setting product titles:", titles);
         setProductTitles(titles);
-        await fetchProductImages(data);
+        await fetchProductMainImages(data, setProductImages);
       } else {
         setProductTitles({});
         setProductImages({});
@@ -562,7 +595,7 @@ export default function CommandesPage() {
         .eq("order_id", order.id);
       if (!error) {
         setSelectedClientOrderItems(data || []);
-        await fetchProductImages(data || []);
+        await fetchProductMainImages(data || [], setProductImages);
       } else {
         setSelectedClientOrderItems([]);
         setProductImages({});
@@ -574,21 +607,6 @@ export default function CommandesPage() {
   const handleCloseClientOrderItems = () => {
     setSelectedClientOrder(null);
     setSelectedClientOrderItems([]);
-  };
-
-  // Fonction utilitaire pour charger les images produits pour une liste d'items
-  const fetchProductImages = async (items) => {
-    const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
-    if (ids.length === 0) return;
-    const { data, error } = await supabase
-      .from('products')
-      .select('shopify_id, image')
-      .in('shopify_id', ids);
-    if (!error && data) {
-      const mapping = {};
-      data.forEach(p => { mapping[p.shopify_id] = p.image; });
-      setProductImages(mapping);
-    }
   };
 
   return (
