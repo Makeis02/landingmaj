@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { EditableText } from "@/components/EditableText";
 import { useEditStore } from "@/stores/useEditStore";
 import RevePointsBanner from "@/components/RevePointsBanner";
+import { useFavoritesStore } from "@/stores/useFavoritesStore";
 
 const AccountPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -21,6 +22,9 @@ const AccountPage = () => {
   const { isEditMode } = useEditStore();
   const [isEditing, setIsEditing] = useState(false);
   const [editFields, setEditFields] = useState({ full_name: "", phone_number: "" });
+  const { items: favorites, syncWithSupabase } = useFavoritesStore();
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
 
   useEffect(() => {
     getUser();
@@ -40,6 +44,26 @@ const AccountPage = () => {
       });
     }
   }, [profile]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    const fetchOrders = async () => {
+      setOrdersLoading(true);
+      const { data, error } = await supabase
+        .from("orders")
+        .select("*, order_items(*)")
+        .eq("user_id", user.id)
+        .eq("archived", false)
+        .order("created_at", { ascending: false });
+      if (!error && data) setOrders(data);
+      setOrdersLoading(false);
+    };
+    fetchOrders();
+  }, [user]);
+
+  useEffect(() => {
+    syncWithSupabase();
+  }, [syncWithSupabase]);
 
   const getUser = async () => {
     try {
@@ -287,21 +311,23 @@ const AccountPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="text-center p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-0">
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-blue-600">12</div>
+                <div className="text-2xl font-bold text-blue-600">{ordersLoading ? '...' : orders.length}</div>
                 <p className="text-sm text-gray-600">Commandes passées</p>
               </CardContent>
             </Card>
 
             <Card className="text-center p-6 bg-gradient-to-br from-purple-50 to-pink-50 border-0">
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-purple-600">€247</div>
+                <div className="text-2xl font-bold text-purple-600">
+                  €{ordersLoading ? '...' : orders.reduce((sum, order) => sum + (order.total && order.total > 0 ? order.total : (order.order_items ? order.order_items.reduce((s, i) => s + (i.price * i.quantity), 0) : 0)), 0).toFixed(2)}
+                </div>
                 <p className="text-sm text-gray-600">Total dépensé</p>
               </CardContent>
             </Card>
 
             <Card className="text-center p-6 bg-gradient-to-br from-green-50 to-blue-50 border-0">
               <CardContent className="space-y-2">
-                <div className="text-2xl font-bold text-green-600">8</div>
+                <div className="text-2xl font-bold text-green-600">{favorites.length}</div>
                 <p className="text-sm text-gray-600">Articles favoris</p>
               </CardContent>
             </Card>
