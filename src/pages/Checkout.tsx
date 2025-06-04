@@ -418,6 +418,16 @@ const Checkout = () => {
         return;
       }
       
+      // Créer le payload final pour le backend (Supabase ou API)
+      // On s'assure que chaque item contient bien id, quantity, price, title, variant
+      const payloadItems = finalItems.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        price: item.price,
+        title: item.title || item.product_title || '',
+        variant: item.variant || null
+      }));
+
       // Stocker le payload avant l'appel API
       setDebugStripe((prev) => ({
         ...prev,
@@ -427,7 +437,7 @@ const Checkout = () => {
         totalAmount,
         stripeMinimum: STRIPE_MINIMUM_EUR,
         apiPayload: {
-          items: finalItems,
+          items: payloadItems,
           user_id: user?.id || null,
           first_name: String(shippingForm.firstName || ""),
           last_name: String(shippingForm.lastName || ""),
@@ -450,7 +460,7 @@ const Checkout = () => {
           "Content-Type": "application/json"
         },
         payload: {
-          items: finalItems,
+          items: payloadItems,
           user_id: user?.id || null,
           first_name: String(shippingForm.firstName || ""),
           last_name: String(shippingForm.lastName || ""),
