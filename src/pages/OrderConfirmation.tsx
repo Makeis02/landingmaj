@@ -156,15 +156,13 @@ const OrderConfirmation = () => {
                   </div>
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-600">Livraison</span>
-                    {livraison?.price === 0 ? (
+                    {(!livraison || livraison.price === 0) ? (
                       <span className="text-green-700 font-bold bg-green-100 px-2 py-0.5 rounded">Gratuit</span>
-                    ) : livraison ? (
-                      <span>{livraison.price?.toFixed(2)} €</span>
                     ) : (
-                      <span>—</span>
+                      <span>{livraison.price?.toFixed(2)} €</span>
                     )}
                   </div>
-                  {livraison?.price === 0 && (
+                  {(!livraison || livraison.price === 0) && (
                     <div className="text-xs text-green-700 mt-1">Livraison gratuite offerte !</div>
                   )}
                   <div className="flex justify-between font-medium text-lg mt-2">
