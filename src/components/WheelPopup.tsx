@@ -140,7 +140,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                         transformOrigin: 'center'
                       }}
                     >
-                      {/* Texte centré dans le segment, aligné sur le rayon, mais horizontal */}
                       <div
                         className="absolute left-1/2 top-1/2"
                         style={{
@@ -157,10 +156,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                         <span
                           className="text-blue-900 font-bold text-sm text-center"
                           style={{
-                            transform: `rotate(${-angle}deg)`,
                             display: 'inline-block',
+                            transform: `rotate(${-angle}deg)`,
                             width: '96px',
-                            whiteSpace: 'normal',
                             textAlign: 'center',
                             lineHeight: '1.2',
                           }}
