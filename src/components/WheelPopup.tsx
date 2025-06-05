@@ -144,15 +144,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div
                         className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-105px) rotate(0deg)`,
+                          transform: `rotate(${midAngle}deg) translateY(-80px)`,
                           transformOrigin: 'center',
                         }}
                       >
                         <span
                           style={{
                             display: 'inline-block',
-                            width: '140px',
-                            transform: `rotate(90deg)`,
+                            width: '100px',
                             textAlign: 'center',
                             fontWeight: 'bold',
                             fontSize: '0.875rem',
@@ -160,6 +159,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
+                            transformOrigin: 'center',
                           }}
                         >
                           {segment.text}
