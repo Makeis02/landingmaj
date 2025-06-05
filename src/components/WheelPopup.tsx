@@ -153,7 +153,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          marginTop: '-60px',
+                          marginTop: '-90px',
                           marginLeft: '-60px',
                         }}
                       >
