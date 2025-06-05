@@ -11,14 +11,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
-  // Segments de la roue harmonisés avec le site
+  // Segments de la roue harmonisés avec des nuances de bleu du thème
   const segments = [
-    { text: "-15%", color: "bg-cyan-200" },
-    { text: "Poisson gratuit", color: "bg-blue-100" },
-    { text: "-10%", color: "bg-cyan-300" },
-    { text: "Plante offerte", color: "bg-green-100" },
-    { text: "-20%", color: "bg-blue-200" },
-    { text: "Perdu", color: "bg-gray-100" },
+    { text: "-15%", color: "bg-ocean text-white" },           // Bleu principal
+    { text: "Poisson gratuit", color: "bg-[#005a8c] text-white" }, // Bleu foncé
+    { text: "-10%", color: "bg-[#00b4d8] text-ocean" },       // Bleu clair
+    { text: "Plante offerte", color: "bg-[#60a5fa] text-ocean" },  // Bleu pastel
+    { text: "-20%", color: "bg-[#2563eb] text-white" },       // Bleu vif
+    { text: "Perdu", color: "bg-surface-light text-ocean" },  // Gris très clair tirant sur le bleu
     { text: "-5%", color: "bg-cyan-100" },
     { text: "Décor gratuit", color: "bg-emerald-100" },
     { text: "-25%", color: "bg-blue-300" },
