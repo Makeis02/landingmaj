@@ -13,7 +13,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
     setIsSpinning(true);
     setResult(null);
     setTimeout(() => {
-      const prizes = ['-10%', '-15%', '-20%', '-25%', 'Gratuit !', 'Essaie encore'];
+      const prizes = ['-10%', '-15%', '-20%', '-25%', 'Gratuit !', 'Essaie encore', '-5%', '-30%'];
       const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
       setResult(randomPrize);
       setIsSpinning(false);
@@ -22,14 +22,26 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
 
   if (!isOpen) return null;
 
-  // Palette harmonisée avec le site
+  // Palette harmonisée avec le site, nuances de bleu/cyan/sky/indigo/gris
   const segmentColors = [
-    '#e0f2fe', // bleu-50
-    '#bae6fd', // bleu-100
-    '#cffafe', // cyan-100
-    '#a7f3d0', // vert-100
+    '#f0f9ff', // sky-50
+    '#e0f2fe', // blue-50
+    '#bae6fd', // blue-100
+    '#7dd3fc', // blue-200
+    '#a5f3fc', // cyan-100
+    '#67e8f9', // cyan-200
+    '#dbeafe', // indigo-100
     '#f1f5f9', // gris-100
-    '#e0e7ef', // gris-200
+  ];
+  const segmentLabels = [
+    '-10%',
+    '-15%',
+    '-20%',
+    '-25%',
+    'Gratuit !',
+    'Essaie encore',
+    '-5%',
+    '-30%'
   ];
 
   return (
@@ -48,23 +60,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
         </div>
         <div className="relative w-64 h-64 mx-auto mb-6">
           <div className={`wheel ${isSpinning ? 'spinning' : ''}`}> 
-            {[...Array(6)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div
                 key={i}
                 className="wheel-section"
                 style={{
                   '--i': i,
                   '--clr': segmentColors[i % segmentColors.length],
+                  '--angle': `${360 / 8}deg`,
                 } as React.CSSProperties}
               >
-                <span>
-                  {i === 0 && '-10%'}
-                  {i === 1 && '-15%'}
-                  {i === 2 && '-20%'}
-                  {i === 3 && '-25%'}
-                  {i === 4 && 'Gratuit !'}
-                  {i === 5 && 'Essaie encore'}
-                </span>
+                <span>{segmentLabels[i]}</span>
               </div>
             ))}
             {/* Centre de la roue avec poisson */}
@@ -111,7 +117,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             width: 50%;
             height: 50%;
             transform-origin: bottom right;
-            transform: rotate(calc(60deg * var(--i)));
+            transform: rotate(calc((360deg / 8) * var(--i)));
             clip-path: polygon(0 0, 100% 0, 100% 100%);
             display: flex;
             justify-content: center;
@@ -121,7 +127,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
           }
           .wheel-section span {
             position: relative;
-            transform: rotate(30deg);
+            transform: rotate(22.5deg);
             font-size: 1.1em;
             font-weight: 600;
             color: #1e293b;
@@ -144,7 +150,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             transform: translate(-50%, -50%);
             width: 56px;
             height: 56px;
-            background: #e0f2fe;
+            background: #2563eb;
             border-radius: 50%;
             border: 4px solid #fff;
             box-shadow: 0 2px 8px rgba(30,41,59,0.08);
@@ -152,6 +158,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             align-items: center;
             justify-content: center;
             z-index: 2;
+          }
+          .wheel-center span {
+            color: #fff;
           }
           .pointer {
             position: absolute;
