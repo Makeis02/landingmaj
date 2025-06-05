@@ -974,10 +974,10 @@ export default function CommandesPage() {
                               </div>
                             </div>
                             <Button size="sm" variant="outline" onClick={() => handleShowClientOrderItems(order)}>
-                              <List className="h-4 w-4 mr-2" />
-                              Produits
-                            </Button>
-                          </div>
+                                <List className="h-4 w-4 mr-2" />
+                                Produits
+                              </Button>
+                            </div>
                           {/* Détail du total cohérent */}
                           <OrderTotalDetails order={order} orderItems={order.order_items || []} />
                         </CardHeader>

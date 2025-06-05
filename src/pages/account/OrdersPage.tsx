@@ -613,7 +613,7 @@ const OrdersPage = () => {
                     <div className="border-t border-gray-200 pt-4">
                       <div className="space-y-3">
                         {order.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
-                          <div key={item.id} className="flex items-center gap-3">
+                            <div key={item.id} className="flex items-center gap-3">
                             {orderProductImages[item.product_id] ? (
                               <img src={orderProductImages[item.product_id]} alt="img" className="w-12 h-12 object-contain rounded border" />
                             ) : (
@@ -621,20 +621,20 @@ const OrdersPage = () => {
                                 <Package className="h-6 w-6 text-gray-400" />
                               </div>
                             )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm text-gray-900 truncate">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm text-gray-900 truncate">
                                 {item.product_title || productTitles[item.product_id] || item.product_id}
                                 {item.variant && <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>}
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                Quantité: {item.quantity} • {item.price.toFixed(2)}€
-                              </p>
-                            </div>
+                                </p>
+                                <p className="text-sm text-gray-500">
+                                  Quantité: {item.quantity} • {item.price.toFixed(2)}€
+                                </p>
+                              </div>
                             <div className="text-right">
                               <span className="font-medium text-blue-600">{(item.price * item.quantity).toFixed(2)}€</span>
                             </div>
-                          </div>
-                        ))}
+                            </div>
+                          ))}
                       </div>
                       {/* Livraison et point relais */}
                       <div className="mt-2 font-semibold text-sm">

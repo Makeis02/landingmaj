@@ -434,7 +434,7 @@ const Checkout = () => {
         title: item.title || item.product_title || '',
         variant: item.variant || null
       }));
-
+      
       // Stocker le payload avant l'appel API
       setDebugStripe((prev) => ({
         ...prev,

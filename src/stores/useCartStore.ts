@@ -168,46 +168,46 @@ export const useCartStore = create<CartStore>()(
       if (typeof patchedItem.variant === 'undefined') {
         patchedItem.variant = null;
       }
-      
-      const existingItem = get().items.find((i) => {
+          
+          const existingItem = get().items.find((i) => {
         if (i.id === patchedItem.id) {
           if (patchedItem.variant && i.variant) {
             return i.variant === patchedItem.variant;
-          }
-          return true;
-        }
-        return false;
-      });
+              }
+              return true;
+            }
+            return false;
+          });
       const quantity = patchedItem.quantity || 1;
-      let updatedItems;
-      if (existingItem) {
-        updatedItems = get().items.map((i) => {
-          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
-            return { ...i, quantity: i.quantity + quantity };
-          }
-          return i;
-        });
-      } else {
-        updatedItems = [...get().items, { ...patchedItem, quantity }];
-      }
-      set({ items: updatedItems });
-      // Synchro serveur si connecté
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        try {
+          let updatedItems;
           if (existingItem) {
-            await supabase
-              .from("cart_items")
-              .update({ quantity: existingItem.quantity + quantity })
-              .eq("user_id", session.user.id)
-              .eq("product_id", patchedItem.id);
+            updatedItems = get().items.map((i) => {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
+                return { ...i, quantity: i.quantity + quantity };
+              }
+              return i;
+            });
           } else {
-            await supabase
-              .from("cart_items")
-              .insert({
-                user_id: session.user.id,
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
+          }
+          set({ items: updatedItems });
+          // Synchro serveur si connecté
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            try {
+      if (existingItem) {
+                await supabase
+          .from("cart_items")
+                  .update({ quantity: existingItem.quantity + quantity })
+          .eq("user_id", session.user.id)
+              .eq("product_id", patchedItem.id);
+      } else {
+                await supabase
+          .from("cart_items")
+          .insert({
+            user_id: session.user.id,
                 product_id: patchedItem.id,
-                quantity,
+                    quantity,
                 variant: patchedItem.variant,
                 price_id: patchedItem.stripe_price_id,
                 discount_price_id: patchedItem.stripe_discount_price_id,
@@ -215,13 +215,13 @@ export const useCartStore = create<CartStore>()(
                 discount_percentage: patchedItem.discount_percentage,
                 has_discount: patchedItem.has_discount,
                 title: patchedItem.title
-              });
-          }
-          await get().manageGiftItem();
-        } catch (error) {
-          console.error("Error syncing with Supabase:", error);
-        }
+          });
       }
+      await get().manageGiftItem();
+            } catch (error) {
+              console.error("Error syncing with Supabase:", error);
+            }
+          }
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
