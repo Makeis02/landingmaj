@@ -138,30 +138,28 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
                       style={{
                         clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                        transformOrigin: 'center'
+                        transformOrigin: 'center',
                       }}
                     >
-                      {/* Texte parfaitement centré dans le segment */}
                       <div
-                        className="absolute left-1/2 top-1/2"
+                        className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-90px)`,
+                          transform: `rotate(${midAngle}deg) translateY(-105px) rotate(0deg)`,
                           transformOrigin: 'center',
                         }}
                       >
                         <span
                           style={{
-                            transform: `rotate(${-midAngle}deg)`,
                             display: 'inline-block',
-                            width: '80px',
+                            width: '140px',
+                            transform: `rotate(90deg)`,
                             textAlign: 'center',
-                            whiteSpace: 'normal',
-                            wordBreak: 'break-word',
-                            overflowWrap: 'break-word',
-                            color: '#1e3a8a',
                             fontWeight: 'bold',
                             fontSize: '0.875rem',
-                            lineHeight: 1.2,
+                            color: '#fff',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}
                         >
                           {segment.text}
