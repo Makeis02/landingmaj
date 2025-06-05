@@ -1,6 +1,4 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 interface LuckyWheelPopupProps {
   isOpen: boolean;
@@ -9,28 +7,17 @@ interface LuckyWheelPopupProps {
 
 const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) => {
   const [isSpinning, setIsSpinning] = useState(false);
-  const [rotation, setRotation] = useState(0);
-
-  // Segments de la roue harmonisés avec le site
-  const segments = [
-    { text: "-15%", color: "bg-cyan-200" },
-    { text: "Poisson gratuit", color: "bg-blue-100" },
-    { text: "-10%", color: "bg-cyan-300" },
-    { text: "Plante offerte", color: "bg-green-100" },
-    { text: "-20%", color: "bg-blue-200" },
-    { text: "Perdu", color: "bg-gray-100" },
-    { text: "-5%", color: "bg-cyan-100" },
-    { text: "Décor gratuit", color: "bg-emerald-100" },
-    { text: "-25%", color: "bg-blue-300" },
-    { text: "Perdu", color: "bg-slate-100" }
-  ];
+  const [result, setResult] = useState<string | null>(null);
 
   const handleSpin = () => {
-    if (isSpinning) return;
     setIsSpinning(true);
-    const randomRotation = Math.floor(Math.random() * 720) + 1440;
-    setRotation(prev => prev + randomRotation);
+    setResult(null);
+
+    // Simuler un résultat après 3 secondes
     setTimeout(() => {
+      const prizes = ['-10%', '-15%', '-20%', '-25%', 'Gratuit !', 'Essaie encore'];
+      const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
+      setResult(randomPrize);
       setIsSpinning(false);
     }, 3000);
   };
@@ -38,175 +25,143 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto border border-blue-100">
-        {/* Header avec bouton fermer */}
-        <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-          <h2 className="text-2xl font-bold text-blue-800 tracking-tight">🐠 Roue Aquatique</h2>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            className="text-gray-400 hover:text-blue-700"
-          >
-            <X className="h-5 w-5" />
-          </Button>
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 relative shadow-lg">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          ✕
+        </button>
+
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Roue de la Chance</h2>
+          <p className="text-gray-600">Tentez votre chance pour gagner une réduction !</p>
         </div>
 
-        {/* Contenu principal */}
-        <div className="p-6 text-center">
-          <p className="text-blue-700 mb-8 text-base font-medium">
-            🌊 Plongez dans l'aventure et gagnez des cadeaux aquatiques ! 🐟
-          </p>
-
-          {/* Container de la roue avec poissons animés */}
-          <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
-            {/* Poissons qui nagent autour de la roue */}
-            <div className="absolute inset-0">
-              {/* Poisson 1 - tourne dans le sens horaire */}
-              <div 
-                className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                style={{
-                  animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
-                  top: '10%',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  transformOrigin: '50% 140px'
-                }}
-              >
-                🐠
-              </div>
-              {/* Poisson 2 - tourne dans le sens antihoraire */}
-              <div 
-                className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                style={{
-                  animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
-                  bottom: '10%',
-                  right: '20%',
-                  transformOrigin: '0 -140px'
-                }}
-              >
-                🐟
-              </div>
-              {/* Poisson 3 - plus petit, tourne plus vite */}
-              <div 
-                className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
-                style={{
-                  animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
-                  left: '15%',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  transformOrigin: '120px 0'
-                }}
-              >
-                🐡
-              </div>
+        <div className="relative w-64 h-64 mx-auto mb-6">
+          <div className={`wheel ${isSpinning ? 'spinning' : ''}`}>
+            <div className="wheel-section" style={{ '--i': 0, '--clr': '#e2e8f0' } as any}>
+              <span>-10%</span>
             </div>
-
-            {/* Indicateur fixe (flèche) */}
-            <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
-              <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
+            <div className="wheel-section" style={{ '--i': 1, '--clr': '#cbd5e1' } as any}>
+              <span>-15%</span>
             </div>
-
-            {/* La roue */}
-            <div 
-              className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
-              style={{
-                width: '280px',
-                height: '280px',
-                margin: '20px auto',
-                transform: `rotate(${rotation}deg)`,
-                transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
-              }}
-            >
-              {segments.map((segment, index) => {
-                const angle = (360 / segments.length) * index;
-                const nextAngle = (360 / segments.length) * (index + 1);
-                return (
-                  <div
-                    key={index}
-                    className={`absolute w-full h-full ${segment.color} flex items-center justify-center border-r border-white/30`}
-                    style={{
-                      clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                      transformOrigin: 'center'
-                    }}
-                  >
-                    <div 
-                      className="text-blue-900 font-bold text-sm drop-shadow-lg"
-                      style={{
-                        transform: `rotate(${angle + 18}deg) translateY(-60px)`,
-                        transformOrigin: 'center'
-                      }}
-                    >
-                      {segment.text}
-                    </div>
-                  </div>
-                );
-              })}
-              {/* Centre de la roue avec poisson */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
-                <span className="text-white text-2xl">🐠</span>
-              </div>
+            <div className="wheel-section" style={{ '--i': 2, '--clr': '#f1f5f9' } as any}>
+              <span>-20%</span>
+            </div>
+            <div className="wheel-section" style={{ '--i': 3, '--clr': '#d1fae5' } as any}>
+              <span>-25%</span>
+            </div>
+            <div className="wheel-section" style={{ '--i': 4, '--clr': '#fef9c3' } as any}>
+              <span>Gratuit !</span>
+            </div>
+            <div className="wheel-section" style={{ '--i': 5, '--clr': '#e2e8f0' } as any}>
+              <span>Essaie encore</span>
             </div>
           </div>
-
-          {/* Bouton pour lancer la roue */}
-          <Button
-            onClick={handleSpin}
-            disabled={isSpinning}
-            className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-          >
-            {isSpinning ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                🌊 La roue tourne...
-              </>
-            ) : (
-              '🎣 Lancer la roue aquatique'
-            )}
-          </Button>
-
-          <p className="text-xs text-blue-500 mt-4">
-            🐟 Une seule tentative par jour par aquariophile
-          </p>
+          <div className="pointer"></div>
         </div>
-      </div>
 
-      {/* Styles CSS pour les animations des poissons */}
-      <style jsx>{`
-        @keyframes swim-clockwise {
-          from {
-            transform: translateX(-50%) rotate(0deg) translateX(140px) rotate(0deg);
+        {result && (
+          <div className="text-center mb-6">
+            <p className="text-lg font-medium text-gray-800">Votre résultat :</p>
+            <p className="text-2xl font-bold text-blue-600 mt-2">{result}</p>
+          </div>
+        )}
+
+        <button
+          onClick={handleSpin}
+          disabled={isSpinning}
+          className={`w-full py-3 px-6 rounded-lg text-white font-medium transition-colors
+            ${isSpinning 
+              ? 'bg-gray-400 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+        >
+          {isSpinning ? 'En cours...' : 'Tourner la roue'}
+        </button>
+
+        <style jsx>{`
+          .wheel {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 8px solid #f8fafc;
+            box-shadow: 0 4px 24px rgba(30, 41, 59, 0.08);
+            transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            transform: rotate(0deg);
           }
-          to {
-            transform: translateX(-50%) rotate(360deg) translateX(140px) rotate(-360deg);
+
+          .wheel.spinning {
+            transform: rotate(1800deg);
           }
-        }
-        @keyframes swim-counter-clockwise {
-          from {
-            transform: rotate(0deg) translateX(140px) rotate(0deg);
+
+          .wheel-section {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: bottom right;
+            transform: rotate(calc(60deg * var(--i)));
+            clip-path: polygon(0 0, 100% 0, 100% 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+            cursor: default;
           }
-          to {
-            transform: rotate(-360deg) translateX(140px) rotate(360deg);
+
+          .wheel-section span {
+            position: relative;
+            transform: rotate(30deg);
+            font-size: 1.2em;
+            font-weight: 500;
+            color: #334155;
+            text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.5);
           }
-        }
-        @keyframes swim-fast {
-          from {
-            transform: translateY(-50%) rotate(0deg) translateX(120px) rotate(0deg);
+
+          .wheel-section::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: var(--clr);
+            transform: rotate(60deg);
+            transform-origin: bottom right;
           }
-          to {
-            transform: translateY(-50%) rotate(360deg) translateX(120px) rotate(-360deg);
+
+          .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: #64748b;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            z-index: 10;
           }
-        }
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0px);
+
+          @keyframes spin {
+            from {
+              transform: translateY(-50%) rotate(0deg) translateX(120px) rotate(0deg);
+            }
+            to {
+              transform: translateY(-50%) rotate(360deg) translateX(120px) rotate(-360deg);
+            }
           }
-          50% {
-            transform: translateY(-10px);
+
+          @keyframes float {
+            0%, 100% {
+              transform: translateY(0px);
+            }
+            50% {
+              transform: translateY(-10px);
+            }
           }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </div>
   );
 };
