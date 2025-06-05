@@ -107,6 +107,7 @@ const App = () => {
   useRestoreSession();
   const { isEditMode } = useEditStore();
   const [showWheel, setShowWheel] = useState(false);
+  const [editWheel, setEditWheel] = useState(false);
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -192,8 +193,8 @@ const App = () => {
 
           <Route path="/lucky-wheel" element={
             <div className="flex flex-col items-center justify-center min-h-screen">
-              <Button onClick={() => setShowWheel(true)} className="mb-6">Tester la roue aquatique</Button>
-              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} />
+              <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
+              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
             </div>
           } />
 
@@ -202,13 +203,13 @@ const App = () => {
         {/* Bouton flottant pour ouvrir la roue en mode édition */}
         {isEditMode && (
           <button
-            onClick={() => setShowWheel(true)}
+            onClick={() => { setShowWheel(true); setEditWheel(true); }}
             className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
           >
             🎡 Tester la roue
           </button>
         )}
-        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} />
+        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
