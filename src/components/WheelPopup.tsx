@@ -141,10 +141,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       }}
                     >
                       <div 
-                        className="text-blue-900 font-bold text-sm drop-shadow-lg"
+                        className="text-blue-900 font-bold text-sm drop-shadow-lg text-center w-24 break-words"
                         style={{
-                          transform: `rotate(${angle + 18}deg) translateY(-60px)`,
-                          transformOrigin: 'center'
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -90px)',
+                          whiteSpace: 'pre-line',
+                          pointerEvents: 'none',
                         }}
                       >
                         {segment.text}
