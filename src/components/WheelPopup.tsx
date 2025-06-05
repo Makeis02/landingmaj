@@ -12,8 +12,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
   const handleSpin = () => {
     setIsSpinning(true);
     setResult(null);
-
-    // Simuler un résultat après 3 secondes
     setTimeout(() => {
       const prizes = ['-10%', '-15%', '-20%', '-25%', 'Gratuit !', 'Essaie encore'];
       const randomPrize = prizes[Math.floor(Math.random() * prizes.length)];
@@ -24,80 +22,90 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
 
   if (!isOpen) return null;
 
+  // Palette harmonisée avec le site
+  const segmentColors = [
+    '#e0f2fe', // bleu-50
+    '#bae6fd', // bleu-100
+    '#cffafe', // cyan-100
+    '#a7f3d0', // vert-100
+    '#f1f5f9', // gris-100
+    '#e0e7ef', // gris-200
+  ];
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4 relative shadow-lg">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-2xl max-w-md w-full mx-4 relative border border-blue-100 backdrop-blur-md">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-4 right-4 text-gray-400 hover:text-blue-700 text-2xl"
+          aria-label="Fermer"
         >
           ✕
         </button>
-
         <div className="text-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Roue de la Chance</h2>
-          <p className="text-gray-600">Tentez votre chance pour gagner une réduction !</p>
+          <h2 className="text-2xl font-bold text-blue-800 mb-2">🐟 Roue de la Chance</h2>
+          <p className="text-blue-700">Tentez votre chance pour gagner une réduction !</p>
         </div>
-
         <div className="relative w-64 h-64 mx-auto mb-6">
-          <div className={`wheel ${isSpinning ? 'spinning' : ''}`}>
-            <div className="wheel-section" style={{ '--i': 0, '--clr': '#e2e8f0' } as any}>
-              <span>-10%</span>
-            </div>
-            <div className="wheel-section" style={{ '--i': 1, '--clr': '#cbd5e1' } as any}>
-              <span>-15%</span>
-            </div>
-            <div className="wheel-section" style={{ '--i': 2, '--clr': '#f1f5f9' } as any}>
-              <span>-20%</span>
-            </div>
-            <div className="wheel-section" style={{ '--i': 3, '--clr': '#d1fae5' } as any}>
-              <span>-25%</span>
-            </div>
-            <div className="wheel-section" style={{ '--i': 4, '--clr': '#fef9c3' } as any}>
-              <span>Gratuit !</span>
-            </div>
-            <div className="wheel-section" style={{ '--i': 5, '--clr': '#e2e8f0' } as any}>
-              <span>Essaie encore</span>
+          <div className={`wheel ${isSpinning ? 'spinning' : ''}`}> 
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="wheel-section"
+                style={{
+                  '--i': i,
+                  '--clr': segmentColors[i % segmentColors.length],
+                } as React.CSSProperties}
+              >
+                <span>
+                  {i === 0 && '-10%'}
+                  {i === 1 && '-15%'}
+                  {i === 2 && '-20%'}
+                  {i === 3 && '-25%'}
+                  {i === 4 && 'Gratuit !'}
+                  {i === 5 && 'Essaie encore'}
+                </span>
+              </div>
+            ))}
+            {/* Centre de la roue avec poisson */}
+            <div className="wheel-center">
+              <span className="text-3xl">🐠</span>
             </div>
           </div>
           <div className="pointer"></div>
         </div>
-
         {result && (
           <div className="text-center mb-6">
-            <p className="text-lg font-medium text-gray-800">Votre résultat :</p>
-            <p className="text-2xl font-bold text-blue-600 mt-2">{result}</p>
+            <p className="text-lg font-medium text-blue-800">Votre résultat :</p>
+            <p className="text-2xl font-bold text-blue-700 mt-2">{result}</p>
           </div>
         )}
-
         <button
           onClick={handleSpin}
           disabled={isSpinning}
-          className={`w-full py-3 px-6 rounded-lg text-white font-medium transition-colors
+          className={`w-full py-3 px-6 rounded-lg text-white font-semibold transition-colors shadow-md
             ${isSpinning 
-              ? 'bg-gray-400 cursor-not-allowed' 
-              : 'bg-blue-600 hover:bg-blue-700'
-            }`}
+              ? 'bg-blue-200 cursor-not-allowed' 
+              : 'bg-blue-600 hover:bg-blue-700'}
+          `}
         >
           {isSpinning ? 'En cours...' : 'Tourner la roue'}
         </button>
-
         <style jsx>{`
           .wheel {
             position: relative;
             width: 100%;
             height: 100%;
             border-radius: 50%;
-            border: 8px solid #f8fafc;
+            border: 8px solid #e0e7ef;
             box-shadow: 0 4px 24px rgba(30, 41, 59, 0.08);
             transition: transform 3s cubic-bezier(0.17, 0.67, 0.12, 0.99);
             transform: rotate(0deg);
+            background: #f8fafc;
           }
-
           .wheel.spinning {
             transform: rotate(1800deg);
           }
-
           .wheel-section {
             position: absolute;
             width: 50%;
@@ -111,54 +119,52 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose }) =>
             user-select: none;
             cursor: default;
           }
-
           .wheel-section span {
             position: relative;
             transform: rotate(30deg);
-            font-size: 1.2em;
-            font-weight: 500;
-            color: #334155;
-            text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.5);
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #1e293b;
+            text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+            letter-spacing: 0.5px;
           }
-
           .wheel-section::before {
             content: '';
             position: absolute;
             width: 100%;
             height: 100%;
             background: var(--clr);
-            transform: rotate(60deg);
-            transform-origin: bottom right;
+            border-radius: 0 0 100% 0 / 0 0 100% 0;
+            z-index: 0;
           }
-
+          .wheel-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 56px;
+            height: 56px;
+            background: #e0f2fe;
+            border-radius: 50%;
+            border: 4px solid #fff;
+            box-shadow: 0 2px 8px rgba(30,41,59,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2;
+          }
           .pointer {
             position: absolute;
-            top: -20px;
+            top: -18px;
             left: 50%;
             transform: translateX(-50%);
-            width: 40px;
-            height: 40px;
-            background: #64748b;
+            width: 36px;
+            height: 36px;
+            background: #2563eb;
             clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            box-shadow: 0 2px 8px rgba(30,41,59,0.10);
             z-index: 10;
-          }
-
-          @keyframes spin {
-            from {
-              transform: translateY(-50%) rotate(0deg) translateX(120px) rotate(0deg);
-            }
-            to {
-              transform: translateY(-50%) rotate(360deg) translateX(120px) rotate(-360deg);
-            }
-          }
-
-          @keyframes float {
-            0%, 100% {
-              transform: translateY(0px);
-            }
-            50% {
-              transform: translateY(-10px);
-            }
+            border-radius: 0 0 12px 12px;
           }
         `}</style>
       </div>
