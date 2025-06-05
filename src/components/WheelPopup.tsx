@@ -131,42 +131,37 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 {segments.map((segment, index) => {
                   const angle = (360 / segments.length) * index;
                   const nextAngle = (360 / segments.length) * (index + 1);
+                  const midAngle = angle + (nextAngle - angle) / 2;
+                  const radius = 110; // distance du centre (ajuste si besoin)
+                  const center = 140; // centre de la roue (si 280px)
+                  const x = center + radius * Math.cos((midAngle - 90) * Math.PI / 180);
+                  const y = center + radius * Math.sin((midAngle - 90) * Math.PI / 180);
+
                   return (
-                    <div
-                      key={index}
-                      className={`absolute w-full h-full ${segment.color} flex items-center justify-center border-r border-white/30`}
-                      style={{
-                        clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                        transformOrigin: 'center'
-                      }}
-                    >
+                    <React.Fragment key={index}>
                       <div
-                        className="absolute left-1/2 top-1/2"
+                        className={`absolute w-full h-full ${segment.color} flex items-center justify-center border-r border-white/30`}
                         style={{
-                          transform: `rotate(${angle}deg) translateY(-90px)`,
-                          transformOrigin: 'center',
-                          width: '100%',
-                          height: '24px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          pointerEvents: 'none',
+                          clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                          transformOrigin: 'center'
                         }}
                       >
-                        <span
-                          className="text-blue-900 font-bold text-sm text-center"
+                        <div
                           style={{
-                            display: 'inline-block',
-                            transform: `rotate(${-angle}deg)`,
+                            position: 'absolute',
+                            left: `${x}px`,
+                            top: `${y}px`,
                             width: '96px',
+                            transform: 'translate(-50%, -50%)',
+                            pointerEvents: 'none',
                             textAlign: 'center',
-                            lineHeight: '1.2',
                           }}
+                          className="text-blue-900 font-bold text-sm"
                         >
                           {segment.text}
-                        </span>
+                        </div>
                       </div>
-                    </div>
+                    </React.Fragment>
                   );
                 })}
                 {/* Centre de la roue avec poisson */}
