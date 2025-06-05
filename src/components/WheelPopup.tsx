@@ -155,11 +155,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                         }}
                       >
                         <span
-                          className="text-blue-900 font-bold text-sm drop-shadow-lg text-center w-24 break-words"
+                          className="text-blue-900 font-bold text-sm text-center"
                           style={{
-                            display: 'inline-block',
                             transform: `rotate(${-angle}deg)`,
-                            whiteSpace: 'pre-line',
+                            display: 'inline-block',
+                            width: '96px',
+                            whiteSpace: 'normal',
+                            textAlign: 'center',
+                            lineHeight: '1.2',
                           }}
                         >
                           {segment.text}
