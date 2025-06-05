@@ -153,9 +153,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           style={{
                             transform: `rotate(${-midAngle}deg)`,
                             display: 'inline-block',
-                            width: '100px',
+                            width: '80px',
                             textAlign: 'center',
                             whiteSpace: 'normal',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
                             color: '#1e3a8a',
                             fontWeight: 'bold',
                             fontSize: '0.875rem',
