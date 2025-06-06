@@ -465,59 +465,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
                 <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
               </div>
-            ) : !emailValidated ? (
-              // 🆕 FORMULAIRE D'EMAIL (première étape)
-              <div className="max-w-md mx-auto">
-                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-8 border-2 border-cyan-200 shadow-lg">
-                  <div className="text-center mb-6">
-                    <div className="text-6xl mb-4">🐠</div>
-                    <h3 className="text-xl font-bold text-cyan-800 mb-2">
-                      Participez au tirage !
-                    </h3>
-                    <p className="text-cyan-600 text-sm">
-                      Saisissez votre email pour tenter votre chance à la roue aquatique
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="votre.email@example.com"
-                        className="w-full px-4 py-3 rounded-xl border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-center text-gray-700 font-medium transition-colors"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleEmailSubmit();
-                          }
-                        }}
-                      />
-                    </div>
-                    
-                    <Button
-                      onClick={handleEmailSubmit}
-                      disabled={isValidatingEmail || !email.trim()}
-                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                    >
-                      {isValidatingEmail ? (
-                        <>
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                          Validation...
-                        </>
-                      ) : (
-                        '🌊 Accéder à la roue'
-                      )}
-                    </Button>
-                    
-                    <p className="text-xs text-cyan-600 mt-3">
-                      🐟 Votre email ne sera utilisé que pour cette participation
-                    </p>
-                  </div>
-                </div>
-              </div>
             ) : (
-              // 🆕 ROUE (deuxième étape - après validation email)
               <>
           {/* Container de la roue avec poissons animés */}
           <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
@@ -642,15 +590,49 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             </div>
           </div>
 
-          {/* Email validé - badge */}
-          <div className="mb-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-            ✅ {email}
-          </div>
+          {/* 🆕 FORMULAIRE D'EMAIL EN DESSOUS DE LA ROUE */}
+          {!emailValidated ? (
+            <div className="mb-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
+              <h3 className="text-lg font-bold text-cyan-800 mb-3">
+                📧 Saisissez votre email pour participer
+              </h3>
+              <div className="flex gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="votre.email@example.com"
+                  className="flex-1 px-4 py-2 rounded-lg border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-gray-700 font-medium transition-colors"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleEmailSubmit();
+                    }
+                  }}
+                />
+                <Button
+                  onClick={handleEmailSubmit}
+                  disabled={isValidatingEmail || !email.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isValidatingEmail ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  ) : (
+                    '✅'
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* Email validé - badge */
+            <div className="mb-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
+              ✅ {email}
+            </div>
+          )}
 
           {/* Bouton pour lancer la roue */}
           <Button
             onClick={handleSpin}
-            disabled={isSpinning}
+            disabled={isSpinning || !emailValidated}
             className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isSpinning ? (
@@ -658,6 +640,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                 🌊 La roue tourne...
               </>
+            ) : !emailValidated ? (
+              '📧 Saisissez votre email pour jouer'
             ) : (
               '🎣 Lancer la roue aquatique'
             )}
