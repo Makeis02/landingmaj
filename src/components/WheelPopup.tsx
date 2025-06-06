@@ -15,12 +15,28 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // Textes éditables pour chaque segment
   const [segmentsTexts, setSegmentsTexts] = useState([
     "-15%",
-    "Poisson gratuit",
-    "-10%",
-    "Plante offerte",
+    "🐠 Gratuit",
+    "-10%", 
+    "🌱 Offerte",
     "-20%",
-    "Perdu",
+    "💧 Perdu",
   ]);
+
+  // Fonction pour ajuster la taille de police selon la longueur du texte
+  const getFontSize = (text: string) => {
+    if (text.length <= 4) return '1rem';
+    if (text.length <= 8) return '0.85rem';
+    if (text.length <= 12) return '0.7rem';
+    return '0.6rem';
+  };
+
+  // Fonction pour ajuster la largeur du conteneur selon la longueur du texte
+  const getTextWidth = (text: string) => {
+    if (text.length <= 4) return '70px';
+    if (text.length <= 8) return '90px';
+    if (text.length <= 12) return '100px';
+    return '110px';
+  };
 
   // Segments de la roue : chaque segment a une nuance de bleu différente, pas de doublon
   const segments = [
@@ -144,7 +160,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div
                         className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-70px)`,
+                          transform: `rotate(${midAngle}deg) translateY(-85px)`,
                           transformOrigin: 'center',
                         }}
                       >
@@ -152,17 +168,19 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           style={{
                             transform: `rotate(90deg)`,
                             display: 'inline-block',
-                            width: '80px',
+                            width: getTextWidth(segment.text),
                             textAlign: 'center',
                             fontWeight: 'bold',
-                            fontSize: '0.7rem',
-                            color: segment.color.includes('bg-[#e0f2fe]') ? '#1e3a8a' : '#ffffff',
-                            whiteSpace: 'normal',
-                            overflowWrap: 'break-word',
-                            wordBreak: 'break-word',
-                            lineHeight: 1.1,
-                            maxHeight: '60px',
+                            fontSize: getFontSize(segment.text),
+                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
+                            whiteSpace: 'nowrap',
                             overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: 1.2,
+                            textShadow: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') 
+                              ? '1px 1px 2px rgba(0,0,0,0.3)' 
+                              : '1px 1px 2px rgba(0,0,0,0.5)',
+                            letterSpacing: '0.5px',
                           }}
                         >
                           {segment.text}
