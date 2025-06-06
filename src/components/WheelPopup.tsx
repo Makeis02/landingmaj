@@ -11,6 +11,8 @@ interface LuckyWheelPopupProps {
 const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [showResult, setShowResult] = useState(false);
+  const [winningSegment, setWinningSegment] = useState<any>(null);
 
   // Structure pour gérer texte, images ET pourcentages
   const [segmentsData, setSegmentsData] = useState([
@@ -117,6 +119,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const handleSpin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
+    setShowResult(false); // Cache le résultat précédent
     
     // Calcul du segment gagnant selon les probabilités
     const winningSegmentIndex = calculateWinningSegment();
@@ -133,6 +136,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     setTimeout(() => {
       setIsSpinning(false);
+      setWinningSegment(segments[winningSegmentIndex]);
+      setShowResult(true);
     }, 3000);
   };
 
@@ -405,6 +410,67 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         )}
       </div>
 
+      {/* Popup de résultat */}
+      {showResult && winningSegment && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-60 animate-fade-in">
+          <div className="relative bg-gradient-to-br from-cyan-50 to-blue-100 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border-4 border-cyan-200 animate-bounce-in">
+            {/* Bouton fermer */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowResult(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-blue-700 z-10"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+
+            {/* Header avec animation */}
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4 animate-pulse">🎉</div>
+              <h2 className="text-3xl font-bold text-blue-800 mb-2">Félicitations !</h2>
+              <p className="text-blue-600 font-medium">🌊 Vous avez gagné :</p>
+            </div>
+
+            {/* Contenu du gain */}
+            <div className="text-center mb-8">
+              {winningSegment.image ? (
+                <div className="flex flex-col items-center gap-4">
+                  <img
+                    src={winningSegment.image}
+                    alt="Votre gain"
+                    className="w-32 h-32 object-cover rounded-xl border-4 border-cyan-300 shadow-lg animate-pulse"
+                  />
+                  {winningSegment.text && (
+                    <p className="text-xl font-bold text-blue-800">{winningSegment.text}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
+                  <p className="text-4xl font-bold text-blue-800 animate-pulse">
+                    {winningSegment.text}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer avec poissons animés */}
+            <div className="text-center">
+              <div className="flex justify-center gap-4 mb-4 text-3xl">
+                <span className="animate-bounce delay-100">🐠</span>
+                <span className="animate-bounce delay-200">🌊</span>
+                <span className="animate-bounce delay-300">🐟</span>
+              </div>
+              <Button
+                onClick={() => setShowResult(false)}
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+              >
+                🎣 Fermer
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Styles CSS pour les animations des poissons */}
       <style jsx>{`
         @keyframes swim-clockwise {
@@ -438,6 +504,37 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           50% {
             transform: translateY(-10px);
           }
+        }
+        @keyframes fade-in {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
+        }
+        @keyframes bounce-in {
+          0% {
+            opacity: 0;
+            transform: scale(0.3) translateY(-100px);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05) translateY(0px);
+          }
+          70% {
+            transform: scale(0.95);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1) translateY(0px);
+          }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+        .animate-bounce-in {
+          animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
         }
       `}</style>
     </div>
