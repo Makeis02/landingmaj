@@ -119,8 +119,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // Fonction pour déterminer quel segment est réellement sous la flèche
   const getSegmentFromRotation = (rotation: number) => {
     const segmentAngle = 360 / segments.length;
-    const normalized = (rotation % 360 + 360) % 360;
-    const index = Math.floor(((360 - normalized + segmentAngle / 2) % 360) / segmentAngle);
+    const normalized = ((rotation % 360) + 360) % 360;
+    const angleUnderPointer = (360 - normalized) % 360;
+    const index = Math.floor(angleUnderPointer / segmentAngle);
     return index;
   };
 
