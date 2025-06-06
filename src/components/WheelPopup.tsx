@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useCartStore } from '@/stores/useCartStore';
+import { toast } from "sonner";
 
 interface LuckyWheelPopupProps {
   isOpen: boolean;
@@ -13,6 +15,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [winningSegment, setWinningSegment] = useState<any>(null);
+  const [showAddToCartAnimation, setShowAddToCartAnimation] = useState(false);
+  const [animatingImage, setAnimatingImage] = useState<string | null>(null);
+  
+  // Importer la fonction addItem du store Zustand
+  const { addItem } = useCartStore();
 
   // Structure pour gérer texte, images ET pourcentages
   const [segmentsData, setSegmentsData] = useState([
@@ -116,6 +123,49 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     );
   };
 
+  // Fonction pour ajouter un cadeau au panier avec animation
+  const handleAddGiftToCart = async (segment: any) => {
+    if (!segment.image) return;
+    
+    setAnimatingImage(segment.image);
+    setShowAddToCartAnimation(true);
+    
+    // Animation de vol vers le panier
+    setTimeout(async () => {
+      try {
+        // Créer l'objet cadeau selon la structure de votre CartItem
+        const giftItem = {
+          id: `gift_${Date.now()}`,
+          title: segment.text || 'Cadeau de la roue',
+          image_url: segment.image,
+          price: 0,
+          quantity: 1,
+          is_gift: true, // Marquer comme cadeau spécial de la roue
+          variant: undefined
+        };
+        
+        // Utiliser le store Zustand pour ajouter au panier
+        await addItem(giftItem);
+        
+        // Toast de confirmation
+        toast.success('🎁 Cadeau ajouté au panier !', {
+          description: 'Votre gain a été automatiquement ajouté au panier',
+          duration: 3000,
+        });
+        
+      } catch (error) {
+        console.error('Erreur lors de l\'ajout du cadeau au panier:', error);
+        toast.error('Erreur lors de l\'ajout du cadeau', {
+          description: 'Veuillez réessayer',
+        });
+      } finally {
+        setShowAddToCartAnimation(false);
+        setAnimatingImage(null);
+        setShowResult(false);
+      }
+    }, 1500); // Durée de l'animation
+  };
+
   // Fonction pour déterminer quel segment est réellement sous la flèche
   const getSegmentFromRotation = (rotation: number) => {
     const segmentAngle = 360 / segments.length;
@@ -150,6 +200,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
       setWinningSegment(segments[indexUnderArrow]);                // ✅ visuel
       setShowResult(true);
+      
+      // Si c'est une image, ajouter automatiquement au panier après 2 secondes
+      if (segments[indexUnderArrow]?.image) {
+        setTimeout(() => {
+          handleAddGiftToCart(segments[indexUnderArrow]);
+        }, 2000); // 2 secondes après l'affichage de la popup
+      }
     }, 3000);
   };
 
@@ -455,6 +512,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   {winningSegment.text && (
                     <p className="text-xl font-bold text-blue-800">{winningSegment.text}</p>
                   )}
+                  <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                    <span className="text-2xl">🎁</span>
+                    <span className="font-medium">Ajout automatique au panier...</span>
+                  </div>
                 </div>
               ) : (
                 <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
@@ -472,13 +533,48 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <span className="animate-bounce delay-200">🌊</span>
                 <span className="animate-bounce delay-300">🐟</span>
               </div>
-              <Button
-                onClick={() => setShowResult(false)}
-                className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
-              >
-                🎣 Fermer
-              </Button>
+              
+              {/* Boutons d'action */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowResult(false)}
+                  className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  🎣 Fermer
+                </Button>
+              </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Animation de vol vers le panier */}
+      {showAddToCartAnimation && animatingImage && (
+        <div className="fixed inset-0 pointer-events-none z-70">
+          <img
+            src={animatingImage}
+            alt="Gift flying to cart"
+            className="absolute w-16 h-16 object-cover rounded-lg border-2 border-green-400 shadow-lg animate-fly-to-cart"
+            style={{
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              animation: 'flyToCart 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+            }}
+          />
+          
+          {/* Particules d'effet */}
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 bg-green-400 rounded-full animate-bounce"
+                style={{
+                  animation: `sparkle-${i} 1.5s ease-out forwards`,
+                  animationDelay: `${i * 0.1}s`,
+                }}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -547,6 +643,48 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         }
         .animate-bounce-in {
           animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+        @keyframes flyToCart {
+          0% {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            opacity: 1;
+          }
+          50% {
+            transform: translate(-50%, -50%) scale(1.2) rotate(180deg);
+            opacity: 0.8;
+          }
+          100% {
+            top: 20px;
+            left: calc(100% - 60px);
+            transform: translate(-50%, -50%) scale(0.3) rotate(360deg);
+            opacity: 0;
+          }
+        }
+        @keyframes sparkle-0 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(-20px, -30px); opacity: 0; }
+        }
+        @keyframes sparkle-1 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(20px, -25px); opacity: 0; }
+        }
+        @keyframes sparkle-2 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(-15px, 20px); opacity: 0; }
+        }
+        @keyframes sparkle-3 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(25px, 15px); opacity: 0; }
+        }
+        @keyframes sparkle-4 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(-30px, 10px); opacity: 0; }
+        }
+        @keyframes sparkle-5 {
+          0% { transform: translate(0, 0); opacity: 1; }
+          100% { transform: translate(15px, -20px); opacity: 0; }
         }
       `}</style>
     </div>
