@@ -22,8 +22,53 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isSaving, setIsSaving] = useState(false);
   const [wheelSettings, setWheelSettings] = useState({ title: 'Roue Aquatique', description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !' });
   
+  // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
+  const [userEmail, setUserEmail] = useState('');
+  const [emailValidated, setEmailValidated] = useState(false);
+  const [isValidatingEmail, setIsValidatingEmail] = useState(false);
+  
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
+
+  // 🆕 FONCTIONS pour la validation d'email
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const handleEmailSubmit = async () => {
+    if (!validateEmail(userEmail)) {
+      toast.error('Email invalide', {
+        description: 'Veuillez saisir une adresse email valide'
+      });
+      return;
+    }
+
+    setIsValidatingEmail(true);
+    try {
+      // Ici vous pouvez ajouter une logique pour enregistrer l'email si nécessaire
+      // await supabase.from('wheel_participants').insert({ email: userEmail });
+      
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation
+      setEmailValidated(true);
+      toast.success('Email validé !', {
+        description: 'Vous pouvez maintenant jouer à la roue'
+      });
+    } catch (error) {
+      console.error('Erreur validation email:', error);
+      toast.error('Erreur', {
+        description: 'Une erreur est survenue lors de la validation'
+      });
+    } finally {
+      setIsValidatingEmail(false);
+    }
+  };
+
+  const resetEmailForm = () => {
+    setUserEmail('');
+    setEmailValidated(false);
+    setIsValidatingEmail(false);
+  };
 
   // Structure pour gérer texte, images, pourcentages ET codes promo - maintenant chargée depuis Supabase
   const [segmentsData, setSegmentsData] = useState([
@@ -39,8 +84,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   useEffect(() => {
     if (isOpen) {
       loadWheelData();
+      // Réinitialiser le formulaire email à chaque ouverture (sauf en mode édition)
+      if (!isEditMode) {
+        resetEmailForm();
+      } else {
+        // En mode édition, on skip la validation email
+        setEmailValidated(true);
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode]);
 
   // Fonction pour charger les données de la roue depuis Supabase
   const loadWheelData = async () => {
@@ -317,6 +369,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   const handleSpin = async () => {
     if (isSpinning) return;
+    
+    // 🆕 Vérifier que l'email est validé (sauf en mode édition)
+    if (!isEditMode && !emailValidated) {
+      toast.error('Email requis', {
+        description: 'Veuillez d\'abord saisir votre email pour jouer'
+      });
+      return;
+    }
+    
     setIsSpinning(true);
     setShowResult(false); // Cache le résultat précédent
     
@@ -411,6 +472,60 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               <div className="flex items-center justify-center h-80">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
                 <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
+              </div>
+            ) : !emailValidated && !isEditMode ? (
+              // 🆕 FORMULAIRE DE SAISIE D'EMAIL
+              <div className="flex flex-col items-center justify-center h-80 space-y-6">
+                <div className="text-center max-w-md">
+                  <div className="text-6xl mb-4">📧</div>
+                  <h3 className="text-2xl font-bold mb-3" style={{ color: '#0074b3' }}>
+                    Participez à la roue !
+                  </h3>
+                  <p className="text-gray-600 mb-6">
+                    Saisissez votre adresse email pour tenter votre chance et gagner des cadeaux aquatiques exclusifs !
+                  </p>
+                  
+                  <div className="space-y-4">
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={userEmail}
+                        onChange={(e) => setUserEmail(e.target.value)}
+                        placeholder="votre@email.com"
+                        className="w-full px-4 py-3 rounded-xl border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-center text-lg font-medium transition-all duration-200"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleEmailSubmit();
+                          }
+                        }}
+                      />
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyan-500">
+                        📩
+                      </div>
+                    </div>
+                    
+                    <Button
+                      onClick={handleEmailSubmit}
+                      disabled={!userEmail.trim() || isValidatingEmail}
+                      className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    >
+                      {isValidatingEmail ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                          Validation...
+                        </>
+                      ) : (
+                        <>
+                          🎯 Valider et jouer
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500 mt-4">
+                    🔒 Votre email est sécurisé et ne sera pas partagé
+                  </p>
+                </div>
               </div>
             ) : (
               <>
