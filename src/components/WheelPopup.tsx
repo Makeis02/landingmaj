@@ -149,42 +149,39 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   const nextAngle = (360 / segments.length) * (index + 1);
                   const midAngle = angle + (nextAngle - angle) / 2;
                   
-                  // Calcul des coordonnées pour centrer le texte dans le segment
-                  const textRadius = 80; // Distance du centre pour le texte
-                  const textX = 50 + textRadius * Math.cos((midAngle - 90) * Math.PI / 180);
-                  const textY = 50 + textRadius * Math.sin((midAngle - 90) * Math.PI / 180);
-                  
                   return (
-                    <div key={index}>
-                      {/* Segment triangulaire */}
+                    <div
+                      key={index}
+                      className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
+                      style={{
+                        clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                        transformOrigin: 'center',
+                      }}
+                    >
                       <div
-                        className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
+                        className="absolute top-1/2 left-1/2"
                         style={{
-                          clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                          transform: `rotate(${midAngle}deg) translateY(-70px)`,
                           transformOrigin: 'center',
                         }}
-                      />
-                      
-                      {/* Texte positionné de manière absolue */}
-                      <div
-                        className="absolute"
-                        style={{
-                          left: `${textX}%`,
-                          top: `${textY}%`,
-                          transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
-                          width: '80px',
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          fontSize: getFontSize(segment.text),
-                          color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
-                            ? '#1e3a8a'
-                            : '#ffffff',
-                          whiteSpace: 'nowrap',
-                          textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                          lineHeight: 1,
-                        }}
                       >
-                        {segment.text}
+                        <div
+                          style={{
+                            transform: `rotate(0deg)`,
+                            width: '100px',
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            fontSize: getFontSize(segment.text),
+                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
+                              ? '#1e3a8a'
+                              : '#ffffff',
+                            whiteSpace: 'nowrap',
+                            textShadow: '2px 2px 4px rgba(0,0,0,0.6)',
+                            lineHeight: 1,
+                          }}
+                        >
+                          {segment.text}
+                        </div>
                       </div>
                     </div>
                   );
