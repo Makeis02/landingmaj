@@ -255,7 +255,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         <div className={isEditMode ? "flex-shrink-0" : ""}>
           {/* Header avec bouton fermer */}
           <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-            <h2 className="text-2xl font-bold text-blue-800 tracking-tight">🐠 Roue Aquatique</h2>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 Roue Aquatique</h2>
             <Button
               variant="ghost"
               size="icon"
@@ -268,7 +268,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
           {/* Contenu principal */}
           <div className="p-6 text-center">
-            <p className="text-blue-700 mb-8 text-base font-medium">
+            <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
               🌊 Plongez dans l'aventure et gagnez des cadeaux aquatiques ! 🐟
             </p>
 
@@ -420,7 +420,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
           <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
-            <h3 className="font-bold text-sm mb-1 text-ocean">Édition des segments</h3>
+            <h3 className="font-bold text-sm mb-1" style={{ color: '#0074b3' }}>Édition des segments</h3>
             
             {/* Indicateur du total des pourcentages */}
             <div className={`p-2 rounded text-xs font-medium ${
@@ -547,8 +547,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             {/* Header avec animation */}
             <div className="text-center mb-6">
               <div className="text-6xl mb-4 animate-pulse">🎉</div>
-              <h2 className="text-3xl font-bold text-blue-800 mb-2">Félicitations !</h2>
-              <p className="text-blue-600 font-medium">🌊 Vous avez gagné :</p>
+              <h2 className="text-3xl font-bold mb-2" style={{ color: '#0074b3' }}>Félicitations !</h2>
+              <p className="font-medium" style={{ color: '#0074b3' }}>🌊 Vous avez gagné :</p>
             </div>
 
             {/* Contenu du gain */}
@@ -561,7 +561,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     className="w-32 h-32 object-cover rounded-xl border-4 border-cyan-300 shadow-lg animate-pulse"
                   />
                   {winningSegment.text && (
-                    <p className="text-xl font-bold text-blue-800">{winningSegment.text}</p>
+                    <p className="text-xl font-bold" style={{ color: '#0074b3' }}>{winningSegment.text}</p>
                   )}
                   <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
                     <span className="text-2xl">🎁</span>
@@ -571,7 +571,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               ) : (
                 <div className="flex flex-col items-center gap-4">
                   <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
-                    <p className="text-4xl font-bold text-blue-800 animate-pulse">
+                    <p className="text-4xl font-bold animate-pulse" style={{ color: '#0074b3' }}>
                       {winningSegment.text}
                     </p>
                   </div>
