@@ -12,18 +12,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
-  // Structure pour gérer texte, images ET pourcentages de chance
+  // Structure pour gérer texte ET images
   const [segmentsData, setSegmentsData] = useState([
-    { text: "-15%", image: null, chance: 15 },
-    { text: "🐠 Gratuit", image: null, chance: 5 },
-    { text: "-10%", image: null, chance: 20 },
-    { text: "🌱 Offerte", image: null, chance: 10 },
-    { text: "-20%", image: null, chance: 25 },
-    { text: "💧 Perdu", image: null, chance: 25 },
+    { text: "-15%", image: null },
+    { text: "🐠 Gratuit", image: null },
+    { text: "-10%", image: null },
+    { text: "🌱 Offerte", image: null },
+    { text: "-20%", image: null },
+    { text: "💧 Perdu", image: null },
   ]);
-
-  // Calcul du total des pourcentages
-  const totalChance = segmentsData.reduce((sum, segment) => sum + segment.chance, 0);
 
   // Fonction pour ajuster la taille de police selon la longueur du texte
   const getFontSize = (text: string) => {
@@ -41,7 +38,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     return '140px';
   };
 
-  // Segments de la roue : utilise les données avec texte, image et chance
+  // Segments de la roue : utilise les données avec texte ou image
   const segments = segmentsData.map((data, index) => ({
     ...data,
     color: [
@@ -89,62 +86,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     );
   };
 
-  // Fonction pour modifier le pourcentage de chance
-  const handleChanceChange = (index: number, newChance: number) => {
-    if (newChance >= 0 && newChance <= 100) {
-      setSegmentsData(prev => 
-        prev.map((item, i) => 
-          i === index ? { ...item, chance: newChance } : item
-        )
-      );
-    }
-  };
-
-  // Fonction pour normaliser les pourcentages à 100%
-  const normalizeChances = () => {
-    if (totalChance === 0) return;
-    
-    setSegmentsData(prev => 
-      prev.map(item => ({
-        ...item,
-        chance: Math.round((item.chance / totalChance) * 100)
-      }))
-    );
-  };
-
   const handleSpin = () => {
-    if (isSpinning || totalChance !== 100) return;
-    
+    if (isSpinning) return;
     setIsSpinning(true);
-    
-    // Génère un nombre aléatoire entre 0 et 100
-    const randomValue = Math.random() * 100;
-    
-    // Détermine le segment gagnant selon les pourcentages
-    let cumulativeChance = 0;
-    let winningSegmentIndex = 0;
-    
-    for (let i = 0; i < segmentsData.length; i++) {
-      cumulativeChance += segmentsData[i].chance;
-      if (randomValue <= cumulativeChance) {
-        winningSegmentIndex = i;
-        break;
-      }
-    }
-    
-    // Calcule l'angle du segment gagnant
-    const segmentAngle = 360 / segments.length;
-    const targetAngle = winningSegmentIndex * segmentAngle;
-    
-    // Ajoute plusieurs tours + l'angle cible pour un effet visuel
-    const spinRotation = 1440 + (360 - targetAngle) + Math.random() * 60 - 30; // ±30° de variation
-    
-    setRotation(prev => prev + spinRotation);
-    
+    const randomRotation = Math.floor(Math.random() * 720) + 1440;
+    setRotation(prev => prev + randomRotation);
     setTimeout(() => {
       setIsSpinning(false);
-      // Ici on peut ajouter une callback pour afficher le résultat
-      console.log(`🎯 Segment gagnant: ${segmentsData[winningSegmentIndex].text} (${segmentsData[winningSegmentIndex].chance}% de chance)`);
     }, 3000);
   };
 
@@ -300,7 +248,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             {/* Bouton pour lancer la roue */}
             <Button
               onClick={handleSpin}
-              disabled={isSpinning || totalChance !== 100}
+              disabled={isSpinning}
               className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
             >
               {isSpinning ? (
@@ -308,15 +256,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                   🌊 La roue tourne...
                 </>
-              ) : totalChance !== 100 ? (
-                `⚠️ Total: ${totalChance}% (doit être 100%)`
               ) : (
                 '🎣 Lancer la roue aquatique'
               )}
             </Button>
 
             <p className="text-xs text-blue-500 mt-4">
-              🐟 {totalChance === 100 ? 'Une seule tentative par jour par aquariophile' : 'Ajustez les pourcentages pour activer la roue'}
+              🐟 Une seule tentative par jour par aquariophile
             </p>
           </div>
         </div>
@@ -324,31 +270,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
           <div className="ml-8 w-64 bg-gray-50 border-l border-gray-200 rounded-lg p-4 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-lg text-ocean">Édition des segments</h3>
-              <div className={`text-sm font-medium ${totalChance === 100 ? 'text-green-600' : 'text-red-600'}`}>
-                Total: {totalChance}%
-              </div>
-            </div>
-            
-            {totalChance !== 100 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded p-2 text-sm text-yellow-800">
-                ⚠️ Le total doit être de 100% pour pouvoir lancer la roue
-                <Button
-                  size="sm"
-                  onClick={normalizeChances}
-                  className="ml-2 h-6 text-xs bg-yellow-600 hover:bg-yellow-700"
-                >
-                  Normaliser
-                </Button>
-              </div>
-            )}
-
+            <h3 className="font-bold text-lg mb-2 text-ocean">Édition des segments</h3>
             {segmentsData.map((data, idx) => (
               <div key={idx} className="flex flex-col gap-2 p-3 bg-white rounded border">
-                <label className="text-sm font-medium text-gray-700">
-                  Segment {idx + 1} - {data.chance}% de chance
-                </label>
+                <label className="text-sm font-medium text-gray-700">Segment {idx + 1}</label>
                 
                 {!data.image ? (
                   <>
@@ -406,23 +331,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     </label>
                   </div>
                 )}
-                
-                {/* Contrôle du pourcentage de chance */}
-                <div className="flex items-center gap-2 mt-2">
-                  <label className="text-xs text-gray-600">Chance:</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="border rounded px-2 py-1 text-sm w-16 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={data.chance}
-                    onChange={(e) => {
-                      const value = parseInt(e.target.value) || 0;
-                      handleChanceChange(idx, value);
-                    }}
-                  />
-                  <span className="text-xs text-gray-500">%</span>
-                </div>
               </div>
             ))}
           </div>
