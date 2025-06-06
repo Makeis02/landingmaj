@@ -24,18 +24,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Fonction pour ajuster la taille de police selon la longueur du texte
   const getFontSize = (text: string) => {
-    if (text.length <= 4) return '1rem';
-    if (text.length <= 8) return '0.85rem';
-    if (text.length <= 12) return '0.7rem';
-    return '0.6rem';
+    if (text.length <= 4) return '1.1rem';
+    if (text.length <= 8) return '0.9rem';
+    if (text.length <= 12) return '0.75rem';
+    return '0.65rem';
   };
 
   // Fonction pour ajuster la largeur du conteneur selon la longueur du texte
   const getTextWidth = (text: string) => {
-    if (text.length <= 4) return '60px';
-    if (text.length <= 8) return '80px';
-    if (text.length <= 12) return '90px';
-    return '100px';
+    if (text.length <= 4) return '80px';
+    if (text.length <= 8) return '100px';
+    if (text.length <= 12) return '110px';
+    return '120px';
   };
 
   // Segments de la roue : chaque segment a une nuance de bleu différente, pas de doublon
@@ -176,13 +176,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            lineHeight: 1,
+                            lineHeight: 1.2,
                             textShadow: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') 
                               ? '1px 1px 2px rgba(0,0,0,0.3)' 
                               : '1px 1px 2px rgba(0,0,0,0.5)',
                             letterSpacing: '0.5px',
-                            position: 'relative',
-                            top: '-2px',
                           }}
                         >
                           {segment.text}
