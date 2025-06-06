@@ -250,9 +250,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="relative flex bg-white rounded-lg shadow-lg p-8">
+      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
         {/* Roue à gauche */}
-        <div>
+        <div className={isEditMode ? "flex-shrink-0" : ""}>
           {/* Header avec bouton fermer */}
           <div className="flex justify-between items-center p-6 border-b border-cyan-100">
             <h2 className="text-2xl font-bold text-blue-800 tracking-tight">🐠 Roue Aquatique</h2>
@@ -419,36 +419,36 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
-          <div className="ml-8 w-64 bg-gray-50 border-l border-gray-200 rounded-lg p-4 flex flex-col gap-4">
-            <h3 className="font-bold text-lg mb-2 text-ocean">Édition des segments</h3>
+          <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
+            <h3 className="font-bold text-sm mb-1 text-ocean">Édition des segments</h3>
             
             {/* Indicateur du total des pourcentages */}
-            <div className={`p-2 rounded text-sm font-medium ${
+            <div className={`p-2 rounded text-xs font-medium ${
               Math.abs(totalPercentage - 100) < 0.1 
                 ? 'bg-green-100 text-green-800' 
                 : 'bg-red-100 text-red-800'
             }`}>
-              Total: {totalPercentage.toFixed(2)}% 
+              Total: {totalPercentage.toFixed(1)}% 
               {Math.abs(totalPercentage - 100) < 0.1 ? ' ✅' : ' ⚠️'}
             </div>
             
             {segmentsData.map((data, idx) => (
-              <div key={idx} className="flex flex-col gap-2 p-3 bg-white rounded border">
-                <label className="text-sm font-medium text-gray-700">Segment {idx + 1}</label>
+              <div key={idx} className="flex flex-col gap-1.5 p-2 bg-white rounded border text-xs">
+                <label className="text-xs font-medium text-gray-700">Segment {idx + 1}</label>
                 
                 {!data.image ? (
                   <>
                     <input
                       type="text"
-                      className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
                       placeholder="Texte du segment"
                       value={data.text}
                       onChange={e => {
                         handleTextChange(idx, e.target.value);
                       }}
                     />
-                    <label className="flex items-center justify-center px-3 py-2 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
-                      <span className="text-sm text-blue-700">📁 Uploader une image</span>
+                    <label className="flex items-center justify-center px-2 py-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
+                      <span className="text-xs text-blue-700">📁 Image</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -460,27 +460,27 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     </label>
                   </>
                 ) : (
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-gray-600">Image uploadée</span>
+                      <span className="text-xs text-gray-600">Image</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => {
                           handleRemoveImage(idx);
                         }}
-                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                        className="text-red-500 hover:text-red-700 h-4 w-4 p-0"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
                     <img
                       src={data.image}
                       alt={`Segment ${idx + 1}`}
-                      className="w-16 h-16 object-cover rounded border-2 border-gray-200"
+                      className="w-12 h-12 object-cover rounded border mx-auto"
                     />
-                    <label className="flex items-center justify-center px-2 py-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
-                      <span className="text-xs text-blue-700">🔄 Changer l'image</span>
+                    <label className="flex items-center justify-center px-1 py-0.5 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
+                      <span className="text-xs text-blue-700">🔄</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -494,38 +494,34 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 )}
                 
                 {/* Input pour le pourcentage */}
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-600 whitespace-nowrap">Chance:</label>
+                <div className="flex items-center gap-1">
+                  <label className="text-xs text-gray-600">%:</label>
                   <input
                     type="number"
                     min="0"
                     max="100"
-                    step="0.01"
-                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    step="0.1"
+                    className="flex-1 border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-orange-500"
                     value={data.percentage}
                     onChange={e => {
                       handlePercentageChange(idx, parseFloat(e.target.value) || 0);
                     }}
                   />
-                  <span className="text-xs text-gray-500">%</span>
                 </div>
 
                 {/* Input pour le code promo (uniquement si pas d'image) */}
                 {!data.image && (
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs text-gray-600">Code promo (optionnel):</label>
+                  <div className="flex flex-col gap-0.5">
+                    <label className="text-xs text-gray-600">Code promo:</label>
                     <input
                       type="text"
-                      className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Ex: AQUA15, PROMO2024..."
+                      className="border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
+                      placeholder="PROMO2024..."
                       value={data.promoCode}
                       onChange={e => {
                         handlePromoCodeChange(idx, e.target.value);
                       }}
                     />
-                    <p className="text-xs text-gray-500">
-                      Le code sera affiché dans la popup de résultat
-                    </p>
                   </div>
                 )}
               </div>
