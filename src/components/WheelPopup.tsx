@@ -35,9 +35,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     for (let i = 0; i < segmentsData.length; i++) {
       cumulativePercentage += segmentsData[i].percentage;
       if (random <= cumulativePercentage) {
+        console.log(`🎯 Segment gagnant: ${i} (${segmentsData[i].text}) - Probabilité: ${segmentsData[i].percentage}%`);
         return i;
       }
     }
+    console.log(`🎯 Fallback segment: 0`);
     return 0; // Fallback
   };
 
@@ -126,6 +128,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     // Calcul de l'angle pour s'arrêter sur le segment gagnant
     const segmentAngle = 360 / segments.length;
+    // Important: ajuster l'angle pour que la flèche pointe vers le bon segment
     const targetAngle = (winningSegmentIndex * segmentAngle) + (segmentAngle / 2);
     
     // Ajout de rotations supplémentaires pour l'effet visuel
@@ -136,7 +139,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     setTimeout(() => {
       setIsSpinning(false);
-      setWinningSegment(segments[winningSegmentIndex]);
+      // S'assurer qu'on récupère le bon segment avec le bon index
+      setWinningSegment(segmentsData[winningSegmentIndex]);
       setShowResult(true);
     }, 3000);
   };
@@ -429,6 +433,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               <div className="text-6xl mb-4 animate-pulse">🎉</div>
               <h2 className="text-3xl font-bold text-blue-800 mb-2">Félicitations !</h2>
               <p className="text-blue-600 font-medium">🌊 Vous avez gagné :</p>
+              {/* Debug temporaire */}
+              <p className="text-xs text-gray-500">
+                Segment: {segmentsData.findIndex(s => s === winningSegment) + 1}
+              </p>
             </div>
 
             {/* Contenu du gain */}
