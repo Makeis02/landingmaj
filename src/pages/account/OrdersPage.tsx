@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft, Package, Calendar, Euro, Eye, Truck, CheckCircle, Clock, AlertCircle, AlertTriangle, Upload, Bell, MapPin, Home, Phone, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import React from "react";
 import RevePointsBanner from "@/components/RevePointsBanner";
+import { useToast } from "@/hooks/use-toast";
 
 // Types pour les commandes
 interface OrderItem {
@@ -43,6 +44,10 @@ interface Order {
   postal_code?: string;
   city?: string;
   country?: string;
+  first_name?: string;
+  last_name?: string;
+  phone?: string;
+  email?: string;
 }
 
 // Fonction utilitaire pour transformer les liens en <a> et images
@@ -128,6 +133,11 @@ function LitigeChat({ order, litigeMessages, loadingMessages, newMessage, setNew
 }
 
 const OrdersPage = () => {
+  const { user } = useUserStore();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   const [orders, setOrders] = useState<Order[]>([]);
   const [productTitles, setProductTitles] = useState<Record<string, string>>({});
   const [orderProductImages, setOrderProductImages] = useState<Record<string, string>>({});
@@ -138,14 +148,15 @@ const OrdersPage = () => {
   const [selectedOrderForLitige, setSelectedOrderForLitige] = useState<Order | null>(null);
   const [litigeReason, setLitigeReason] = useState("");
   const [submittingLitige, setSubmittingLitige] = useState(false);
-  const [litigeMessages, setLitigeMessages] = useState([]);
+  const [litigeMessages, setLitigeMessages] = useState<any[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
   const [lastSentTime, setLastSentTime] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const messagesEndRef = useRef(null);
-  const user = useUserStore((s) => s.user);
-  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedOrderForDetails, setSelectedOrderForDetails] = useState<Order | null>(null);
+  const [activeTab, setActiveTab] = useState<'produits' | 'details'>('produits');
 
   useEffect(() => {
     if (!user?.id) {
@@ -312,6 +323,18 @@ const OrdersPage = () => {
     setSelectedOrder(null);
   };
 
+  const handleShowDetailsModal = (order: Order) => {
+    setSelectedOrderForDetails(order);
+    setActiveTab('produits');
+    setShowDetailsModal(true);
+  };
+
+  const handleCloseDetailsModal = () => {
+    setShowDetailsModal(false);
+    setSelectedOrderForDetails(null);
+    setActiveTab('produits');
+  };
+
   const handleOpenLitigeModal = (order: Order) => {
     setSelectedOrderForLitige(order);
     setShowLitigeModal(true);
@@ -340,7 +363,7 @@ const OrdersPage = () => {
 
       if (error) throw error;
 
-      toast.success("Votre signalement a été envoyé. Nous vous contacterons rapidement.");
+      toast("Votre signalement a été envoyé. Nous vous contacterons rapidement.");
       handleCloseLitigeModal();
       
       // Rafraîchir les commandes
@@ -354,7 +377,7 @@ const OrdersPage = () => {
       if (ordersData) setOrders(ordersData);
     } catch (err) {
       console.error("Erreur lors du signalement:", err);
-      toast.error("Une erreur est survenue lors du signalement");
+      toast("Une erreur est survenue lors du signalement");
     } finally {
       setSubmittingLitige(false);
     }
@@ -436,7 +459,7 @@ const OrdersPage = () => {
         }, 100);
       }
     } catch (err) {
-      toast.error("Erreur lors de l'upload de l'image");
+      toast("Erreur lors de l'upload de l'image");
     } finally {
       setUploadingImage(false);
     }
@@ -580,6 +603,15 @@ const OrdersPage = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                          onClick={() => handleShowDetailsModal(order)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir détails
+                        </Button>
                         {order.status !== "litige" && (
                           <Button 
                             variant="outline" 
@@ -724,6 +756,292 @@ const OrdersPage = () => {
           </div>
         </div>
       </main>
+
+      {/* 🆕 MODALE DE DÉTAILS AVEC ONGLETS */}
+      {showDetailsModal && selectedOrderForDetails && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-lg max-w-2xl w-full p-6 relative max-h-[90vh] overflow-y-auto">
+            <button 
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600 text-xl" 
+              onClick={handleCloseDetailsModal}
+            >
+              &times;
+            </button>
+            
+            <div className="flex items-center gap-3 mb-6">
+              <Package className="h-6 w-6 text-blue-500" />
+              <h2 className="text-xl font-bold text-gray-900">
+                Commande #{selectedOrderForDetails.id}
+              </h2>
+              <Badge className={`${getStatusColor(selectedOrderForDetails.status)} border-0 ml-2`}>
+                {getStatusIcon(selectedOrderForDetails.status)}
+                <span className="ml-1">{getStatusText(selectedOrderForDetails.status)}</span>
+              </Badge>
+            </div>
+
+            {/* Onglets */}
+            <div className="flex border-b border-gray-200 mb-6">
+              <button
+                onClick={() => setActiveTab('produits')}
+                className={`px-4 py-2 font-medium text-sm ${
+                  activeTab === 'produits'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                📦 Produits
+              </button>
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`px-4 py-2 font-medium text-sm ml-6 ${
+                  activeTab === 'details'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                📋 Détails d'expédition
+              </button>
+            </div>
+
+            {/* Contenu des onglets */}
+            {activeTab === 'produits' && (
+              <div className="space-y-4">
+                {/* Liste des produits */}
+                <div className="space-y-3">
+                  {selectedOrderForDetails.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
+                    <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                      {orderProductImages[item.product_id] ? (
+                        <img src={orderProductImages[item.product_id]} alt="img" className="w-16 h-16 object-contain rounded border" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                          <Package className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900">
+                          {item.product_title || productTitles[item.product_id] || item.product_id}
+                          {item.variant && <span className="text-sm text-gray-500 ml-1">– {item.variant}</span>}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Quantité: {item.quantity} • Prix unitaire: {item.price.toFixed(2)}€
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <span className="font-medium text-blue-600">{(item.price * item.quantity).toFixed(2)}€</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Cadeaux de la roue */}
+                {orderWheelGifts[selectedOrderForDetails.id] && orderWheelGifts[selectedOrderForDetails.id].length > 0 && (
+                  <div className="mt-6 pt-4 border-t border-gray-200">
+                    <h4 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                      🎁 Cadeaux de la roue de la fortune
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {orderWheelGifts[selectedOrderForDetails.id].map((gift, idx) => (
+                        <div key={gift.id || idx} className="bg-gradient-to-br from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-3">
+                            <img 
+                              src={gift.image_url} 
+                              alt={gift.title} 
+                              className="w-12 h-12 object-contain rounded-lg bg-white border"
+                            />
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">{gift.title}</div>
+                              <div className="text-xs text-gray-500">
+                                Gagné le {new Date(gift.won_at).toLocaleDateString('fr-FR')}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Récapitulatif des prix */}
+                <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Sous-total produits:</span>
+                    <span className="font-medium">
+                      {selectedOrderForDetails.order_items.filter(item => !item.product_id.startsWith('shipping_')).reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2)}€
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Livraison:</span>
+                    <span className="font-medium">
+                      {(() => {
+                        const shipping = selectedOrderForDetails.order_items.find(item => item.product_id.startsWith('shipping_'));
+                        if (!shipping || shipping.price === 0) return 'Gratuite';
+                        return `${shipping.price.toFixed(2)}€`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t border-gray-200">
+                    <span>Total payé:</span>
+                    <span className="text-blue-600">
+                      {(selectedOrderForDetails.total && selectedOrderForDetails.total > 0
+                        ? selectedOrderForDetails.total
+                        : selectedOrderForDetails.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                      ).toFixed(2)}€
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'details' && (
+              <div className="space-y-6">
+                {/* Informations de livraison */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-blue-500" />
+                    Mode de livraison
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-gray-500" />
+                      <span className="font-medium">
+                        {(() => {
+                          const shipping = selectedOrderForDetails.order_items.find(item => item.product_id.startsWith('shipping_'));
+                          if (shipping?.product_id?.includes('colissimo')) return 'Colissimo';
+                          if (shipping?.product_id?.includes('mondial')) return 'Mondial Relay';
+                          return 'Livraison standard';
+                        })()}
+                      </span>
+                      {(() => {
+                        const shipping = selectedOrderForDetails.order_items.find(item => item.product_id.startsWith('shipping_'));
+                        if (!shipping || shipping.price === 0) {
+                          return <Badge className="bg-green-100 text-green-700 ml-2">Gratuite</Badge>;
+                        }
+                        return <span className="text-gray-600 ml-2">({shipping.price.toFixed(2)}€)</span>;
+                      })()}
+                    </div>
+                    
+                    {/* Numéros de suivi */}
+                    {selectedOrderForDetails.tracking_numbers && selectedOrderForDetails.tracking_numbers.length > 0 && (
+                      <div className="mt-3">
+                        <span className="text-sm font-semibold text-gray-700">Numéro(s) de suivi:</span>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {selectedOrderForDetails.tracking_numbers.map((num, idx) => (
+                            <code key={num + idx} className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm font-mono">
+                              {num}
+                            </code>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Adresse de livraison */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    {selectedOrderForDetails.mondial_relay ? (
+                      <MapPin className="h-5 w-5 text-purple-500" />
+                    ) : (
+                      <Home className="h-5 w-5 text-green-500" />
+                    )}
+                    {selectedOrderForDetails.mondial_relay ? 'Point Relais Mondial Relay' : 'Adresse de livraison'}
+                  </h3>
+                  
+                  {selectedOrderForDetails.mondial_relay ? (
+                    // Affichage du point relais
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      {(() => {
+                        let relay = null;
+                        try {
+                          relay = typeof selectedOrderForDetails.mondial_relay === 'string' 
+                            ? JSON.parse(selectedOrderForDetails.mondial_relay) 
+                            : selectedOrderForDetails.mondial_relay;
+                        } catch (e) {
+                          relay = selectedOrderForDetails.mondial_relay;
+                        }
+                        return relay && typeof relay === 'object' ? (
+                          <div className="space-y-1">
+                            <div className="font-semibold text-purple-800">{relay.LgAdr1}</div>
+                            {relay.LgAdr2 && <div className="text-purple-700">{relay.LgAdr2}</div>}
+                            <div className="text-purple-700">{relay.CP} {relay.Ville}</div>
+                            {relay.Pays && <div className="text-purple-600">{relay.Pays}</div>}
+                          </div>
+                        ) : (
+                          <div className="text-purple-700">{String(relay)}</div>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    // Affichage de l'adresse classique
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-gray-500" />
+                        <span>{selectedOrderForDetails.first_name} {selectedOrderForDetails.last_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Home className="h-4 w-4 text-gray-500" />
+                        <span>{selectedOrderForDetails.address1}</span>
+                        {selectedOrderForDetails.address2 && (
+                          <span className="text-gray-500">({selectedOrderForDetails.address2})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span>{selectedOrderForDetails.postal_code} {selectedOrderForDetails.city}</span>
+                        {selectedOrderForDetails.country && (
+                          <span className="text-gray-500">({selectedOrderForDetails.country})</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="h-4 w-4 text-gray-500" />
+                        <span>{selectedOrderForDetails.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Mail className="h-4 w-4 text-gray-500" />
+                        <span>{selectedOrderForDetails.email}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Informations de commande */}
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-blue-500" />
+                    Informations de commande
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">ID de commande:</span>
+                      <p className="font-mono text-xs mt-1 p-2 bg-gray-100 rounded">{selectedOrderForDetails.id}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Date de commande:</span>
+                      <p className="font-medium mt-1">{formatDate(selectedOrderForDetails.created_at)}</p>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Statut:</span>
+                      <Badge className={`${getStatusColor(selectedOrderForDetails.status)} border-0 mt-1`}>
+                        {getStatusIcon(selectedOrderForDetails.status)}
+                        <span className="ml-1">{getStatusText(selectedOrderForDetails.status)}</span>
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Total payé:</span>
+                      <p className="font-bold text-blue-600 mt-1">
+                        {(selectedOrderForDetails.total && selectedOrderForDetails.total > 0
+                          ? selectedOrderForDetails.total
+                          : selectedOrderForDetails.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                        ).toFixed(2)}€
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Modal de signalement de litige */}
       {showLitigeModal && selectedOrderForLitige && (
