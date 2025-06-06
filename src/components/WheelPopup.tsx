@@ -23,52 +23,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [wheelSettings, setWheelSettings] = useState({ title: 'Roue Aquatique', description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !' });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
-  const [userEmail, setUserEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [emailValidated, setEmailValidated] = useState(false);
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
   
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
-
-  // 🆕 FONCTIONS pour la validation d'email
-  const validateEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const handleEmailSubmit = async () => {
-    if (!validateEmail(userEmail)) {
-      toast.error('Email invalide', {
-        description: 'Veuillez saisir une adresse email valide'
-      });
-      return;
-    }
-
-    setIsValidatingEmail(true);
-    try {
-      // Ici vous pouvez ajouter une logique pour enregistrer l'email si nécessaire
-      // await supabase.from('wheel_participants').insert({ email: userEmail });
-      
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulation
-      setEmailValidated(true);
-      toast.success('Email validé !', {
-        description: 'Vous pouvez maintenant jouer à la roue'
-      });
-    } catch (error) {
-      console.error('Erreur validation email:', error);
-      toast.error('Erreur', {
-        description: 'Une erreur est survenue lors de la validation'
-      });
-    } finally {
-      setIsValidatingEmail(false);
-    }
-  };
-
-  const resetEmailForm = () => {
-    setUserEmail('');
-    setEmailValidated(false);
-    setIsValidatingEmail(false);
-  };
 
   // Structure pour gérer texte, images, pourcentages ET codes promo - maintenant chargée depuis Supabase
   const [segmentsData, setSegmentsData] = useState([
@@ -84,15 +44,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   useEffect(() => {
     if (isOpen) {
       loadWheelData();
-      // Réinitialiser le formulaire email à chaque ouverture (sauf en mode édition)
-      if (!isEditMode) {
-        resetEmailForm();
-      } else {
-        // En mode édition, on skip la validation email
-        setEmailValidated(true);
-      }
+    } else {
+      // 🆕 Réinitialiser les états email quand la modale se ferme
+      setEmail('');
+      setEmailValidated(false);
+      setIsValidatingEmail(false);
+      setShowResult(false);
+      setWinningSegment(null);
     }
-  }, [isOpen, isEditMode]);
+  }, [isOpen]);
 
   // Fonction pour charger les données de la roue depuis Supabase
   const loadWheelData = async () => {
@@ -369,15 +329,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   const handleSpin = async () => {
     if (isSpinning) return;
-    
-    // 🆕 Vérifier que l'email est validé (sauf en mode édition)
-    if (!isEditMode && !emailValidated) {
-      toast.error('Email requis', {
-        description: 'Veuillez d\'abord saisir votre email pour jouer'
-      });
-      return;
-    }
-    
     setIsSpinning(true);
     setShowResult(false); // Cache le résultat précédent
     
@@ -442,6 +393,47 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }, 3000);
   };
 
+  // 🆕 FONCTION de validation d'email
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // 🆕 FONCTION pour valider et passer à l'étape suivante
+  const handleEmailSubmit = async () => {
+    if (!email.trim()) {
+      toast.error('Veuillez saisir votre adresse email');
+      return;
+    }
+    
+    if (!validateEmail(email)) {
+      toast.error('Veuillez saisir une adresse email valide');
+      return;
+    }
+    
+    setIsValidatingEmail(true);
+    
+    // Optionnel : Enregistrer l'email en base de données
+    try {
+      await supabase
+        .from('wheel_email_entries')
+        .insert({ 
+          email: email.toLowerCase().trim(),
+          created_at: new Date().toISOString()
+        });
+    } catch (error) {
+      console.log('Email déjà enregistré ou erreur:', error);
+      // On continue même si l'email existe déjà
+    }
+    
+    // Simuler une petite validation
+    setTimeout(() => {
+      setIsValidatingEmail(false);
+      setEmailValidated(true);
+      toast.success('🐠 Email validé ! Vous pouvez maintenant lancer la roue !');
+    }, 1000);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -473,40 +465,39 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
                 <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
               </div>
-            ) : !emailValidated && !isEditMode ? (
-              // 🆕 FORMULAIRE DE SAISIE D'EMAIL
-              <div className="flex flex-col items-center justify-center h-80 space-y-6">
-                <div className="text-center max-w-md">
-                  <div className="text-6xl mb-4">📧</div>
-                  <h3 className="text-2xl font-bold mb-3" style={{ color: '#0074b3' }}>
-                    Participez à la roue !
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    Saisissez votre adresse email pour tenter votre chance et gagner des cadeaux aquatiques exclusifs !
-                  </p>
+            ) : !emailValidated ? (
+              // 🆕 FORMULAIRE D'EMAIL (première étape)
+              <div className="max-w-md mx-auto">
+                <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-2xl p-8 border-2 border-cyan-200 shadow-lg">
+                  <div className="text-center mb-6">
+                    <div className="text-6xl mb-4">🐠</div>
+                    <h3 className="text-xl font-bold text-cyan-800 mb-2">
+                      Participez au tirage !
+                    </h3>
+                    <p className="text-cyan-600 text-sm">
+                      Saisissez votre email pour tenter votre chance à la roue aquatique
+                    </p>
+                  </div>
                   
                   <div className="space-y-4">
-                    <div className="relative">
+                    <div>
                       <input
                         type="email"
-                        value={userEmail}
-                        onChange={(e) => setUserEmail(e.target.value)}
-                        placeholder="votre@email.com"
-                        className="w-full px-4 py-3 rounded-xl border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-center text-lg font-medium transition-all duration-200"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="votre.email@example.com"
+                        className="w-full px-4 py-3 rounded-xl border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-center text-gray-700 font-medium transition-colors"
                         onKeyPress={(e) => {
                           if (e.key === 'Enter') {
                             handleEmailSubmit();
                           }
                         }}
                       />
-                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-cyan-500">
-                        📩
-                      </div>
                     </div>
                     
                     <Button
                       onClick={handleEmailSubmit}
-                      disabled={!userEmail.trim() || isValidatingEmail}
+                      disabled={isValidatingEmail || !email.trim()}
                       className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     >
                       {isValidatingEmail ? (
@@ -515,19 +506,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           Validation...
                         </>
                       ) : (
-                        <>
-                          🎯 Valider et jouer
-                        </>
+                        '🌊 Accéder à la roue'
                       )}
                     </Button>
+                    
+                    <p className="text-xs text-cyan-600 mt-3">
+                      🐟 Votre email ne sera utilisé que pour cette participation
+                    </p>
                   </div>
-                  
-                  <p className="text-xs text-gray-500 mt-4">
-                    🔒 Votre email est sécurisé et ne sera pas partagé
-                  </p>
                 </div>
               </div>
             ) : (
+              // 🆕 ROUE (deuxième étape - après validation email)
               <>
           {/* Container de la roue avec poissons animés */}
           <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
@@ -650,6 +640,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <span className="text-white text-2xl">🐠</span>
               </div>
             </div>
+          </div>
+
+          {/* Email validé - badge */}
+          <div className="mb-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+            ✅ {email}
           </div>
 
           {/* Bouton pour lancer la roue */}
