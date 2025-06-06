@@ -160,30 +160,26 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div
                         className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-95px)`,
+                          transform: `rotate(${midAngle}deg) translateY(-70px)`,
                           transformOrigin: 'center',
                         }}
                       >
                         <span
                           style={{
-                            transform: `rotate(90deg)`,
+                            transform: `rotate(0deg)`,
                             display: 'inline-block',
-                            width: getTextWidth(segment.text),
+                            width: '100px',
                             textAlign: 'center',
                             fontWeight: 'bold',
                             fontSize: getFontSize(segment.text),
                             color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
-                            whiteSpace: 'normal',
+                            whiteSpace: 'nowrap',
                             overflow: 'visible',
-                            lineHeight: 1.1,
+                            lineHeight: 1.2,
                             textShadow: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') 
-                              ? '1px 1px 2px rgba(0,0,0,0.3)' 
-                              : '1px 1px 2px rgba(0,0,0,0.5)',
-                            letterSpacing: '0.3px',
-                            wordWrap: 'break-word',
-                            hyphens: 'auto',
-                            maxHeight: '60px',
-                            padding: '2px 4px',
+                              ? '2px 2px 4px rgba(0,0,0,0.4)' 
+                              : '2px 2px 4px rgba(0,0,0,0.6)',
+                            letterSpacing: '0.5px',
                           }}
                         >
                           {segment.text}
