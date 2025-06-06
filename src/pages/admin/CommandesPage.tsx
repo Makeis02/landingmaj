@@ -207,8 +207,13 @@ export default function CommandesPage() {
       }
       
       setOrderItems(data || []);
-      // 🎁 NOUVEAU : Stocker les cadeaux de la roue
-      setClientOrderWheelGifts(wheelGifts || []);
+      
+      // 🎁 Stocker les cadeaux de la roue pour la modale principale
+      if (!wheelError && wheelGifts) {
+        setClientOrderWheelGifts(wheelGifts);
+      } else {
+        setClientOrderWheelGifts([]);
+      }
       
       if (data && data.length > 0) {
         const ids = [...new Set(data.filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id))];
@@ -229,7 +234,6 @@ export default function CommandesPage() {
   const handleCloseItems = () => {
     setSelectedOrder(null);
     setOrderItems([]);
-    // 🎁 NOUVEAU : Vider aussi les cadeaux de la roue
     setClientOrderWheelGifts([]);
   };
 
@@ -874,7 +878,7 @@ export default function CommandesPage() {
                     </tbody>
                   </table>
                   
-                  {/* 🎁 NOUVEAU : Section cadeaux de la roue */}
+                  {/* 🎁 Section cadeaux de la roue */}
                   {clientOrderWheelGifts.length > 0 && (
                     <div className="mt-6">
                       <h3 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
