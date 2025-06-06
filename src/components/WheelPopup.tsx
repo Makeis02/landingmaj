@@ -35,11 +35,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     for (let i = 0; i < segmentsData.length; i++) {
       cumulativePercentage += segmentsData[i].percentage;
       if (random <= cumulativePercentage) {
-        console.log(`🎯 Segment gagnant: ${i} (${segmentsData[i].text}) - Probabilité: ${segmentsData[i].percentage}%`);
         return i;
       }
     }
-    console.log(`🎯 Fallback segment: 0`);
     return 0; // Fallback
   };
 
@@ -118,6 +116,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     );
   };
 
+  // Fonction pour déterminer le segment gagnant basé sur l'angle de la roue
+  const getSegmentFromAngle = (angle: number) => {
+    // Normaliser l'angle entre 0 et 360
+    const normalizedAngle = ((angle % 360) + 360) % 360;
+    // La flèche est en haut (0°), calculer quel segment est sous la flèche
+    const segmentAngle = 360 / segments.length;
+    const segmentIndex = Math.floor(normalizedAngle / segmentAngle);
+    return Math.min(segmentIndex, segments.length - 1);
+  };
+
   const handleSpin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
@@ -128,19 +136,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     // Calcul de l'angle pour s'arrêter sur le segment gagnant
     const segmentAngle = 360 / segments.length;
-    // Important: ajuster l'angle pour que la flèche pointe vers le bon segment
-    const targetAngle = (winningSegmentIndex * segmentAngle) + (segmentAngle / 2);
+    const targetAngle = winningSegmentIndex * segmentAngle + (segmentAngle / 2);
     
     // Ajout de rotations supplémentaires pour l'effet visuel
     const spins = 4 + Math.random() * 2; // 4-6 tours complets
-    const finalRotation = (spins * 360) + (360 - targetAngle);
+    const finalRotation = (spins * 360) + targetAngle;
     
-    setRotation(prev => prev + finalRotation);
+    const newRotation = rotation + finalRotation;
+    setRotation(newRotation);
     
     setTimeout(() => {
       setIsSpinning(false);
-      // S'assurer qu'on récupère le bon segment avec le bon index
-      setWinningSegment(segmentsData[winningSegmentIndex]);
+      // Déterminer le segment final basé sur l'angle réel de la roue
+      const finalSegmentIndex = getSegmentFromAngle(newRotation);
+      setWinningSegment(segments[finalSegmentIndex]);
       setShowResult(true);
     }, 3000);
   };
@@ -433,10 +442,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               <div className="text-6xl mb-4 animate-pulse">🎉</div>
               <h2 className="text-3xl font-bold text-blue-800 mb-2">Félicitations !</h2>
               <p className="text-blue-600 font-medium">🌊 Vous avez gagné :</p>
-              {/* Debug temporaire */}
-              <p className="text-xs text-gray-500">
-                Segment: {segmentsData.findIndex(s => s === winningSegment) + 1}
-              </p>
             </div>
 
             {/* Contenu du gain */}
