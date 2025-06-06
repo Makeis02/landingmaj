@@ -26,6 +26,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [email, setEmail] = useState('');
   const [emailValidated, setEmailValidated] = useState(false);
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
+  const [isUserConnected, setIsUserConnected] = useState(false);
   
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
@@ -44,11 +45,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   useEffect(() => {
     if (isOpen) {
       loadWheelData();
+      // 🆕 Vérifier si l'utilisateur est connecté
+      checkUserAuth();
     } else {
       // 🆕 Réinitialiser les états email quand la modale se ferme
       setEmail('');
       setEmailValidated(false);
       setIsValidatingEmail(false);
+      setIsUserConnected(false);
       setShowResult(false);
       setWinningSegment(null);
     }
@@ -434,6 +438,32 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }, 1000);
   };
 
+  // 🆕 FONCTION pour vérifier l'authentification de l'utilisateur
+  const checkUserAuth = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email) {
+        // Utilisateur connecté : utiliser automatiquement son email
+        setEmail(user.email);
+        setEmailValidated(true);
+        setIsUserConnected(true);
+        console.log('Utilisateur connecté détecté:', user.email);
+      } else {
+        // Utilisateur non connecté : formulaire de saisie requis
+        setEmail('');
+        setEmailValidated(false);
+        setIsUserConnected(false);
+        console.log('Utilisateur non connecté : saisie email requise');
+      }
+    } catch (error) {
+      console.error('Erreur vérification auth:', error);
+      // En cas d'erreur, demander la saisie d'email
+      setEmail('');
+      setEmailValidated(false);
+      setIsUserConnected(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -623,9 +653,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               </div>
             </div>
           ) : (
-            /* Email validé - badge */
-            <div className="mb-4 inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
-              ✅ {email}
+            /* Email validé - badge différent selon le statut */
+            <div className="mb-4">
+              {isUserConnected ? (
+                <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium">
+                  👤 Connecté en tant que {email}
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
+                  ✅ Email validé : {email}
+                </div>
+              )}
             </div>
           )}
 
