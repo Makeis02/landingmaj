@@ -148,7 +148,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   const angle = (360 / segments.length) * index;
                   const nextAngle = (360 / segments.length) * (index + 1);
                   const midAngle = angle + (nextAngle - angle) / 2;
-                  
                   return (
                     <div
                       key={index}
@@ -159,29 +158,23 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       }}
                     >
                       <div
-                        className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-70px)`,
-                          transformOrigin: 'center',
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
+                          width: '120px',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '0.9rem',
+                          color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
+                          textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
                         }}
                       >
-                        <div
-                          style={{
-                            transform: `rotate(0deg)`,
-                            width: '100px',
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            fontSize: getFontSize(segment.text),
-                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
-                              ? '#1e3a8a'
-                              : '#ffffff',
-                            whiteSpace: 'nowrap',
-                            textShadow: '2px 2px 4px rgba(0,0,0,0.6)',
-                            lineHeight: 1,
-                          }}
-                        >
-                          {segment.text}
-                        </div>
+                        {segment.text}
                       </div>
                     </div>
                   );
