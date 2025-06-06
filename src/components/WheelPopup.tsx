@@ -33,6 +33,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [timeUntilNextSpin, setTimeUntilNextSpin] = useState(0);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [lastSpinData, setLastSpinData] = useState(null);
+  const [nextSpinTimestamp, setNextSpinTimestamp] = useState<Date | null>(null);
+  const [realTimeCountdown, setRealTimeCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
@@ -63,6 +65,38 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setWinningSegment(null);
     }
   }, [isOpen]);
+
+  // 🆕 TIMER EN TEMPS RÉEL - Met à jour le compte à rebours chaque seconde
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (nextSpinTimestamp && !canSpin) {
+      interval = setInterval(() => {
+        const now = new Date();
+        const timeDiff = nextSpinTimestamp.getTime() - now.getTime();
+        
+        if (timeDiff <= 0) {
+          // Timer expiré - utilisateur peut maintenant jouer
+          setCanSpin(true);
+          setTimeUntilNextSpin(0);
+          setNextSpinTimestamp(null);
+          setRealTimeCountdown({ hours: 0, minutes: 0, seconds: 0 });
+        } else {
+          // Calculer heures, minutes, secondes restantes
+          const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+          const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+          const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+          
+          setRealTimeCountdown({ hours, minutes, seconds });
+          setTimeUntilNextSpin(hours); // Pour compatibilité avec l'affichage existant
+        }
+      }, 1000);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [nextSpinTimestamp, canSpin]);
 
   // Fonction pour charger les données de la roue depuis Supabase
   const loadWheelData = async () => {
@@ -403,6 +437,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         // 🆕 Mettre à jour l'éligibilité après le spin
         setCanSpin(false);
         setTimeUntilNextSpin(72); // 72 heures d'attente
+        // 🆕 Définir le timestamp exact pour la prochaine tentative
+        const nextAllowedTime = new Date(Date.now() + 72 * 60 * 60 * 1000);
+        setNextSpinTimestamp(nextAllowedTime);
         
         // Si c'est une image, ajouter automatiquement au panier après 2 secondes
         if (winningSegmentData?.image_url) {
@@ -584,15 +621,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             setCanSpin(false);
             setTimeUntilNextSpin(Math.ceil(hoursLeft));
             setLastSpinData(lastSpin[0]);
+            // 🆕 Calculer le timestamp exact de la prochaine tentative
+            const nextAllowedTime = new Date(lastSpinTime.getTime() + hoursSinceLimit * 60 * 60 * 1000);
+            setNextSpinTimestamp(nextAllowedTime);
             console.log(`⏰ Utilisateur connecté doit attendre ${Math.ceil(hoursLeft)}h`);
           } else {
             setCanSpin(true);
             setTimeUntilNextSpin(0);
+            setNextSpinTimestamp(null);
             console.log('✅ Utilisateur connecté peut jouer');
           }
         } else {
           setCanSpin(true);
           setTimeUntilNextSpin(0);
+          setNextSpinTimestamp(null);
           console.log('✅ Premier jeu pour cet utilisateur connecté');
         }
       } else {
@@ -616,6 +658,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           setCanSpin(false);
           setTimeUntilNextSpin(Math.ceil(hoursLeft));
           setLastSpinData(lastAttempt);
+          // 🆕 Calculer le timestamp exact de la prochaine tentative pour invités
+          const nextAllowedTime = new Date(lastAttemptTime.getTime() + hoursSinceLimit * 60 * 60 * 1000);
+          setNextSpinTimestamp(nextAllowedTime);
           
           // Log de détection
           const detectionReason = lastAttempt.email === userEmail ? 'même email' : 
@@ -624,6 +669,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         } else {
           setCanSpin(true);
           setTimeUntilNextSpin(0);
+          setNextSpinTimestamp(null);
           console.log('✅ Nouvel invité peut jouer');
         }
       }
@@ -848,10 +894,35 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <h3 className="text-lg font-bold text-orange-800 mb-2">
                   Patience, aquariophile !
                 </h3>
-                <p className="text-orange-700 font-medium">
-                  Prochaine tentative dans : <span className="font-bold">{timeUntilNextSpin}h</span>
-                </p>
-                <p className="text-sm text-orange-600 mt-2">
+                
+                {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
+                <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
+                  <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
+                  <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
+                    <div className="flex flex-col items-center">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                        {String(realTimeCountdown.hours).padStart(2, '0')}
+                      </span>
+                      <span className="text-xs text-orange-600 mt-1">heures</span>
+                    </div>
+                    <span className="text-orange-400">:</span>
+                    <div className="flex flex-col items-center">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                        {String(realTimeCountdown.minutes).padStart(2, '0')}
+                      </span>
+                      <span className="text-xs text-orange-600 mt-1">min</span>
+                    </div>
+                    <span className="text-orange-400">:</span>
+                    <div className="flex flex-col items-center">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                        {String(realTimeCountdown.seconds).padStart(2, '0')}
+                      </span>
+                      <span className="text-xs text-orange-600 mt-1">sec</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-sm text-orange-600">
                   🐠 Un tirage toutes les 72h pour garder la magie !
                 </p>
               </div>
