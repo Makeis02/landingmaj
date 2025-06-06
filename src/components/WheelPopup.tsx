@@ -12,14 +12,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
-  // Textes éditables pour chaque segment
-  const [segmentsTexts, setSegmentsTexts] = useState([
-    "-15%",
-    "🐠 Gratuit",
-    "-10%", 
-    "🌱 Offerte",
-    "-20%",
-    "💧 Perdu",
+  // Structure pour gérer texte ET images
+  const [segmentsData, setSegmentsData] = useState([
+    { text: "-15%", image: null },
+    { text: "🐠 Gratuit", image: null },
+    { text: "-10%", image: null },
+    { text: "🌱 Offerte", image: null },
+    { text: "-20%", image: null },
+    { text: "💧 Perdu", image: null },
   ]);
 
   // Fonction pour ajuster la taille de police selon la longueur du texte
@@ -38,15 +38,53 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     return '140px';
   };
 
-  // Segments de la roue : chaque segment a une nuance de bleu différente, pas de doublon
-  const segments = [
-    { text: segmentsTexts[0], color: "bg-ocean text-white" },           // Bleu principal
-    { text: segmentsTexts[1], color: "bg-[#2563eb] text-white" }, // Bleu vif
-    { text: segmentsTexts[2], color: "bg-[#60a5fa] text-ocean" },       // Bleu clair
-    { text: segmentsTexts[3], color: "bg-[#1e40af] text-white" },  // Bleu foncé
-    { text: segmentsTexts[4], color: "bg-[#3b82f6] text-white" },       // Bleu moyen
-    { text: segmentsTexts[5], color: "bg-[#e0f2fe] text-ocean" },      // Bleu très pâle
-  ];
+  // Segments de la roue : utilise les données avec texte ou image
+  const segments = segmentsData.map((data, index) => ({
+    ...data,
+    color: [
+      "bg-ocean text-white",
+      "bg-[#2563eb] text-white",
+      "bg-[#60a5fa] text-ocean",
+      "bg-[#1e40af] text-white",
+      "bg-[#3b82f6] text-white",
+      "bg-[#e0f2fe] text-ocean"
+    ][index]
+  }));
+
+  // Fonction pour uploader une image
+  const handleImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        setSegmentsData(prev => 
+          prev.map((item, i) => 
+            i === index ? { ...item, image: imageUrl } : item
+          )
+        );
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Fonction pour supprimer une image et revenir au texte
+  const handleRemoveImage = (index: number) => {
+    setSegmentsData(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, image: null } : item
+      )
+    );
+  };
+
+  // Fonction pour modifier le texte
+  const handleTextChange = (index: number, newText: string) => {
+    setSegmentsData(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, text: newText } : item
+      )
+    );
+  };
 
   const handleSpin = () => {
     if (isSpinning) return;
@@ -174,7 +212,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           textOverflow: 'ellipsis',
                         }}
                       >
-                        {segment.text}
+                        {segment.image ? (
+                          <img
+                            src={segment.image}
+                            alt="Segment"
+                            style={{
+                              width: '50px',
+                              height: '50px',
+                              objectFit: 'cover',
+                              borderRadius: '8px',
+                              border: '2px solid rgba(255,255,255,0.8)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                          />
+                        ) : (
+                          segment.text
+                        )}
                       </div>
                     </div>
                   );
@@ -212,19 +265,66 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {isEditMode && (
           <div className="ml-8 w-64 bg-gray-50 border-l border-gray-200 rounded-lg p-4 flex flex-col gap-4">
             <h3 className="font-bold text-lg mb-2 text-ocean">Édition des segments</h3>
-            {segmentsTexts.map((txt, idx) => (
-              <div key={idx} className="flex flex-col gap-1">
-                <label className="text-xs text-gray-600">Segment {idx + 1}</label>
-                <input
-                  type="text"
-                  className="border rounded px-2 py-1 text-sm"
-                  value={txt}
-                  onChange={e => {
-                    const arr = [...segmentsTexts];
-                    arr[idx] = e.target.value;
-                    setSegmentsTexts(arr);
-                  }}
-                />
+            {segmentsData.map((data, idx) => (
+              <div key={idx} className="flex flex-col gap-2 p-3 bg-white rounded border">
+                <label className="text-sm font-medium text-gray-700">Segment {idx + 1}</label>
+                
+                {!data.image ? (
+                  <>
+                    <input
+                      type="text"
+                      className="border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Texte du segment"
+                      value={data.text}
+                      onChange={e => {
+                        handleTextChange(idx, e.target.value);
+                      }}
+                    />
+                    <label className="flex items-center justify-center px-3 py-2 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
+                      <span className="text-sm text-blue-700">📁 Uploader une image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          handleImageUpload(idx, e);
+                        }}
+                      />
+                    </label>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Image uploadée</span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          handleRemoveImage(idx);
+                        }}
+                        className="text-red-500 hover:text-red-700 h-6 w-6 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <img
+                      src={data.image}
+                      alt={`Segment ${idx + 1}`}
+                      className="w-16 h-16 object-cover rounded border-2 border-gray-200"
+                    />
+                    <label className="flex items-center justify-center px-2 py-1 bg-blue-50 border border-blue-200 rounded cursor-pointer hover:bg-blue-100 transition-colors">
+                      <span className="text-xs text-blue-700">🔄 Changer l'image</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          handleImageUpload(idx, e);
+                        }}
+                      />
+                    </label>
+                  </div>
+                )}
               </div>
             ))}
           </div>
