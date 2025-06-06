@@ -200,7 +200,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           position: 'absolute',
                           top: '50%',
                           left: '50%',
-                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-50px)`,
+                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
                           width: segment.image ? '60px' : '120px',
                           height: segment.image ? '60px' : 'auto',
                           textAlign: 'center',
