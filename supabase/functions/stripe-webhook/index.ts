@@ -94,6 +94,44 @@ serve(async (req) => {
     }
     const updatedOrder = await res.json();
     console.log("✅ Commande mise à jour avec succès:", order_id, updatedOrder);
+    
+    // Enregistrer les cadeaux de la roue s'il y en a
+    if (metadata.wheel_gifts) {
+      try {
+        const wheelGifts = JSON.parse(metadata.wheel_gifts);
+        console.log("🎁 Cadeaux de la roue trouvés:", wheelGifts);
+        
+        if (Array.isArray(wheelGifts) && wheelGifts.length > 0) {
+          const giftInserts = wheelGifts.map(gift => ({
+            order_id: order_id,
+            gift_type: 'wheel_gift',
+            title: gift.title || 'Cadeau de la roue',
+            image_url: gift.image_url,
+            won_at: new Date().toISOString(),
+            segment_position: gift.segment_position || null
+          }));
+          
+          const giftRes = await fetch(`${SUPABASE_URL}/rest/v1/order_wheel_gifts`, {
+            method: "POST",
+            headers: {
+              "apikey": SUPABASE_SERVICE_ROLE_KEY,
+              "Authorization": `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(giftInserts)
+          });
+          
+          if (giftRes.ok) {
+            console.log("✅ Cadeaux de la roue enregistrés avec succès");
+          } else {
+            const giftError = await giftRes.text();
+            console.error("❌ Erreur enregistrement cadeaux:", giftError);
+          }
+        }
+      } catch (giftErr) {
+        console.error("❌ Erreur parsing cadeaux de la roue:", giftErr);
+      }
+    }
   }
 
   return new Response(JSON.stringify({ received: true }), {

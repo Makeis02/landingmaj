@@ -286,45 +286,24 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Fonction pour ajouter un cadeau au panier avec animation
   const handleAddGiftToCart = async (segment: any) => {
-    if (!segment.image_url) return;
-    
-    setAnimatingImage(segment.image_url);
-    setShowAddToCartAnimation(true);
-    
-    // Animation de vol vers le panier
-    setTimeout(async () => {
-      try {
-        // Créer l'objet cadeau selon la structure de votre CartItem
-        const giftItem = {
-          id: `gift_${Date.now()}`,
-          title: segment.text || 'Cadeau de la roue',
-          image_url: segment.image_url,
-          price: 0,
-          quantity: 1,
-          is_gift: true, // Marquer comme cadeau spécial de la roue
-          variant: undefined
-        };
-        
-        // Utiliser le store Zustand pour ajouter au panier
-        await addItem(giftItem);
-        
-        // Toast de confirmation
-        toast.success('🎁 Cadeau ajouté au panier !', {
-          description: 'Votre gain a été automatiquement ajouté au panier',
-          duration: 3000,
-        });
-        
-      } catch (error) {
-        console.error('Erreur lors de l\'ajout du cadeau au panier:', error);
-        toast.error('Erreur lors de l\'ajout du cadeau', {
-          description: 'Veuillez réessayer',
-        });
-      } finally {
-        setShowAddToCartAnimation(false);
-        setAnimatingImage(null);
-        setShowResult(false);
+    const giftItem = {
+      id: `wheel_gift_${Date.now()}`,
+      title: segment.text || 'Cadeau mystère',
+      image_url: segment.image_url || segment.image,
+      price: 0,
+      quantity: 1,
+      is_gift: true,
+      segment_position: segment.position || 0
+    };
+
+    addItem(giftItem);
+    toast.success(`🎁 ${segment.text} ajouté à votre panier !`, {
+      style: { 
+        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        color: 'white',
+        border: 'none'
       }
-    }, 1500); // Durée de l'animation
+    });
   };
 
   // Fonction pour déterminer quel segment est réellement sous la flèche
@@ -409,20 +388,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
         {/* Roue à gauche */}
         <div className={isEditMode ? "flex-shrink-0" : ""}>
-          {/* Header avec bouton fermer */}
-          <div className="flex justify-between items-center p-6 border-b border-cyan-100">
+        {/* Header avec bouton fermer */}
+        <div className="flex justify-between items-center p-6 border-b border-cyan-100">
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
               className="text-gray-400 hover:text-blue-700"
-            >
-              <X className="h-5 w-5" />
-            </Button>
-          </div>
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
 
-          {/* Contenu principal */}
+        {/* Contenu principal */}
           <div className="p-6 text-center">
             <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
               🌊 {wheelSettings.description} 🐟
@@ -435,81 +414,81 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               </div>
             ) : (
               <>
-                {/* Container de la roue avec poissons animés */}
-                <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
-                  {/* Poissons qui nagent autour de la roue */}
-                  <div className="absolute inset-0">
-                    {/* Poisson 1 - tourne dans le sens horaire */}
-                    <div 
-                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                      style={{
-                        animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
-                        top: '10%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        transformOrigin: '50% 140px'
-                      }}
-                    >
-                      🐠
-                    </div>
-                    {/* Poisson 2 - tourne dans le sens antihoraire */}
-                    <div 
-                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                      style={{
-                        animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
-                        bottom: '10%',
-                        right: '20%',
-                        transformOrigin: '0 -140px'
-                      }}
-                    >
-                      🐟
-                    </div>
-                    {/* Poisson 3 - plus petit, tourne plus vite */}
-                    <div 
-                      className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
-                      style={{
-                        animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
-                        left: '15%',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        transformOrigin: '120px 0'
-                      }}
-                    >
-                      🐡
-                    </div>
-                  </div>
+          {/* Container de la roue avec poissons animés */}
+          <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
+            {/* Poissons qui nagent autour de la roue */}
+            <div className="absolute inset-0">
+              {/* Poisson 1 - tourne dans le sens horaire */}
+              <div 
+                className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                style={{
+                  animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
+                  top: '10%',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  transformOrigin: '50% 140px'
+                }}
+              >
+                🐠
+              </div>
+              {/* Poisson 2 - tourne dans le sens antihoraire */}
+              <div 
+                className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                style={{
+                  animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
+                  bottom: '10%',
+                  right: '20%',
+                  transformOrigin: '0 -140px'
+                }}
+              >
+                🐟
+              </div>
+              {/* Poisson 3 - plus petit, tourne plus vite */}
+              <div 
+                className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
+                style={{
+                  animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
+                  left: '15%',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  transformOrigin: '120px 0'
+                }}
+              >
+                🐡
+              </div>
+            </div>
 
-                  {/* Indicateur fixe (flèche) */}
-                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
+            {/* Indicateur fixe (flèche) */}
+            <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
                     <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
-                  </div>
+            </div>
 
-                  {/* La roue */}
-                  <div 
-                    className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
+            {/* La roue */}
+            <div 
+              className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
+              style={{
+                width: '280px',
+                height: '280px',
+                margin: '20px auto',
+                transform: `rotate(${rotation}deg)`,
+                transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
+              }}
+            >
+              {segments.map((segment, index) => {
+                const angle = (360 / segments.length) * index;
+                const nextAngle = (360 / segments.length) * (index + 1);
+                      const midAngle = angle + (nextAngle - angle) / 2;
+                return (
+                  <div
+                    key={index}
+                          className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
                     style={{
-                      width: '280px',
-                      height: '280px',
-                      margin: '20px auto',
-                      transform: `rotate(${rotation}deg)`,
-                      transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
+                      clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                            transformOrigin: 'center',
                     }}
                   >
-                    {segments.map((segment, index) => {
-                      const angle = (360 / segments.length) * index;
-                      const nextAngle = (360 / segments.length) * (index + 1);
-                      const midAngle = angle + (nextAngle - angle) / 2;
-                      return (
-                        <div
-                          key={index}
-                          className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
-                          style={{
-                            clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                            transformOrigin: 'center',
-                          }}
-                        >
-                          <div
-                            style={{
+                    <div 
+                      style={{
                               position: 'absolute',
                               top: '50%',
                               left: '50%',
@@ -527,8 +506,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                            }}
-                          >
+                      }}
+                    >
                             {segment.image_url ? (
                               <img
                                 src={segment.image_url}
@@ -547,36 +526,36 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             ) : (
                               segment.text
                             )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {/* Centre de la roue avec poisson */}
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
-                      <span className="text-white text-2xl">🐠</span>
                     </div>
                   </div>
-                </div>
+                );
+              })}
+              {/* Centre de la roue avec poisson */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
+                      <span className="text-white text-2xl">🐠</span>
+              </div>
+            </div>
+          </div>
 
-                {/* Bouton pour lancer la roue */}
-                <Button
-                  onClick={handleSpin}
-                  disabled={isSpinning}
-                  className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isSpinning ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      🌊 La roue tourne...
-                    </>
-                  ) : (
-                    '🎣 Lancer la roue aquatique'
-                  )}
-                </Button>
+          {/* Bouton pour lancer la roue */}
+          <Button
+            onClick={handleSpin}
+            disabled={isSpinning}
+            className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            {isSpinning ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                🌊 La roue tourne...
+              </>
+            ) : (
+              '🎣 Lancer la roue aquatique'
+            )}
+          </Button>
 
                 <p className="text-xs text-blue-500 mt-4">
-                  🐟 Une seule tentative par jour par aquariophile
-                </p>
+            🐟 Une seule tentative par jour par aquariophile
+          </p>
               </>
             )}
           </div>

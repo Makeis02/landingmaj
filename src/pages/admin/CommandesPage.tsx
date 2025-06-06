@@ -114,6 +114,7 @@ export default function CommandesPage() {
   const [loadingClientOrderItems, setLoadingClientOrderItems] = useState(false);
   const [orderProductImages, setOrderProductImages] = useState({});
   const [clientOrderProductImages, setClientOrderProductImages] = useState({});
+  const [clientOrderWheelGifts, setClientOrderWheelGifts] = useState([]);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -541,17 +542,27 @@ export default function CommandesPage() {
     setSelectedClientOrder(order);
     setLoadingClientOrderItems(true);
     try {
+      // Récupérer les produits
       const { data, error } = await supabase
         .from("order_items")
         .select("*")
         .eq("order_id", order.id);
+      
+      // Récupérer les cadeaux de la roue
+      const { data: wheelGifts, error: wheelError } = await supabase
+        .from("order_wheel_gifts")
+        .select("*")
+        .eq("order_id", order.id);
+        
       if (!error) {
         setSelectedClientOrderItems(data || []);
+        setClientOrderWheelGifts(wheelGifts || []);
         const ids = [...new Set((data || []).filter(item => !item.product_id.startsWith('shipping_')).map(item => item.product_id))];
         const images = await fetchProductImages(ids);
         setClientOrderProductImages(images);
       } else {
         setSelectedClientOrderItems([]);
+        setClientOrderWheelGifts([]);
         setClientOrderProductImages({});
       }
     } finally {
@@ -561,6 +572,7 @@ export default function CommandesPage() {
   const handleCloseClientOrderItems = () => {
     setSelectedClientOrder(null);
     setSelectedClientOrderItems([]);
+    setClientOrderWheelGifts([]);
   };
 
   // Fonction utilitaire pour récupérer les images principales
@@ -1115,6 +1127,35 @@ export default function CommandesPage() {
                       ))}
                     </tbody>
                   </table>
+                  
+                  {/* Section cadeaux de la roue */}
+                  {clientOrderWheelGifts.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="text-lg font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                        🎁 Cadeaux de la roue de la fortune
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {clientOrderWheelGifts.map((gift, idx) => (
+                          <div key={gift.id || idx} className="bg-gradient-to-br from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
+                            <div className="flex items-center gap-3">
+                              <img 
+                                src={gift.image_url} 
+                                alt={gift.title} 
+                                className="w-12 h-12 object-contain rounded-lg bg-white border"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">{gift.title}</div>
+                                <div className="text-xs text-gray-500">
+                                  Gagné le {new Date(gift.won_at).toLocaleDateString('fr-FR')}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
                   <div className="mt-4 font-semibold">
                     Livraison : {(() => {
                       const shipping = selectedClientOrderItems.find(item => item.product_id.startsWith('shipping_'));

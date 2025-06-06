@@ -59,8 +59,15 @@ export const POST = async ({ request }) => {
       return new Response(JSON.stringify({ error: "Panier vide", debug }), { status: 400 });
     }
 
-    // Vérifier que tous les produits ont un stripe_price_id
-    const invalid = items.filter(
+    // Séparer les produits payants des cadeaux de la roue
+    const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+    const wheelGifts = items.filter(item => item.is_gift && item.image_url); // Uniquement cadeaux images de la roue
+
+    console.log("💳 Produits payants:", payableItems);
+    console.log("🎁 Cadeaux roue:", wheelGifts);
+
+    // Vérifier que tous les produits payants ont un stripe_price_id
+    const invalid = payableItems.filter(
       item =>
         !item.price_data &&
         !item.stripe_price_id &&
@@ -71,8 +78,8 @@ export const POST = async ({ request }) => {
       return new Response(JSON.stringify({ error: "Produits sans stripe_price_id ni price_data", debug }), { status: 400 });
     }
 
-    // Calculer le total
-    const total = items.reduce((acc, item) => {
+    // Calculer le total (uniquement produits payants)
+    const total = payableItems.reduce((acc, item) => {
       const finalPrice = item.has_discount && item.price ? item.price : item.price;
       return acc + (finalPrice * item.quantity);
     }, 0);
@@ -87,8 +94,8 @@ export const POST = async ({ request }) => {
       }), { status: 400 });
     }
 
-    // Créer les line items Stripe
-    const lineItems = items.map(item => {
+    // Créer les line items Stripe (uniquement produits payants)
+    const lineItems = payableItems.map(item => {
       const priceId = (item.has_discount && item.stripe_discount_price_id)
         ? item.stripe_discount_price_id
         : item.stripe_price_id;
@@ -104,7 +111,8 @@ export const POST = async ({ request }) => {
       // Mettre tous les champs shipping_info à plat dans metadata
       const flatMetadata = {
         user_id: user_id || null,
-        items: JSON.stringify(items),
+        items: JSON.stringify(payableItems), // Seulement les produits payants
+        wheel_gifts: JSON.stringify(wheelGifts), // Cadeaux de la roue séparément
         total: total.toString(),
         ...(shipping_info || {})
       };

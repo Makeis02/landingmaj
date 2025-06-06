@@ -30,6 +30,7 @@ interface Order {
   created_at: string;
   total: number;
   status: "active" | "en_cours" | "litige" | "archived";
+  payment_status?: string;
   order_items: OrderItem[];
   tracking_number?: string;
   litige_closed?: boolean;
@@ -128,11 +129,11 @@ function LitigeChat({ order, litigeMessages, loadingMessages, newMessage, setNew
 
 const OrdersPage = () => {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [productTitles, setProductTitles] = useState<Record<string, string>>({});
+  const [orderProductImages, setOrderProductImages] = useState<Record<string, string>>({});
+  const [orderWheelGifts, setOrderWheelGifts] = useState<Record<string, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState<string | null>(null);
-  const [productTitles, setProductTitles] = useState<Record<string, string>>({});
-  const user = useUserStore((s) => s.user);
-  const navigate = useNavigate();
   const [showLitigeModal, setShowLitigeModal] = useState(false);
   const [selectedOrderForLitige, setSelectedOrderForLitige] = useState<Order | null>(null);
   const [litigeReason, setLitigeReason] = useState("");
@@ -140,10 +141,11 @@ const OrdersPage = () => {
   const [litigeMessages, setLitigeMessages] = useState([]);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [newMessage, setNewMessage] = useState("");
-  const messagesEndRef = useRef(null);
   const [lastSentTime, setLastSentTime] = useState(0);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [orderProductImages, setOrderProductImages] = useState<Record<string, string>>({});
+  const messagesEndRef = useRef(null);
+  const user = useUserStore((s) => s.user);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user?.id) {
@@ -168,6 +170,22 @@ const OrdersPage = () => {
 
         if (ordersData) {
           setOrders(ordersData);
+
+          // Récupérer les cadeaux de la roue pour toutes les commandes
+          const orderIds = ordersData.map(order => order.id);
+          const { data: wheelGifts, error: wheelGiftsError } = await supabase
+            .from("order_wheel_gifts")
+            .select("*")
+            .in("order_id", orderIds);
+
+          if (!wheelGiftsError && wheelGifts) {
+            const giftsMap = wheelGifts.reduce((acc, gift) => {
+              if (!acc[gift.order_id]) acc[gift.order_id] = [];
+              acc[gift.order_id].push(gift);
+              return acc;
+            }, {});
+            setOrderWheelGifts(giftsMap);
+          }
 
           // Récupérer les titres des produits
           const productIds = ordersData
@@ -636,6 +654,35 @@ const OrdersPage = () => {
                             </div>
                           ))}
                       </div>
+                      
+                      {/* Section cadeaux de la roue */}
+                      {orderWheelGifts[order.id] && orderWheelGifts[order.id].length > 0 && (
+                        <div className="mt-4 pt-3 border-t border-gray-200">
+                          <h4 className="text-sm font-semibold text-blue-600 mb-3 flex items-center gap-2">
+                            🎁 Cadeaux de la roue de la fortune
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {orderWheelGifts[order.id].map((gift, idx) => (
+                              <div key={gift.id || idx} className="bg-gradient-to-br from-blue-50 to-purple-50 p-3 rounded-lg border border-blue-200">
+                                <div className="flex items-center gap-3">
+                                  <img 
+                                    src={gift.image_url} 
+                                    alt={gift.title} 
+                                    className="w-10 h-10 object-contain rounded-lg bg-white border"
+                                  />
+                                  <div className="flex-1">
+                                    <div className="font-medium text-sm text-gray-900">{gift.title}</div>
+                                    <div className="text-xs text-gray-500">
+                                      Gagné le {new Date(gift.won_at).toLocaleDateString('fr-FR')}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      
                       {/* Livraison et point relais */}
                       <div className="mt-2 font-semibold text-sm">
                         Livraison : {
