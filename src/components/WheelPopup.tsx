@@ -12,15 +12,43 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
 
-  // Structure pour gérer texte ET images
+  // Structure pour gérer texte, images ET pourcentages
   const [segmentsData, setSegmentsData] = useState([
-    { text: "-15%", image: null },
-    { text: "🐠 Gratuit", image: null },
-    { text: "-10%", image: null },
-    { text: "🌱 Offerte", image: null },
-    { text: "-20%", image: null },
-    { text: "💧 Perdu", image: null },
+    { text: "-15%", image: null, percentage: 16.67 },
+    { text: "🐠 Gratuit", image: null, percentage: 16.67 },
+    { text: "-10%", image: null, percentage: 16.67 },
+    { text: "🌱 Offerte", image: null, percentage: 16.67 },
+    { text: "-20%", image: null, percentage: 16.67 },
+    { text: "💧 Perdu", image: null, percentage: 16.65 },
   ]);
+
+  // Calcul du total des pourcentages
+  const totalPercentage = segmentsData.reduce((sum, segment) => sum + segment.percentage, 0);
+
+  // Fonction pour calculer quel segment gagner selon les probabilités
+  const calculateWinningSegment = () => {
+    const random = Math.random() * 100;
+    let cumulativePercentage = 0;
+    
+    for (let i = 0; i < segmentsData.length; i++) {
+      cumulativePercentage += segmentsData[i].percentage;
+      if (random <= cumulativePercentage) {
+        return i;
+      }
+    }
+    return 0; // Fallback
+  };
+
+  // Fonction pour modifier le pourcentage d'un segment
+  const handlePercentageChange = (index: number, newPercentage: number) => {
+    if (newPercentage >= 0 && newPercentage <= 100) {
+      setSegmentsData(prev => 
+        prev.map((item, i) => 
+          i === index ? { ...item, percentage: newPercentage } : item
+        )
+      );
+    }
+  };
 
   // Fonction pour ajuster la taille de police selon la longueur du texte
   const getFontSize = (text: string) => {
@@ -89,8 +117,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const handleSpin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
-    const randomRotation = Math.floor(Math.random() * 720) + 1440;
-    setRotation(prev => prev + randomRotation);
+    
+    // Calcul du segment gagnant selon les probabilités
+    const winningSegmentIndex = calculateWinningSegment();
+    
+    // Calcul de l'angle pour s'arrêter sur le segment gagnant
+    const segmentAngle = 360 / segments.length;
+    const targetAngle = (winningSegmentIndex * segmentAngle) + (segmentAngle / 2);
+    
+    // Ajout de rotations supplémentaires pour l'effet visuel
+    const spins = 4 + Math.random() * 2; // 4-6 tours complets
+    const finalRotation = (spins * 360) + (360 - targetAngle);
+    
+    setRotation(prev => prev + finalRotation);
+    
     setTimeout(() => {
       setIsSpinning(false);
     }, 3000);
@@ -271,6 +311,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {isEditMode && (
           <div className="ml-8 w-64 bg-gray-50 border-l border-gray-200 rounded-lg p-4 flex flex-col gap-4">
             <h3 className="font-bold text-lg mb-2 text-ocean">Édition des segments</h3>
+            
+            {/* Indicateur du total des pourcentages */}
+            <div className={`p-2 rounded text-sm font-medium ${
+              Math.abs(totalPercentage - 100) < 0.1 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              Total: {totalPercentage.toFixed(2)}% 
+              {Math.abs(totalPercentage - 100) < 0.1 ? ' ✅' : ' ⚠️'}
+            </div>
+            
             {segmentsData.map((data, idx) => (
               <div key={idx} className="flex flex-col gap-2 p-3 bg-white rounded border">
                 <label className="text-sm font-medium text-gray-700">Segment {idx + 1}</label>
@@ -331,6 +382,23 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     </label>
                   </div>
                 )}
+                
+                {/* Input pour le pourcentage */}
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-600 whitespace-nowrap">Chance:</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+                    value={data.percentage}
+                    onChange={e => {
+                      handlePercentageChange(idx, parseFloat(e.target.value) || 0);
+                    }}
+                  />
+                  <span className="text-xs text-gray-500">%</span>
+                </div>
               </div>
             ))}
           </div>
