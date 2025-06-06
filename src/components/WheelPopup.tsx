@@ -116,16 +116,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     );
   };
 
-  // Fonction pour déterminer le segment gagnant basé sur l'angle de la roue
-  const getSegmentFromAngle = (angle: number) => {
-    // Normaliser l'angle entre 0 et 360
-    const normalizedAngle = ((angle % 360) + 360) % 360;
-    // La flèche est en haut (0°), calculer quel segment est sous la flèche
-    const segmentAngle = 360 / segments.length;
-    const segmentIndex = Math.floor(normalizedAngle / segmentAngle);
-    return Math.min(segmentIndex, segments.length - 1);
-  };
-
   const handleSpin = () => {
     if (isSpinning) return;
     setIsSpinning(true);
@@ -147,9 +137,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     setTimeout(() => {
       setIsSpinning(false);
-      // Déterminer le segment final basé sur l'angle réel de la roue
-      const finalSegmentIndex = getSegmentFromAngle(newRotation);
-      setWinningSegment(segments[finalSegmentIndex]);
+      setWinningSegment(segments[winningSegmentIndex]);
       setShowResult(true);
     }, 3000);
   };
