@@ -271,18 +271,24 @@ const Checkout = () => {
   };
 
   const handleCheckout = async () => {
-    setLoading(true);
     try {
-      setApiDebug({}); // Reset debug
+      setLoading(true);
 
-      // Champs obligatoires pour tous les modes
-      const alwaysRequiredFields = [
+      // 1. FILTRAGE : Séparer les produits payants des cadeaux
+      const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+      const giftItems = items.filter(item => item.is_gift || item.threshold_gift);
+      
+      console.log(`🎁 [CHECKOUT] ${giftItems.length} cadeaux détectés (exclus du traitement Stripe)`);
+      console.log(`💰 [CHECKOUT] ${payableItems.length} produits payants à traiter`);
+
+      // Validation des champs obligatoires
+      const requiredAlways = [
         { key: "firstName", label: "Prénom" },
         { key: "lastName", label: "Nom" },
-        { key: "email", label: "Email" },
+        { key: "email", label: "E-mail" },
         { key: "phone", label: "Téléphone" }
       ];
-      const missingAlways = alwaysRequiredFields.filter(f => !shippingForm[f.key]?.trim());
+      const missingAlways = requiredAlways.filter(f => !shippingForm[f.key]?.trim());
       if (missingAlways.length > 0) {
         toast({
           variant: "destructive",
@@ -324,8 +330,8 @@ const Checkout = () => {
         return;
       }
 
-      // Enrichir chaque item avec le bon stripe_price_id ET les prix avec promotions
-      const enrichedItems = await Promise.all(items.map(async (item) => {
+      // 2. TRAITEMENT STRIPE : Enrichir seulement les produits payants
+      const enrichedPayableItems = await Promise.all(payableItems.map(async (item) => {
         // Récupérer les informations de prix avec réduction
         const { getDiscountedPrice } = useCartStore.getState();
         const priceInfo = await getDiscountedPrice(item.id, item.variant);
@@ -380,6 +386,9 @@ const Checkout = () => {
         };
       }));
 
+      // 3. RÉASSEMBLER : Combiner les produits enrichis avec les cadeaux (inchangés)
+      const enrichedItems = [...enrichedPayableItems, ...giftItems];
+
       // Ajout dynamique du frais de port si nécessaire
       let shippingItem = null;
       if (shippingSettings && !shippingFree) {
@@ -413,11 +422,14 @@ const Checkout = () => {
         return;
       }
 
-      const missing = finalItems.filter(
+      // 4. VALIDATION STRIPE : Vérifier seulement les produits payants (pas les cadeaux)
+      const payableItemsForValidation = finalItems.filter(item => !item.is_gift && !item.threshold_gift);
+      const missing = payableItemsForValidation.filter(
         i => !i.stripe_price_id && !i.stripe_discount_price_id && !("price_data" in i)
       );
+      
       if (missing.length) {
-        console.error("Items sans stripe_price_id ni price_data:", missing);
+        console.error("🚨 [CHECKOUT] Produits payants sans stripe_price_id:", missing);
         toast({
           title: "Erreur",
           description: "Certains produits n'ont pas de prix Stripe configuré. Veuillez vérifier votre panier.",
@@ -426,6 +438,8 @@ const Checkout = () => {
         setLoading(false);
         return;
       }
+      
+      console.log(`✅ [CHECKOUT] Validation OK: ${payableItemsForValidation.length} produits payants prêts pour Stripe`);
       
       // Créer le payload final pour le backend (Supabase ou API)
       // On conserve tous les champs existants (dont stripe_price_id), et on ajoute/force title et variant
@@ -440,6 +454,8 @@ const Checkout = () => {
         ...prev,
         items,
         enrichedItems,
+        payableItems,
+        giftItems,
         missing,
         totalAmount,
         stripeMinimum: STRIPE_MINIMUM_EUR,
