@@ -126,7 +126,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     // Calcul de l'angle pour s'arrêter sur le segment gagnant
     const segmentAngle = 360 / segments.length;
-    const targetAngle = winningSegmentIndex * segmentAngle + (segmentAngle / 2);
+    const targetAngle = 360 - (winningSegmentIndex * segmentAngle + segmentAngle / 2);
     
     // Ajout de rotations supplémentaires pour l'effet visuel
     const spins = 4 + Math.random() * 2; // 4-6 tours complets
