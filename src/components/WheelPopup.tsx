@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores/useCartStore';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 interface LuckyWheelPopupProps {
   isOpen: boolean;
@@ -17,19 +18,93 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [winningSegment, setWinningSegment] = useState<any>(null);
   const [showAddToCartAnimation, setShowAddToCartAnimation] = useState(false);
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [wheelSettings, setWheelSettings] = useState({ title: 'Roue Aquatique', description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !' });
   
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
 
-  // Structure pour gérer texte, images, pourcentages ET codes promo
+  // Structure pour gérer texte, images, pourcentages ET codes promo - maintenant chargée depuis Supabase
   const [segmentsData, setSegmentsData] = useState([
-    { text: "-15%", image: null, percentage: 16.67, promoCode: "" },
-    { text: "🐠 Gratuit", image: null, percentage: 16.67, promoCode: "" },
-    { text: "-10%", image: null, percentage: 16.67, promoCode: "" },
-    { text: "🌱 Offerte", image: null, percentage: 16.67, promoCode: "" },
-    { text: "-20%", image: null, percentage: 16.67, promoCode: "" },
-    { text: "💧 Perdu", image: null, percentage: 16.65, promoCode: "" },
+    { id: null, position: 0, text: "-15%", image_url: null, percentage: 16.67, promo_code: "", is_active: true },
+    { id: null, position: 1, text: "🐠 Gratuit", image_url: null, percentage: 16.67, promo_code: "", is_active: true },
+    { id: null, position: 2, text: "-10%", image_url: null, percentage: 16.67, promo_code: "", is_active: true },
+    { id: null, position: 3, text: "🌱 Offerte", image_url: null, percentage: 16.67, promo_code: "", is_active: true },
+    { id: null, position: 4, text: "-20%", image_url: null, percentage: 16.67, promo_code: "", is_active: true },
+    { id: null, position: 5, text: "💧 Perdu", image_url: null, percentage: 16.65, promo_code: "", is_active: true },
   ]);
+
+  // Charger les données depuis Supabase au montage du composant
+  useEffect(() => {
+    if (isOpen) {
+      loadWheelData();
+    }
+  }, [isOpen]);
+
+  // Fonction pour charger les données de la roue depuis Supabase
+  const loadWheelData = async () => {
+    setIsLoading(true);
+    try {
+      // Charger les segments
+      const { data: segments, error: segmentsError } = await supabase
+        .from('wheel_segments')
+        .select('*')
+        .eq('is_active', true)
+        .order('position');
+
+      if (segmentsError) throw segmentsError;
+
+      // Charger les paramètres
+      const { data: settings, error: settingsError } = await supabase
+        .from('wheel_settings')
+        .select('*')
+        .limit(1)
+        .single();
+
+      if (!settingsError && settings) {
+        setWheelSettings({
+          title: settings.title || 'Roue Aquatique',
+          description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !'
+        });
+      }
+
+      if (segments && segments.length > 0) {
+        setSegmentsData(segments);
+      }
+    } catch (error) {
+      console.error('Erreur lors du chargement des données de la roue:', error);
+      toast.error('Erreur de chargement', {
+        description: 'Impossible de charger les données de la roue'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fonction pour sauvegarder les modifications en mode édition
+  const saveSegmentData = async (segmentData: any) => {
+    if (!isEditMode) return;
+
+    try {
+      const { error } = await supabase
+        .from('wheel_segments')
+        .upsert({
+          id: segmentData.id,
+          position: segmentData.position,
+          text: segmentData.text,
+          image_url: segmentData.image_url,
+          percentage: segmentData.percentage,
+          promo_code: segmentData.promo_code,
+          is_active: segmentData.is_active
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      toast.error('Erreur de sauvegarde');
+    }
+  };
 
   // Calcul du total des pourcentages
   const totalPercentage = segmentsData.reduce((sum, segment) => sum + segment.percentage, 0);
@@ -49,23 +124,44 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   };
 
   // Fonction pour modifier le pourcentage d'un segment
-  const handlePercentageChange = (index: number, newPercentage: number) => {
+  const handlePercentageChange = async (index: number, newPercentage: number) => {
     if (newPercentage >= 0 && newPercentage <= 100) {
-      setSegmentsData(prev => 
-        prev.map((item, i) => 
-          i === index ? { ...item, percentage: newPercentage } : item
-        )
+      const updatedSegments = segmentsData.map((item, i) => 
+        i === index ? { ...item, percentage: newPercentage } : item
       );
+      setSegmentsData(updatedSegments);
+      
+      // Sauvegarder en mode édition
+      if (isEditMode) {
+        await saveSegmentData(updatedSegments[index]);
+      }
     }
   };
 
   // Fonction pour modifier le code promo d'un segment
-  const handlePromoCodeChange = (index: number, newPromoCode: string) => {
-    setSegmentsData(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, promoCode: newPromoCode } : item
-      )
+  const handlePromoCodeChange = async (index: number, newPromoCode: string) => {
+    const updatedSegments = segmentsData.map((item, i) => 
+      i === index ? { ...item, promo_code: newPromoCode } : item
     );
+    setSegmentsData(updatedSegments);
+    
+    // Sauvegarder en mode édition
+    if (isEditMode) {
+      await saveSegmentData(updatedSegments[index]);
+    }
+  };
+
+  // Fonction pour modifier le texte
+  const handleTextChange = async (index: number, newText: string) => {
+    const updatedSegments = segmentsData.map((item, i) => 
+      i === index ? { ...item, text: newText } : item
+    );
+    setSegmentsData(updatedSegments);
+    
+    // Sauvegarder en mode édition
+    if (isEditMode) {
+      await saveSegmentData(updatedSegments[index]);
+    }
   };
 
   // Fonction pour copier le code promo dans le presse-papiers
@@ -111,46 +207,88 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     ][index]
   }));
 
-  // Fonction pour uploader une image
-  const handleImageUpload = (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
+  // Fonction pour uploader une image vers Supabase Storage
+  const handleImageUpload = async (index: number, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        setSegmentsData(prev => 
-          prev.map((item, i) => 
-            i === index ? { ...item, image: imageUrl } : item
-          )
-        );
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    setIsSaving(true);
+    try {
+      // Générer un nom unique pour le fichier
+      const fileExt = file.name.split('.').pop();
+      const fileName = `wheel_segment_${index}_${Date.now()}.${fileExt}`;
+      
+      // Uploader vers Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('wheel-images')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Obtenir l'URL publique
+      const { data: { publicUrl } } = supabase.storage
+        .from('wheel-images')
+        .getPublicUrl(fileName);
+
+      // Mettre à jour le state local
+      const updatedSegments = segmentsData.map((item, i) => 
+        i === index ? { ...item, image_url: publicUrl } : item
+      );
+      setSegmentsData(updatedSegments);
+
+      // Sauvegarder en base en mode édition
+      if (isEditMode) {
+        await saveSegmentData(updatedSegments[index]);
+        toast.success('Image uploadée et sauvegardée !');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'upload de l\'image:', error);
+      toast.error('Erreur d\'upload', {
+        description: 'Impossible d\'uploader l\'image'
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  // Fonction pour supprimer une image et revenir au texte
-  const handleRemoveImage = (index: number) => {
-    setSegmentsData(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, image: null } : item
-      )
-    );
-  };
+  // Fonction pour supprimer une image
+  const handleRemoveImage = async (index: number) => {
+    const segment = segmentsData[index];
+    
+    // Supprimer le fichier de Supabase Storage si c'est une URL Supabase
+    if (segment.image_url && segment.image_url.includes('supabase')) {
+      try {
+        const fileName = segment.image_url.split('/').pop();
+        if (fileName) {
+          await supabase.storage
+            .from('wheel-images')
+            .remove([fileName]);
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du fichier:', error);
+      }
+    }
 
-  // Fonction pour modifier le texte
-  const handleTextChange = (index: number, newText: string) => {
-    setSegmentsData(prev => 
-      prev.map((item, i) => 
-        i === index ? { ...item, text: newText } : item
-      )
+    const updatedSegments = segmentsData.map((item, i) => 
+      i === index ? { ...item, image_url: null } : item
     );
+    setSegmentsData(updatedSegments);
+    
+    // Sauvegarder en mode édition
+    if (isEditMode) {
+      await saveSegmentData(updatedSegments[index]);
+      toast.success('Image supprimée !');
+    }
   };
 
   // Fonction pour ajouter un cadeau au panier avec animation
   const handleAddGiftToCart = async (segment: any) => {
-    if (!segment.image) return;
+    if (!segment.image_url) return;
     
-    setAnimatingImage(segment.image);
+    setAnimatingImage(segment.image_url);
     setShowAddToCartAnimation(true);
     
     // Animation de vol vers le panier
@@ -160,7 +298,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         const giftItem = {
           id: `gift_${Date.now()}`,
           title: segment.text || 'Cadeau de la roue',
-          image_url: segment.image,
+          image_url: segment.image_url,
           price: 0,
           quantity: 1,
           is_gift: true, // Marquer comme cadeau spécial de la roue
@@ -198,7 +336,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     return index;
   };
 
-  const handleSpin = () => {
+  const handleSpin = async () => {
     if (isSpinning) return;
     setIsSpinning(true);
     setShowResult(false); // Cache le résultat précédent
@@ -217,7 +355,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     const newRotation = rotation + finalRotation;
     setRotation(newRotation);
     
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsSpinning(false);
       
       const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
@@ -225,14 +363,32 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setWinningSegment(winningSegmentData);
       setShowResult(true);
       
+      // Enregistrer le tirage dans Supabase (si utilisateur connecté)
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase
+            .from('wheel_spins')
+            .insert({
+              user_id: user.id,
+              segment_won: winningSegmentData.position,
+              winning_text: winningSegmentData.text,
+              winning_image_url: winningSegmentData.image_url,
+              winning_promo_code: winningSegmentData.promo_code
+            });
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du tirage:', error);
+      }
+      
       // Si c'est une image, ajouter automatiquement au panier après 2 secondes
-      if (winningSegmentData?.image) {
+      if (winningSegmentData?.image_url) {
         setTimeout(() => {
           handleAddGiftToCart(winningSegmentData);
         }, 2000); // 2 secondes après l'affichage de la popup
       } else {
         // Si c'est du texte avec un code promo, laisser plus de temps pour le lire et copier
-        const hasPromoCode = winningSegmentData?.promoCode && winningSegmentData.promoCode.trim() !== '';
+        const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
         if (hasPromoCode) {
           // Toast d'information pour le code promo
           setTimeout(() => {
@@ -255,7 +411,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         <div className={isEditMode ? "flex-shrink-0" : ""}>
           {/* Header avec bouton fermer */}
           <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 Roue Aquatique</h2>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
             <Button
               variant="ghost"
               size="icon"
@@ -269,158 +425,175 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           {/* Contenu principal */}
           <div className="p-6 text-center">
             <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
-              🌊 Plongez dans l'aventure et gagnez des cadeaux aquatiques ! 🐟
+              🌊 {wheelSettings.description} 🐟
             </p>
 
-            {/* Container de la roue avec poissons animés */}
-            <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
-              {/* Poissons qui nagent autour de la roue */}
-              <div className="absolute inset-0">
-                {/* Poisson 1 - tourne dans le sens horaire */}
-                <div 
-                  className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                  style={{
-                    animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
-                    top: '10%',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    transformOrigin: '50% 140px'
-                  }}
-                >
-                  🐠
-                </div>
-                {/* Poisson 2 - tourne dans le sens antihoraire */}
-                <div 
-                  className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                  style={{
-                    animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
-                    bottom: '10%',
-                    right: '20%',
-                    transformOrigin: '0 -140px'
-                  }}
-                >
-                  🐟
-                </div>
-                {/* Poisson 3 - plus petit, tourne plus vite */}
-                <div 
-                  className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
-                  style={{
-                    animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
-                    left: '15%',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    transformOrigin: '120px 0'
-                  }}
-                >
-                  🐡
-                </div>
+            {isLoading ? (
+              <div className="flex items-center justify-center h-80">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+                <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
               </div>
-
-              {/* Indicateur fixe (flèche) */}
-              <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
-                <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
-              </div>
-
-              {/* La roue */}
-              <div 
-                className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
-                style={{
-                  width: '280px',
-                  height: '280px',
-                  margin: '20px auto',
-                  transform: `rotate(${rotation}deg)`,
-                  transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
-                }}
-              >
-                {segments.map((segment, index) => {
-                  const angle = (360 / segments.length) * index;
-                  const nextAngle = (360 / segments.length) * (index + 1);
-                  const midAngle = angle + (nextAngle - angle) / 2;
-                  return (
-                    <div
-                      key={index}
-                      className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
+            ) : (
+              <>
+                {/* Container de la roue avec poissons animés */}
+                <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
+                  {/* Poissons qui nagent autour de la roue */}
+                  <div className="absolute inset-0">
+                    {/* Poisson 1 - tourne dans le sens horaire */}
+                    <div 
+                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
                       style={{
-                        clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                        transformOrigin: 'center',
+                        animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
+                        top: '10%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        transformOrigin: '50% 140px'
                       }}
                     >
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
-                          width: segment.image ? '60px' : '120px',
-                          height: segment.image ? '60px' : 'auto',
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          fontSize: '0.9rem',
-                          color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
-                          textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {segment.image ? (
-                          <img
-                            src={segment.image}
-                            alt="Segment"
-                            style={{
-                              width: '40px',
-                              height: '40px',
-                              objectFit: 'cover',
-                              borderRadius: '6px',
-                              border: '2px solid rgba(255,255,255,0.9)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                              display: 'block',
-                              margin: '0 auto',
-                            }}
-                          />
-                        ) : (
-                          segment.text
-                        )}
-                      </div>
+                      🐠
                     </div>
-                  );
-                })}
-                {/* Centre de la roue avec poisson */}
-                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
-                  <span className="text-white text-2xl">🐠</span>
+                    {/* Poisson 2 - tourne dans le sens antihoraire */}
+                    <div 
+                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                      style={{
+                        animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
+                        bottom: '10%',
+                        right: '20%',
+                        transformOrigin: '0 -140px'
+                      }}
+                    >
+                      🐟
+                    </div>
+                    {/* Poisson 3 - plus petit, tourne plus vite */}
+                    <div 
+                      className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
+                      style={{
+                        animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
+                        left: '15%',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        transformOrigin: '120px 0'
+                      }}
+                    >
+                      🐡
+                    </div>
+                  </div>
+
+                  {/* Indicateur fixe (flèche) */}
+                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
+                    <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
+                  </div>
+
+                  {/* La roue */}
+                  <div 
+                    className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
+                    style={{
+                      width: '280px',
+                      height: '280px',
+                      margin: '20px auto',
+                      transform: `rotate(${rotation}deg)`,
+                      transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
+                    }}
+                  >
+                    {segments.map((segment, index) => {
+                      const angle = (360 / segments.length) * index;
+                      const nextAngle = (360 / segments.length) * (index + 1);
+                      const midAngle = angle + (nextAngle - angle) / 2;
+                      return (
+                        <div
+                          key={index}
+                          className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
+                          style={{
+                            clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                            transformOrigin: 'center',
+                          }}
+                        >
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: '50%',
+                              transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
+                              width: segment.image_url ? '60px' : '120px',
+                              height: segment.image_url ? '60px' : 'auto',
+                              textAlign: 'center',
+                              fontWeight: 'bold',
+                              fontSize: '0.9rem',
+                              color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
+                              textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            {segment.image_url ? (
+                              <img
+                                src={segment.image_url}
+                                alt="Segment"
+                                style={{
+                                  width: '40px',
+                                  height: '40px',
+                                  objectFit: 'cover',
+                                  borderRadius: '6px',
+                                  border: '2px solid rgba(255,255,255,0.9)',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                  display: 'block',
+                                  margin: '0 auto',
+                                }}
+                              />
+                            ) : (
+                              segment.text
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {/* Centre de la roue avec poisson */}
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
+                      <span className="text-white text-2xl">🐠</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Bouton pour lancer la roue */}
-            <Button
-              onClick={handleSpin}
-              disabled={isSpinning}
-              className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {isSpinning ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  🌊 La roue tourne...
-                </>
-              ) : (
-                '🎣 Lancer la roue aquatique'
-              )}
-            </Button>
+                {/* Bouton pour lancer la roue */}
+                <Button
+                  onClick={handleSpin}
+                  disabled={isSpinning}
+                  className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                >
+                  {isSpinning ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      🌊 La roue tourne...
+                    </>
+                  ) : (
+                    '🎣 Lancer la roue aquatique'
+                  )}
+                </Button>
 
-            <p className="text-xs text-blue-500 mt-4">
-              🐟 Une seule tentative par jour par aquariophile
-            </p>
+                <p className="text-xs text-blue-500 mt-4">
+                  🐟 Une seule tentative par jour par aquariophile
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
           <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
-            <h3 className="font-bold text-sm mb-1" style={{ color: '#0074b3' }}>Édition des segments</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-sm mb-1" style={{ color: '#0074b3' }}>Édition des segments</h3>
+              {isSaving && (
+                <div className="flex items-center gap-1">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500"></div>
+                  <span className="text-xs text-blue-600">Sauvegarde...</span>
+                </div>
+              )}
+            </div>
             
             {/* Indicateur du total des pourcentages */}
             <div className={`p-2 rounded text-xs font-medium ${
@@ -436,7 +609,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               <div key={idx} className="flex flex-col gap-1.5 p-2 bg-white rounded border text-xs">
                 <label className="text-xs font-medium text-gray-700">Segment {idx + 1}</label>
                 
-                {!data.image ? (
+                {!data.image_url ? (
                   <>
                     <input
                       type="text"
@@ -475,7 +648,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       </Button>
                     </div>
                     <img
-                      src={data.image}
+                      src={data.image_url}
                       alt={`Segment ${idx + 1}`}
                       className="w-12 h-12 object-cover rounded border mx-auto"
                     />
@@ -510,14 +683,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </div>
 
                 {/* Input pour le code promo (uniquement si pas d'image) */}
-                {!data.image && (
+                {!data.image_url && (
                   <div className="flex flex-col gap-0.5">
                     <label className="text-xs text-gray-600">Code promo:</label>
                     <input
                       type="text"
                       className="border rounded px-1 py-0.5 text-xs focus:outline-none focus:ring-1 focus:ring-purple-500"
                       placeholder="PROMO2024..."
-                      value={data.promoCode}
+                      value={data.promo_code}
                       onChange={e => {
                         handlePromoCodeChange(idx, e.target.value);
                       }}
@@ -553,10 +726,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
             {/* Contenu du gain */}
             <div className="text-center mb-8">
-              {winningSegment.image ? (
+              {winningSegment.image_url ? (
                 <div className="flex flex-col items-center gap-4">
                   <img
-                    src={winningSegment.image}
+                    src={winningSegment.image_url}
                     alt="Votre gain"
                     className="w-32 h-32 object-cover rounded-xl border-4 border-cyan-300 shadow-lg animate-pulse"
                   />
@@ -577,7 +750,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   </div>
                   
                   {/* Affichage du code promo si présent */}
-                  {winningSegment.promoCode && winningSegment.promoCode.trim() !== '' && (
+                  {winningSegment.promo_code && winningSegment.promo_code.trim() !== '' && (
                     <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-xl p-4 shadow-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-2xl">🎫</span>
@@ -586,11 +759,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div className="flex items-center gap-3">
                         <div className="bg-white border-2 border-dashed border-purple-400 px-4 py-2 rounded-lg">
                           <span className="text-2xl font-mono font-bold text-purple-700 tracking-wider">
-                            {winningSegment.promoCode}
+                            {winningSegment.promo_code}
                           </span>
                         </div>
                         <Button
-                          onClick={() => copyPromoCode(winningSegment.promoCode)}
+                          onClick={() => copyPromoCode(winningSegment.promo_code)}
                           className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
                         >
                           📋 Copier
