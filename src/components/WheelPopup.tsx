@@ -160,30 +160,30 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div
                         className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-70px)`,
+                          transform: `rotate(${midAngle}deg) translateY(-90px)`,
                           transformOrigin: 'center',
                         }}
                       >
-                        <span
+                        <div
                           style={{
-                            transform: `rotate(0deg)`,
-                            display: 'inline-block',
+                            transform: `rotate(60deg)`,
+                            transformOrigin: 'center',
                             width: '100px',
                             textAlign: 'center',
                             fontWeight: 'bold',
                             fontSize: getFontSize(segment.text),
-                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
-                            whiteSpace: 'nowrap',
-                            overflow: 'visible',
-                            lineHeight: 1.2,
-                            textShadow: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') 
-                              ? '2px 2px 4px rgba(0,0,0,0.4)' 
-                              : '2px 2px 4px rgba(0,0,0,0.6)',
-                            letterSpacing: '0.5px',
+                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
+                              ? '#1e3a8a'
+                              : '#ffffff',
+                            whiteSpace: 'normal',
+                            overflowWrap: 'break-word',
+                            wordBreak: 'break-word',
+                            lineHeight: 1.1,
+                            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
                           }}
                         >
                           {segment.text}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   );
