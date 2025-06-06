@@ -24,10 +24,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Fonction pour ajuster la taille de police selon la longueur du texte
   const getFontSize = (text: string) => {
-    if (text.length <= 4) return '1.1rem';
-    if (text.length <= 8) return '0.9rem';
-    if (text.length <= 12) return '0.75rem';
-    return '0.65rem';
+    if (text.length <= 4) return '1.2rem';
+    if (text.length <= 8) return '1rem';
+    if (text.length <= 12) return '0.85rem';
+    return '0.7rem';
   };
 
   // Fonction pour ajuster la largeur du conteneur selon la longueur du texte
@@ -168,7 +168,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           style={{
                             transform: `rotate(60deg)`,
                             transformOrigin: 'center',
-                            width: '100px',
+                            width: '140px',
+                            height: '60px',
                             textAlign: 'center',
                             fontWeight: 'bold',
                             fontSize: getFontSize(segment.text),
@@ -178,8 +179,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             whiteSpace: 'normal',
                             overflowWrap: 'break-word',
                             wordBreak: 'break-word',
-                            lineHeight: 1.1,
+                            lineHeight: 1.0,
                             textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '5px',
                           }}
                         >
                           {segment.text}
