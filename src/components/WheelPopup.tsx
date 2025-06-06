@@ -148,47 +148,43 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   const angle = (360 / segments.length) * index;
                   const nextAngle = (360 / segments.length) * (index + 1);
                   const midAngle = angle + (nextAngle - angle) / 2;
+                  
+                  // Calcul des coordonnées pour centrer le texte dans le segment
+                  const textRadius = 80; // Distance du centre pour le texte
+                  const textX = 50 + textRadius * Math.cos((midAngle - 90) * Math.PI / 180);
+                  const textY = 50 + textRadius * Math.sin((midAngle - 90) * Math.PI / 180);
+                  
                   return (
-                    <div
-                      key={index}
-                      className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
-                      style={{
-                        clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                        transformOrigin: 'center',
-                      }}
-                    >
+                    <div key={index}>
+                      {/* Segment triangulaire */}
                       <div
-                        className="absolute top-1/2 left-1/2"
+                        className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-90px)`,
+                          clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
                           transformOrigin: 'center',
                         }}
+                      />
+                      
+                      {/* Texte positionné de manière absolue */}
+                      <div
+                        className="absolute"
+                        style={{
+                          left: `${textX}%`,
+                          top: `${textY}%`,
+                          transform: `translate(-50%, -50%) rotate(${midAngle}deg)`,
+                          width: '80px',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          fontSize: getFontSize(segment.text),
+                          color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
+                            ? '#1e3a8a'
+                            : '#ffffff',
+                          whiteSpace: 'nowrap',
+                          textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
+                          lineHeight: 1,
+                        }}
                       >
-                        <div
-                          style={{
-                            transform: `rotate(60deg)`,
-                            transformOrigin: 'center',
-                            width: '140px',
-                            height: '60px',
-                            textAlign: 'center',
-                            fontWeight: 'bold',
-                            fontSize: getFontSize(segment.text),
-                            color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]')
-                              ? '#1e3a8a'
-                              : '#ffffff',
-                            whiteSpace: 'normal',
-                            overflowWrap: 'break-word',
-                            wordBreak: 'break-word',
-                            lineHeight: 1.0,
-                            textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            padding: '5px',
-                          }}
-                        >
-                          {segment.text}
-                        </div>
+                        {segment.text}
                       </div>
                     </div>
                   );
