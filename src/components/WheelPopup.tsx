@@ -32,10 +32,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Fonction pour ajuster la largeur du conteneur selon la longueur du texte
   const getTextWidth = (text: string) => {
-    if (text.length <= 4) return '70px';
-    if (text.length <= 8) return '90px';
-    if (text.length <= 12) return '100px';
-    return '110px';
+    if (text.length <= 4) return '60px';
+    if (text.length <= 8) return '80px';
+    if (text.length <= 12) return '90px';
+    return '100px';
   };
 
   // Segments de la roue : chaque segment a une nuance de bleu différente, pas de doublon
@@ -160,7 +160,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                       <div
                         className="absolute top-1/2 left-1/2"
                         style={{
-                          transform: `rotate(${midAngle}deg) translateY(-85px)`,
+                          transform: `rotate(${midAngle}deg) translateY(-95px)`,
                           transformOrigin: 'center',
                         }}
                       >
@@ -176,11 +176,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             whiteSpace: 'nowrap',
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
-                            lineHeight: 1.2,
+                            lineHeight: 1,
                             textShadow: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') 
                               ? '1px 1px 2px rgba(0,0,0,0.3)' 
                               : '1px 1px 2px rgba(0,0,0,0.5)',
                             letterSpacing: '0.5px',
+                            position: 'relative',
+                            top: '-2px',
                           }}
                         >
                           {segment.text}
