@@ -60,11 +60,44 @@ export const POST = async ({ request }) => {
     }
 
     // Séparer les produits payants des cadeaux de la roue
-    const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
-    const wheelGifts = items.filter(item => item.is_gift && item.image_url); // Uniquement cadeaux images de la roue
+    // FILTRAGE STRICT : un produit est payant SEULEMENT s'il n'est PAS un cadeau
+    const payableItems = items.filter(item => {
+      const isGift = item.is_gift === true || item.threshold_gift === true;
+      const isWheelGift = item.is_gift === true && (item.image_url || item.segment_position !== undefined);
+      return !isGift; // Exclure TOUS les cadeaux
+    });
+    
+    const wheelGifts = items.filter(item => item.is_gift === true && (item.image_url || item.segment_position !== undefined));
+    const allGifts = items.filter(item => item.is_gift === true || item.threshold_gift === true);
 
     console.log("💳 Produits payants:", payableItems);
-    console.log("🎁 Cadeaux roue:", wheelGifts);
+    console.log("🎁 Cadeaux roue (avec image):", wheelGifts);
+    console.log("🎁 TOUS les cadeaux:", allGifts);
+    console.log("📦 Items totaux:", items.length, "| Payants:", payableItems.length, "| Cadeaux:", allGifts.length);
+
+    // Debug spécifique : vérifier chaque item
+    items.forEach((item, index) => {
+      console.log(`Item ${index}:`, {
+        id: item.id,
+        title: item.title,
+        is_gift: item.is_gift,
+        threshold_gift: item.threshold_gift,
+        image_url: item.image_url,
+        segment_position: item.segment_position,
+        stripe_price_id: item.stripe_price_id,
+        price: item.price,
+        isPayable: !item.is_gift && !item.threshold_gift
+      });
+    });
+
+    // S'assurer qu'il y a au moins un produit payant
+    if (payableItems.length === 0) {
+      debug.validated.error = "Aucun produit payant dans le panier";
+      return new Response(JSON.stringify({ 
+        error: "Impossible de créer une commande sans produits payants", 
+        debug 
+      }), { status: 400 });
+    }
 
     // Vérifier que tous les produits payants ont un stripe_price_id
     const invalid = payableItems.filter(
@@ -73,9 +106,16 @@ export const POST = async ({ request }) => {
         !item.stripe_price_id &&
         !item.stripe_discount_price_id
     );
+    
     if (invalid.length > 0) {
+      console.error("❌ Items sans stripe_price_id ni price_data:", invalid);
       debug.validated.error = "Produits sans stripe_price_id ni price_data";
-      return new Response(JSON.stringify({ error: "Produits sans stripe_price_id ni price_data", debug }), { status: 400 });
+      debug.validated.prix_manquant = invalid;
+      return new Response(JSON.stringify({ 
+        error: "Items sans stripe_price_id ni price_data", 
+        invalid_items: invalid,
+        debug 
+      }), { status: 400 });
     }
 
     // Calculer le total (uniquement produits payants)
