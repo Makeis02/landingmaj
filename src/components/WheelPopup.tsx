@@ -200,8 +200,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           position: 'absolute',
                           top: '50%',
                           left: '50%',
-                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
-                          width: '120px',
+                          transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-75px)`,
+                          width: segment.image ? '60px' : '120px',
+                          height: segment.image ? '60px' : 'auto',
                           textAlign: 'center',
                           fontWeight: 'bold',
                           fontSize: '0.9rem',
@@ -210,6 +211,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                           whiteSpace: 'nowrap',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
                         }}
                       >
                         {segment.image ? (
@@ -217,12 +221,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                             src={segment.image}
                             alt="Segment"
                             style={{
-                              width: '50px',
-                              height: '50px',
+                              width: '40px',
+                              height: '40px',
                               objectFit: 'cover',
-                              borderRadius: '8px',
-                              border: '2px solid rgba(255,255,255,0.8)',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                              borderRadius: '6px',
+                              border: '2px solid rgba(255,255,255,0.9)',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                              display: 'block',
+                              margin: '0 auto',
                             }}
                           />
                         ) : (
