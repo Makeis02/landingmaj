@@ -21,14 +21,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
 
-  // Structure pour gérer texte, images ET pourcentages
+  // Structure pour gérer texte, images, pourcentages ET codes promo
   const [segmentsData, setSegmentsData] = useState([
-    { text: "-15%", image: null, percentage: 16.67 },
-    { text: "🐠 Gratuit", image: null, percentage: 16.67 },
-    { text: "-10%", image: null, percentage: 16.67 },
-    { text: "🌱 Offerte", image: null, percentage: 16.67 },
-    { text: "-20%", image: null, percentage: 16.67 },
-    { text: "💧 Perdu", image: null, percentage: 16.65 },
+    { text: "-15%", image: null, percentage: 16.67, promoCode: "" },
+    { text: "🐠 Gratuit", image: null, percentage: 16.67, promoCode: "" },
+    { text: "-10%", image: null, percentage: 16.67, promoCode: "" },
+    { text: "🌱 Offerte", image: null, percentage: 16.67, promoCode: "" },
+    { text: "-20%", image: null, percentage: 16.67, promoCode: "" },
+    { text: "💧 Perdu", image: null, percentage: 16.65, promoCode: "" },
   ]);
 
   // Calcul du total des pourcentages
@@ -56,6 +56,29 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           i === index ? { ...item, percentage: newPercentage } : item
         )
       );
+    }
+  };
+
+  // Fonction pour modifier le code promo d'un segment
+  const handlePromoCodeChange = (index: number, newPromoCode: string) => {
+    setSegmentsData(prev => 
+      prev.map((item, i) => 
+        i === index ? { ...item, promoCode: newPromoCode } : item
+      )
+    );
+  };
+
+  // Fonction pour copier le code promo dans le presse-papiers
+  const copyPromoCode = async (promoCode: string) => {
+    try {
+      await navigator.clipboard.writeText(promoCode);
+      toast.success('Code promo copié !', {
+        description: `Le code "${promoCode}" a été copié dans votre presse-papiers`,
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la copie:', error);
+      toast.error('Erreur lors de la copie du code');
     }
   };
 
@@ -198,14 +221,27 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setIsSpinning(false);
       
       const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
-      setWinningSegment(segments[indexUnderArrow]);                // ✅ visuel
+      const winningSegmentData = segments[indexUnderArrow];         // ✅ visuel
+      setWinningSegment(winningSegmentData);
       setShowResult(true);
       
       // Si c'est une image, ajouter automatiquement au panier après 2 secondes
-      if (segments[indexUnderArrow]?.image) {
+      if (winningSegmentData?.image) {
         setTimeout(() => {
-          handleAddGiftToCart(segments[indexUnderArrow]);
+          handleAddGiftToCart(winningSegmentData);
         }, 2000); // 2 secondes après l'affichage de la popup
+      } else {
+        // Si c'est du texte avec un code promo, laisser plus de temps pour le lire et copier
+        const hasPromoCode = winningSegmentData?.promoCode && winningSegmentData.promoCode.trim() !== '';
+        if (hasPromoCode) {
+          // Toast d'information pour le code promo
+          setTimeout(() => {
+            toast.info('🎫 Code promo disponible !', {
+              description: 'N\'oubliez pas de copier votre code promo avant de fermer',
+              duration: 4000,
+            });
+          }, 1000);
+        }
       }
     }, 3000);
   };
@@ -473,6 +509,25 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   />
                   <span className="text-xs text-gray-500">%</span>
                 </div>
+
+                {/* Input pour le code promo (uniquement si pas d'image) */}
+                {!data.image && (
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-gray-600">Code promo (optionnel):</label>
+                    <input
+                      type="text"
+                      className="border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="Ex: AQUA15, PROMO2024..."
+                      value={data.promoCode}
+                      onChange={e => {
+                        handlePromoCodeChange(idx, e.target.value);
+                      }}
+                    />
+                    <p className="text-xs text-gray-500">
+                      Le code sera affiché dans la popup de résultat
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -518,10 +573,38 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   </div>
                 </div>
               ) : (
-                <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
-                  <p className="text-4xl font-bold text-blue-800 animate-pulse">
-                    {winningSegment.text}
-                  </p>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
+                    <p className="text-4xl font-bold text-blue-800 animate-pulse">
+                      {winningSegment.text}
+                    </p>
+                  </div>
+                  
+                  {/* Affichage du code promo si présent */}
+                  {winningSegment.promoCode && winningSegment.promoCode.trim() !== '' && (
+                    <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-xl p-4 shadow-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🎫</span>
+                        <p className="text-lg font-bold text-purple-800">Code promo :</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="bg-white border-2 border-dashed border-purple-400 px-4 py-2 rounded-lg">
+                          <span className="text-2xl font-mono font-bold text-purple-700 tracking-wider">
+                            {winningSegment.promoCode}
+                          </span>
+                        </div>
+                        <Button
+                          onClick={() => copyPromoCode(winningSegment.promoCode)}
+                          className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
+                        >
+                          📋 Copier
+                        </Button>
+                      </div>
+                      <p className="text-xs text-purple-600 mt-2 animate-pulse">
+                        ✨ Utilisez ce code lors de votre commande !
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
