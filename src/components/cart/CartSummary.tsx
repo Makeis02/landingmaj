@@ -25,6 +25,11 @@ const CartSummary = () => {
   const { items, getTotal } = useCartStore();
   const total = getTotal();
   
+  // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
+  const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+  const hasOnlyGifts = items.length > 0 && payableItems.length === 0;
+  const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
+  
   // Ajout : récupération du seuil de livraison gratuite depuis Supabase
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
   const [shippingPrice, setShippingPrice] = useState<number | null>(null);
@@ -151,9 +156,29 @@ const CartSummary = () => {
           </div>
         )}
 
+        {/* 🎁 Message informatif si seulement des cadeaux */}
+        {hasOnlyGifts && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center justify-center text-amber-700">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div className="text-xs">
+                <span className="font-medium">Panier contenant uniquement des cadeaux</span>
+                <br />
+                <span>Ajoutez des produits payants pour commander</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Button 
-          className="w-full mt-6"
-          disabled={isLoading || items.length === 0}
+          className={`w-full mt-6 ${
+            !canCheckout 
+              ? 'bg-gray-400 text-gray-600 cursor-not-allowed hover:bg-gray-400' 
+              : ''
+          }`}
+          disabled={isLoading || items.length === 0 || !canCheckout}
           onClick={handleCheckout}
         >
           {isLoading ? (
@@ -161,7 +186,16 @@ const CartSummary = () => {
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Redirection...
             </>
-          ) : "Procéder au paiement"}
+          ) : !canCheckout ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              Ajoutez des produits pour commander
+            </>
+          ) : (
+            "Procéder au paiement"
+          )}
         </Button>
       </div>
     </div>

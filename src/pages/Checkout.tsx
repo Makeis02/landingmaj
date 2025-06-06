@@ -119,6 +119,12 @@ const Checkout = () => {
   const location = useLocation();
   const clearCart = useCartStore((state) => state.clearCart);
 
+  // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
+  const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+  const giftItems = items.filter(item => item.is_gift || item.threshold_gift);
+  const hasOnlyGifts = items.length > 0 && payableItems.length === 0;
+  const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
+
   // Formulaire d'adresse
   const [shippingForm, setShippingForm] = useState({
     firstName: "",
@@ -939,15 +945,40 @@ const Checkout = () => {
                       </span>
                     </div>
                     
+                    {/* 🎁 Message informatif si seulement des cadeaux */}
+                    {hasOnlyGifts && (
+                      <div className="flex items-center justify-center p-4 bg-amber-50 rounded-lg border border-amber-200 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                        <div className="text-sm text-amber-700">
+                          <span className="font-medium">Panier contenant uniquement des cadeaux</span>
+                          <br />
+                          <span className="text-xs">Ajoutez des produits payants pour pouvoir commander</span>
+                        </div>
+                      </div>
+                    )}
+                    
                     <Button
                       onClick={handleCheckout}
-                      disabled={loading || items.length === 0}
-                      className="rounded-xl bg-[#0074b3] text-white hover:bg-[#005a8c] transition-colors px-6 py-2 font-semibold w-full flex items-center justify-center gap-2 h-12"
+                      disabled={loading || items.length === 0 || !canCheckout}
+                      className={`rounded-xl transition-colors px-6 py-2 font-semibold w-full flex items-center justify-center gap-2 h-12 ${
+                        !canCheckout 
+                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
+                          : 'bg-[#0074b3] text-white hover:bg-[#005a8c]'
+                      }`}
                     >
                       {loading ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Redirection en cours...
+                        </>
+                      ) : !canCheckout ? (
+                        <>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          Ajoutez des produits pour commander
                         </>
                       ) : (
                         <>
@@ -958,7 +989,11 @@ const Checkout = () => {
                     </Button>
                     
                     <p className="text-xs text-gray-500 text-center">
-                      En cliquant sur "Procéder au paiement", vous acceptez nos conditions générales de vente.
+                      {canCheckout ? (
+                        "En cliquant sur \"Procéder au paiement\", vous acceptez nos conditions générales de vente."
+                      ) : (
+                        "Vous ne pouvez pas passer commande avec uniquement des cadeaux gratuits."
+                      )}
                     </p>
                   </CardContent>
                 </Card>

@@ -66,19 +66,41 @@ serve(async (req) => {
       });
     }
 
-    // ❌ Vérification Stripe price ID
-    const invalid = items.filter((i: any) => !i.stripe_price_id);
-    if (invalid.length > 0) {
-      debug.validated.invalid_items = invalid;
+    // 🎁 SÉPARATION : Produits payants vs Cadeaux
+    const payableItems = items.filter((item: any) => !item.is_gift && !item.threshold_gift);
+    const wheelGifts = items.filter((item: any) => item.is_gift === true && (item.image_url || item.segment_position !== undefined));
+    const allGifts = items.filter((item: any) => item.is_gift === true || item.threshold_gift === true);
+
+    console.log("💰 [CHECKOUT] Produits payants:", payableItems.length);
+    console.log("🎁 [CHECKOUT] Cadeaux roue:", wheelGifts.length); 
+    console.log("🎁 [CHECKOUT] Total cadeaux:", allGifts.length);
+
+    // Vérification qu'il y a au moins un produit payant
+    if (payableItems.length === 0) {
+      debug.validated.error = "Aucun produit payant";
       console.log("📦 DEBUG FINAL :", JSON.stringify(debug, null, 2));
-      return new Response(JSON.stringify({ error: "Produit(s) sans stripe_price_id", debug }), {
+      return new Response(JSON.stringify({ error: "Impossible de créer une commande sans produits payants", debug }), {
         status: 400,
         headers: { "Content-Type": "application/json", ...headers }
       });
     }
 
-    const total = items.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0);
+    // ❌ Vérification Stripe price ID (SEULEMENT pour les produits payants)
+    const invalid = payableItems.filter((i: any) => !i.stripe_price_id);
+    if (invalid.length > 0) {
+      debug.validated.invalid_items = invalid;
+      console.log("📦 DEBUG FINAL :", JSON.stringify(debug, null, 2));
+      return new Response(JSON.stringify({ error: "Produit(s) payants sans stripe_price_id", debug }), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...headers }
+      });
+    }
+
+    // 💰 Calcul du total (SEULEMENT les produits payants)
+    const total = payableItems.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0);
     debug.validated.total = total;
+    debug.validated.payableItems = payableItems.length;
+    debug.validated.wheelGifts = wheelGifts.length;
 
     // 📦 Création commande Supabase
     const orderPayload = {
@@ -114,7 +136,7 @@ serve(async (req) => {
     }
 
     // 🧾 Insertion des produits
-    const orderItems = items.map((i: any) => ({
+    const orderItems = payableItems.map((i: any) => ({
       order_id: order.id,
       product_id: i.id,
       quantity: i.quantity,
@@ -141,12 +163,16 @@ serve(async (req) => {
     params.append("mode", "payment");
     params.append("success_url", `https://majemsiteteste.netlify.app/order-confirmation?order_id=${order.id}`);
     params.append("cancel_url", `https://majemsiteteste.netlify.app/checkout?canceled=true`);
-    items.forEach((item: any, idx: number) => {
+    payableItems.forEach((item: any, idx: number) => {
       params.append(`line_items[${idx}][price]`, item.stripe_price_id);
       params.append(`line_items[${idx}][quantity]`, String(item.quantity));
     });
     params.append("metadata[supabase_order_id]", order.id);
     if (user_id) params.append("metadata[user_id]", user_id);
+    // Ajout des cadeaux de la roue dans les métadonnées
+    if (wheelGifts.length > 0) {
+      params.append("metadata[wheel_gifts]", JSON.stringify(wheelGifts));
+    }
     // Ajout de TOUS les champs client à plat dans metadata
     if (first_name) params.append("metadata[first_name]", first_name);
     if (last_name) params.append("metadata[last_name]", last_name);
@@ -160,6 +186,7 @@ serve(async (req) => {
     if (shipping_method) params.append("metadata[shipping_method]", shipping_method);
     if (mondial_relay) params.append("metadata[mondial_relay]", typeof mondial_relay === 'string' ? mondial_relay : JSON.stringify(mondial_relay));
     params.append("metadata[order_id]", order.id);
+    params.append("metadata[total]", total.toString());
 
     debug.stripe.payload = Object.fromEntries(params.entries());
 

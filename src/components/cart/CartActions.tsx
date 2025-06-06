@@ -17,6 +17,11 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
   const [discountCode, setDiscountCode] = useState("");
   const navigate = useNavigate();
 
+  // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
+  const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+  const hasOnlyGifts = items.length > 0 && payableItems.length === 0;
+  const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
+
   // Ajout : récupération du seuil de livraison gratuite et du prix de livraison
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
   const [shippingPrice, setShippingPrice] = useState<number | null>(null);
@@ -112,14 +117,47 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
               <span className="text-base font-medium">Total</span>
               <span className="text-base font-bold">{total.toFixed(2)} €</span>
             </div>
+        
+        {/* 🎁 Message informatif si seulement des cadeaux */}
+        {hasOnlyGifts && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="flex items-center justify-center text-amber-700">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div className="text-xs">
+                <span className="font-medium">Panier contenant uniquement des cadeaux</span>
+                <br />
+                <span>Ajoutez des produits payants pour commander</span>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {items.length > 0 && (
           <div className="flex flex-col gap-3 mt-6">
             <Button 
-              className="rounded-xl bg-[#0074b3] text-white hover:bg-[#005a8c] transition-colors px-6 py-2 font-semibold w-full flex items-center justify-center gap-2" 
+              className={`rounded-xl transition-colors px-6 py-2 font-semibold w-full flex items-center justify-center gap-2 ${
+                !canCheckout 
+                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed hover:bg-gray-400' 
+                  : 'bg-[#0074b3] text-white hover:bg-[#005a8c]'
+              }`}
+              disabled={!canCheckout}
               onClick={() => { onCheckout(); navigate("/checkout"); }}
             >
-              Payer
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 h-4 w-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+              {!canCheckout ? (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                  </svg>
+                  Ajoutez des produits pour commander
+                </>
+              ) : (
+                <>
+                  Payer
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 h-4 w-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </>
+              )}
             </Button>
           </div>
         )}

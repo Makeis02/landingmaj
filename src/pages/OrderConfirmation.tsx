@@ -7,6 +7,7 @@ import Footer from "@/components/Footer";
 import FloatingHeader from "@/components/admin/FloatingHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { useCartStore } from "@/stores/useCartStore";
 
 const OrderConfirmation = () => {
   const [searchParams] = useSearchParams();
@@ -15,8 +16,13 @@ const OrderConfirmation = () => {
   const [productImages, setProductImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const orderId = searchParams.get("order_id");
+  const { clearCart } = useCartStore();
 
   useEffect(() => {
+    // 🧹 VIDAGE DU PANIER dès l'arrivée sur la page de confirmation
+    clearCart();
+    console.log("🧹 [ORDER-CONFIRMATION] Panier vidé après confirmation de commande");
+    
     if (!orderId) return;
     const fetchOrder = async () => {
       const { data, error } = await supabase
