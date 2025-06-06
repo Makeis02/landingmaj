@@ -28,6 +28,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isValidatingEmail, setIsValidatingEmail] = useState(false);
   const [isUserConnected, setIsUserConnected] = useState(false);
   
+  // 🆕 NOUVEAUX ÉTATS pour le système de limitation 72h
+  const [canSpin, setCanSpin] = useState(true);
+  const [timeUntilNextSpin, setTimeUntilNextSpin] = useState(0);
+  const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
+  const [lastSpinData, setLastSpinData] = useState(null);
+  
   // Importer la fonction addItem du store Zustand
   const { addItem } = useCartStore();
 
@@ -332,69 +338,96 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   };
 
   const handleSpin = async () => {
-    if (isSpinning) return;
+    if (isSpinning || !canSpin) return;
+    
     setIsSpinning(true);
     setShowResult(false); // Cache le résultat précédent
     
-    // Calcul du segment gagnant selon les probabilités
-    const winningIndex = calculateWinningSegment();
-    
-    // Calcul de l'angle pour s'arrêter sur le segment gagnant
-    const segmentAngle = 360 / segments.length;
-    const targetAngle = 360 - (winningIndex * segmentAngle);
-    
-    // Ajout de rotations supplémentaires pour l'effet visuel
-    const spins = 4 + Math.random() * 2; // 4-6 tours complets
-    const finalRotation = (spins * 360) + targetAngle;
-    
-    const newRotation = rotation + finalRotation;
-    setRotation(newRotation);
-    
-    setTimeout(async () => {
-      setIsSpinning(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const browserFingerprint = generateBrowserFingerprint();
+      const clientIP = await getClientIP();
       
-      const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
-      const winningSegmentData = segments[indexUnderArrow];         // ✅ visuel
-      setWinningSegment(winningSegmentData);
-      setShowResult(true);
-      
-      // Enregistrer le tirage dans Supabase (si utilisateur connecté)
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('wheel_spins')
-            .insert({
-              user_id: user.id,
-              segment_won: winningSegmentData.position,
-              winning_text: winningSegmentData.text,
-              winning_image_url: winningSegmentData.image_url,
-              winning_promo_code: winningSegmentData.promo_code
-            });
-        }
-      } catch (error) {
-        console.error('Erreur lors de l\'enregistrement du tirage:', error);
+      // 🆕 Enregistrer la tentative pour invités (anti-contournement)
+      if (!user) {
+        await supabase
+          .from('wheel_guest_attempts')
+          .insert({
+            email: email.toLowerCase().trim(),
+            ip_address: clientIP,
+            browser_fingerprint: browserFingerprint,
+            created_at: new Date().toISOString()
+          });
       }
       
-      // Si c'est une image, ajouter automatiquement au panier après 2 secondes
-      if (winningSegmentData?.image_url) {
-        setTimeout(() => {
-          handleAddGiftToCart(winningSegmentData);
-        }, 2000); // 2 secondes après l'affichage de la popup
-      } else {
-        // Si c'est du texte avec un code promo, laisser plus de temps pour le lire et copier
-        const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
-        if (hasPromoCode) {
-          // Toast d'information pour le code promo
+      // Calcul du segment gagnant selon les probabilités
+      const winningIndex = calculateWinningSegment();
+      
+      // Calcul de l'angle pour s'arrêter sur le segment gagnant
+      const segmentAngle = 360 / segments.length;
+      const targetAngle = 360 - (winningIndex * segmentAngle);
+      
+      // Ajout de rotations supplémentaires pour l'effet visuel
+      const spins = 4 + Math.random() * 2; // 4-6 tours complets
+      const finalRotation = (spins * 360) + targetAngle;
+      
+      const newRotation = rotation + finalRotation;
+      setRotation(newRotation);
+      
+      setTimeout(async () => {
+        setIsSpinning(false);
+        
+        const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
+        const winningSegmentData = segments[indexUnderArrow];         // ✅ visuel
+        setWinningSegment(winningSegmentData);
+        setShowResult(true);
+        
+        // Enregistrer le tirage dans Supabase
+        try {
+          if (user) {
+            await supabase
+              .from('wheel_spins')
+              .insert({
+                user_id: user.id,
+                segment_won: winningSegmentData.position,
+                winning_text: winningSegmentData.text,
+                winning_image_url: winningSegmentData.image_url,
+                winning_promo_code: winningSegmentData.promo_code,
+                user_email: user.email
+              });
+          }
+        } catch (error) {
+          console.error('Erreur lors de l\'enregistrement du tirage:', error);
+        }
+        
+        // 🆕 Mettre à jour l'éligibilité après le spin
+        setCanSpin(false);
+        setTimeUntilNextSpin(72); // 72 heures d'attente
+        
+        // Si c'est une image, ajouter automatiquement au panier après 2 secondes
+        if (winningSegmentData?.image_url) {
           setTimeout(() => {
-            toast.info('🎫 Code promo disponible !', {
-              description: 'N\'oubliez pas de copier votre code promo avant de fermer',
-              duration: 4000,
-            });
-          }, 1000);
+            handleAddGiftToCart(winningSegmentData);
+          }, 2000); // 2 secondes après l'affichage de la popup
+        } else {
+          // Si c'est du texte avec un code promo, laisser plus de temps pour le lire et copier
+          const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
+          if (hasPromoCode) {
+            // Toast d'information pour le code promo
+            setTimeout(() => {
+              toast.info('🎫 Code promo disponible !', {
+                description: 'N\'oubliez pas de copier votre code promo avant de fermer',
+                duration: 4000,
+              });
+            }, 1000);
+          }
         }
-      }
-    }, 3000);
+      }, 3000);
+    } catch (error) {
+      console.error('Erreur lors du spin:', error);
+      setIsSpinning(false);
+      toast.error('Une erreur est survenue');
+    }
   };
 
   // 🆕 FONCTION de validation d'email
@@ -417,25 +450,37 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     
     setIsValidatingEmail(true);
     
-    // Optionnel : Enregistrer l'email en base de données
     try {
+      // 🆕 Vérifier l'éligibilité avant de valider l'email
+      await checkSpinEligibility(null, email.toLowerCase().trim());
+      
+      // Enregistrer l'email si éligible
       await supabase
         .from('wheel_email_entries')
         .insert({ 
           email: email.toLowerCase().trim(),
           created_at: new Date().toISOString()
         });
-    } catch (error) {
-      console.log('Email déjà enregistré ou erreur:', error);
-      // On continue même si l'email existe déjà
-    }
-    
-    // Simuler une petite validation
-    setTimeout(() => {
+      
       setIsValidatingEmail(false);
       setEmailValidated(true);
-      toast.success('🐠 Email validé ! Vous pouvez maintenant lancer la roue !');
-    }, 1000);
+      
+      if (canSpin) {
+        toast.success('🐠 Email validé ! Vous pouvez lancer la roue !');
+      } else {
+        toast.error(`⏰ Vous devez attendre ${timeUntilNextSpin}h avant de rejouer`);
+      }
+    } catch (error) {
+      console.log('Email déjà enregistré ou erreur:', error);
+      setIsValidatingEmail(false);
+      setEmailValidated(true);
+      
+      if (canSpin) {
+        toast.success('🐠 Email validé ! Vous pouvez lancer la roue !');
+      } else {
+        toast.error(`⏰ Vous devez attendre ${timeUntilNextSpin}h avant de rejouer`);
+      }
+    }
   };
 
   // 🆕 FONCTION pour vérifier l'authentification de l'utilisateur
@@ -448,6 +493,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         setEmailValidated(true);
         setIsUserConnected(true);
         console.log('Utilisateur connecté détecté:', user.email);
+        
+        // 🆕 Vérifier l'éligibilité pour jouer
+        await checkSpinEligibility(user.id, user.email);
       } else {
         // Utilisateur non connecté : formulaire de saisie requis
         setEmail('');
@@ -461,6 +509,131 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setEmail('');
       setEmailValidated(false);
       setIsUserConnected(false);
+    }
+  };
+
+  // 🆕 FONCTION pour générer une empreinte du navigateur (anti-contournement)
+  const generateBrowserFingerprint = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Browser fingerprint', 2, 2);
+    
+    const fingerprint = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      platform: navigator.platform,
+      screen: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      canvas: canvas.toDataURL(),
+      memory: (navigator as any).deviceMemory || 'unknown',
+      cores: navigator.hardwareConcurrency || 'unknown'
+    };
+    
+    // Créer un hash simple
+    const fingerprintString = JSON.stringify(fingerprint);
+    let hash = 0;
+    for (let i = 0; i < fingerprintString.length; i++) {
+      const char = fingerprintString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString();
+  };
+
+  // 🆕 FONCTION pour obtenir l'IP approximative (côté client)
+  const getClientIP = async () => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch {
+      return 'unknown';
+    }
+  };
+
+  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
+  const checkSpinEligibility = async (userId: string | null, userEmail: string) => {
+    setIsCheckingEligibility(true);
+    
+    try {
+      const browserFingerprint = generateBrowserFingerprint();
+      const clientIP = await getClientIP();
+      const now = new Date();
+      const hoursSinceLimit = 72; // 72 heures
+      const limitTime = new Date(now.getTime() - hoursSinceLimit * 60 * 60 * 1000);
+
+      if (userId) {
+        // ✅ UTILISATEUR CONNECTÉ : Vérifier par user_id
+        const { data: lastSpin, error } = await supabase
+          .from('wheel_spins')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+
+        if (error) throw error;
+
+        if (lastSpin && lastSpin.length > 0) {
+          const lastSpinTime = new Date(lastSpin[0].created_at);
+          const timeDiff = now.getTime() - lastSpinTime.getTime();
+          const hoursLeft = hoursSinceLimit - (timeDiff / (1000 * 60 * 60));
+
+          if (hoursLeft > 0) {
+            setCanSpin(false);
+            setTimeUntilNextSpin(Math.ceil(hoursLeft));
+            setLastSpinData(lastSpin[0]);
+            console.log(`⏰ Utilisateur connecté doit attendre ${Math.ceil(hoursLeft)}h`);
+          } else {
+            setCanSpin(true);
+            setTimeUntilNextSpin(0);
+            console.log('✅ Utilisateur connecté peut jouer');
+          }
+        } else {
+          setCanSpin(true);
+          setTimeUntilNextSpin(0);
+          console.log('✅ Premier jeu pour cet utilisateur connecté');
+        }
+      } else {
+        // 🚨 INVITÉ : Vérifier par email + IP + empreinte (anti-contournement)
+        const { data: guestAttempts, error } = await supabase
+          .from('wheel_guest_attempts')
+          .select('*')
+          .or(`email.eq.${userEmail},ip_address.eq.${clientIP},browser_fingerprint.eq.${browserFingerprint}`)
+          .gte('created_at', limitTime.toISOString())
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (guestAttempts && guestAttempts.length > 0) {
+          // Invité détecté comme ayant déjà joué (même email, IP ou empreinte)
+          const lastAttempt = guestAttempts[0];
+          const lastAttemptTime = new Date(lastAttempt.created_at);
+          const timeDiff = now.getTime() - lastAttemptTime.getTime();
+          const hoursLeft = hoursSinceLimit - (timeDiff / (1000 * 60 * 60));
+
+          setCanSpin(false);
+          setTimeUntilNextSpin(Math.ceil(hoursLeft));
+          setLastSpinData(lastAttempt);
+          
+          // Log de détection
+          const detectionReason = lastAttempt.email === userEmail ? 'même email' : 
+                                lastAttempt.ip_address === clientIP ? 'même IP' : 'même navigateur';
+          console.log(`🚨 Tentative de contournement détectée (${detectionReason}) - Attendre ${Math.ceil(hoursLeft)}h`);
+        } else {
+          setCanSpin(true);
+          setTimeUntilNextSpin(0);
+          console.log('✅ Nouvel invité peut jouer');
+        }
+      }
+    } catch (error) {
+      console.error('Erreur vérification éligibilité:', error);
+      // En cas d'erreur, permettre de jouer par sécurité
+      setCanSpin(true);
+      setTimeUntilNextSpin(0);
+    } finally {
+      setIsCheckingEligibility(false);
     }
   };
 
@@ -641,10 +814,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 />
                 <Button
                   onClick={handleEmailSubmit}
-                  disabled={isValidatingEmail || !email.trim()}
+                  disabled={isValidatingEmail || !email.trim() || isCheckingEligibility}
                   className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isValidatingEmail ? (
+                  {isValidatingEmail || isCheckingEligibility ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                   ) : (
                     '✅'
@@ -667,10 +840,28 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             </div>
           )}
 
+          {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
+          {!canSpin && timeUntilNextSpin > 0 && (
+            <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
+              <div className="text-center">
+                <div className="text-3xl mb-2">⏰</div>
+                <h3 className="text-lg font-bold text-orange-800 mb-2">
+                  Patience, aquariophile !
+                </h3>
+                <p className="text-orange-700 font-medium">
+                  Prochaine tentative dans : <span className="font-bold">{timeUntilNextSpin}h</span>
+                </p>
+                <p className="text-sm text-orange-600 mt-2">
+                  🐠 Un tirage toutes les 72h pour garder la magie !
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Bouton pour lancer la roue */}
           <Button
             onClick={handleSpin}
-            disabled={isSpinning || !emailValidated}
+            disabled={isSpinning || !emailValidated || !canSpin || isCheckingEligibility}
             className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isSpinning ? (
@@ -678,15 +869,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
                 🌊 La roue tourne...
               </>
+            ) : isCheckingEligibility ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                Vérification...
+              </>
             ) : !emailValidated ? (
               '📧 Saisissez votre email pour jouer'
+            ) : !canSpin ? (
+              `⏰ Attendez ${timeUntilNextSpin}h`
             ) : (
               '🎣 Lancer la roue aquatique'
             )}
           </Button>
 
                 <p className="text-xs text-blue-500 mt-4">
-            🐟 Une seule tentative par jour par aquariophile
+            🐟 Une tentative toutes les 72h • Système anti-contournement actif
           </p>
               </>
             )}
