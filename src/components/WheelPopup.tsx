@@ -643,6 +643,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
+    // 🆕 En mode édition, on ignore toutes les vérifications
+    if (isEditMode) {
+      console.log('🎮 Mode édition : toutes les vérifications sont ignorées');
+      return true;
+    }
+
     try {
       // Vérifier si l'utilisateur a déjà joué aujourd'hui
       const { data: existingEntry, error } = await supabase
