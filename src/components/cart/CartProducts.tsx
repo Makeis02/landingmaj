@@ -76,12 +76,12 @@ const CartProducts = () => {
           const isExpired = isGiftExpired(item);
           
           return (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={`flex items-center gap-4 p-4 bg-white rounded-lg border ${
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`flex items-center gap-4 p-4 bg-white rounded-lg border ${
                 isExpired 
                   ? 'bg-red-50 border-red-200' 
                   : 'bg-white border-gray-200'
@@ -106,100 +106,100 @@ const CartProducts = () => {
                 </div>
               )}
 
-              {item.image_url && (
-                <img
-                  src={item.image_url}
-                  alt={item.title}
-                  className="w-20 h-20 object-contain rounded bg-white p-1"
-                />
-              )}
+            {item.image_url && (
+              <img
+                src={item.image_url}
+                alt={item.title}
+                className="w-20 h-20 object-contain rounded bg-white p-1"
+              />
+            )}
 
-              <div className="flex-grow">
-                <h3 className="font-medium">
-                  {item.title}
-                  {(item.is_gift || item.threshold_gift) && (
-                    <motion.span
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="ml-2 inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                    >
-                      Cadeau offert
-                    </motion.span>
-                  )}
-                </h3>
-                
-                {/* Afficher la variante si elle existe */}
-                {item.variant && (
-                  <div className="mt-1 mb-2 flex flex-wrap gap-1">
-                    {formatVariant(item.variant)}
-                  </div>
+            <div className="flex-grow">
+              <h3 className="font-medium">
+                {item.title}
+                {(item.is_gift || item.threshold_gift) && (
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="ml-2 inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                  >
+                    Cadeau offert
+                  </motion.span>
                 )}
-                
-                {/* Affichage du prix avec gestion des réductions */}
-                {!item.is_gift && !item.threshold_gift && (
-                  <div className="text-sm mb-1">
-                    {item.has_discount && item.original_price ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-gray-500 line-through text-xs">
-                          {item.original_price.toFixed(2)}€
-                        </span>
-                        <span className="text-slate-900 font-medium">
-                          {item.price.toFixed(2)}€
-                        </span>
-                        <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">
-                          -{item.discount_percentage}%
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-gray-500">{item.price.toFixed(2)}€</span>
-                    )}
-                  </div>
-                )}
-                
-                {!item.is_gift && !item.threshold_gift && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(item.id, -1, item.is_gift || false, item.threshold_gift || false)}
-                      className="h-8 w-8"
-                    >
-                      <Minus className="w-3 h-3" />
-                    </Button>
-
-                    <span className="w-8 text-center font-medium">
-                      {item.quantity}
-                    </span>
-
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleQuantityChange(item.id, 1, item.is_gift || false, item.threshold_gift || false)}
-                      className="h-8 w-8"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </Button>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeItem(item.id)}
-                      className="h-8 w-8 ml-2 text-red-500 hover:text-red-600"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              {!item.is_gift && !item.threshold_gift && (
-                <div className="text-right">
-                  <p className="font-medium">
-                    {(item.price * item.quantity).toFixed(2)}€
-                  </p>
+              </h3>
+              
+              {/* Afficher la variante si elle existe */}
+              {item.variant && (
+                <div className="mt-1 mb-2 flex flex-wrap gap-1">
+                  {formatVariant(item.variant)}
                 </div>
               )}
-            </motion.div>
+              
+              {/* Affichage du prix avec gestion des réductions */}
+              {!item.is_gift && !item.threshold_gift && (
+                <div className="text-sm mb-1">
+                  {item.has_discount && item.original_price ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 line-through text-xs">
+                        {item.original_price.toFixed(2)}€
+                      </span>
+                      <span className="text-slate-900 font-medium">
+                        {item.price.toFixed(2)}€
+                      </span>
+                      <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded">
+                        -{item.discount_percentage}%
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-gray-500">{item.price.toFixed(2)}€</span>
+                  )}
+                </div>
+              )}
+              
+              {!item.is_gift && !item.threshold_gift && (
+                <div className="flex items-center gap-2 mt-2">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleQuantityChange(item.id, -1, item.is_gift || false, item.threshold_gift || false)}
+                    className="h-8 w-8"
+                  >
+                    <Minus className="w-3 h-3" />
+                  </Button>
+
+                  <span className="w-8 text-center font-medium">
+                    {item.quantity}
+                  </span>
+
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => handleQuantityChange(item.id, 1, item.is_gift || false, item.threshold_gift || false)}
+                    className="h-8 w-8"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeItem(item.id)}
+                    className="h-8 w-8 ml-2 text-red-500 hover:text-red-600"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {!item.is_gift && !item.threshold_gift && (
+              <div className="text-right">
+                <p className="font-medium">
+                  {(item.price * item.quantity).toFixed(2)}€
+                </p>
+              </div>
+            )}
+          </motion.div>
           );
         })}
       </AnimatePresence>

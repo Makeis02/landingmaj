@@ -51,9 +51,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   ]);
 
   const [showEmailForm, setShowEmailForm] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
@@ -69,51 +66,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setIsUserConnected(false);
       setShowResult(false);
       setWinningSegment(null);
-    }
-  }, [isOpen]);
-
-  // Vérifier l'état de connexion au chargement et quand le popup s'ouvre
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ Erreur lors de la vérification de session:', error);
-          setIsAuthenticated(false);
-          setUserEmail(null);
-          return;
-        }
-
-        if (!session) {
-          console.log('🔒 Aucune session active');
-          setIsAuthenticated(false);
-          setUserEmail(null);
-          return;
-        }
-
-        // Vérifier si la session est toujours valide
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError || !user) {
-          console.log('❌ Session invalide ou expirée');
-          setIsAuthenticated(false);
-          setUserEmail(null);
-          return;
-        }
-
-        console.log('✅ Session valide pour:', user.email);
-        setIsAuthenticated(true);
-        setUserEmail(user.email);
-      } catch (error) {
-        console.error('❌ Erreur lors de la vérification d\'authentification:', error);
-        setIsAuthenticated(false);
-        setUserEmail(null);
-      }
-    };
-
-    if (isOpen) {
-      checkAuth();
     }
   }, [isOpen]);
 
@@ -692,42 +644,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
     try {
-      // Si l'utilisateur est connecté, vérifier avec son email
-      if (isAuthenticated && userEmail === userEmail) {
-        const { data: existingEntry, error } = await supabase
-          .from('wheel_email_entries')
-          .select('created_at')
-          .eq('email', userEmail.toLowerCase().trim())
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-          .single();
+      // Vérifier si l'utilisateur a déjà joué aujourd'hui
+      const { data: existingEntry, error } = await supabase
+        .from('wheel_email_entries')
+        .select('created_at')
+        .eq('email', userEmail.toLowerCase().trim())
+        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+        .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('❌ Erreur lors de la vérification:', error);
-          return false;
-        }
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Erreur lors de la vérification:', error);
+        return false;
+      }
 
-        if (existingEntry) {
-          console.log('⚠️ Utilisateur connecté a déjà joué aujourd\'hui');
-          return false;
-        }
-      } else {
-        // Pour les utilisateurs non connectés, vérifier par email uniquement
-        const { data: existingEntry, error } = await supabase
-          .from('wheel_email_entries')
-          .select('created_at')
-          .eq('email', userEmail.toLowerCase().trim())
-          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-          .single();
-
-        if (error && error.code !== 'PGRST116') {
-          console.error('❌ Erreur lors de la vérification:', error);
-          return false;
-        }
-
-        if (existingEntry) {
-          console.log('⚠️ Email déjà utilisé aujourd\'hui');
-          return false;
-        }
+      if (existingEntry) {
+        console.log('⚠️ Utilisateur a déjà joué aujourd\'hui');
+        return false;
       }
 
       return true;
@@ -754,39 +686,26 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   }, [segmentsData]);
 
-  // Vérifier si l'utilisateur est admin au chargement
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const { data: adminData } = await supabase
-        .from("authorized_admin_emails")
-        .select("email")
-        .eq("email", session.user.email)
-        .single();
-
-      setIsAdmin(!!adminData);
-    };
-
-    checkAdmin();
-  }, []);
-
-  // Fonction pour réinitialiser les entrées email (admin uniquement)
-  const resetEmailEntries = async () => {
-    if (!isAdmin) return;
+  // 🆕 Fonction pour réinitialiser le blocage des emails (mode édition uniquement)
+  const handleResetEmailBlock = async () => {
+    if (!isEditMode) return;
 
     try {
+      // Supprimer les entrées de la journée
       const { error } = await supabase
         .from('wheel_email_entries')
         .delete()
         .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString());
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Erreur lors de la réinitialisation:', error);
+        toast.error("Erreur lors de la réinitialisation");
+        return;
+      }
 
-      toast.success("✅ Entrées email réinitialisées");
+      toast.success("✅ Blocage des emails réinitialisé");
       setShowEmailForm(true);
-      setCanSpin(true);
+      setCanSpin(false);
     } catch (error) {
       console.error('❌ Erreur lors de la réinitialisation:', error);
       toast.error("Erreur lors de la réinitialisation");
@@ -798,273 +717,286 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
-            {/* Roue à gauche */}
-            <div className={isEditMode ? "flex-shrink-0" : ""}>
-            {/* Header avec bouton fermer */}
-            <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-                <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                  className="text-gray-400 hover:text-blue-700"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+        <div className="relative bg-white rounded-lg shadow-lg p-8">
+          {/* 🆕 Bouton de réinitialisation en mode édition */}
+          {isEditMode && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleResetEmailBlock}
+              className="absolute top-2 right-2 text-xs z-50"
+            >
+              🔄 Réinitialiser blocage email
+            </Button>
+          )}
 
-            {/* Contenu principal */}
-              <div className="p-6 text-center">
-                <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
-                  🌊 {wheelSettings.description} 🐟
-                </p>
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+            <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
+              {/* Roue à gauche */}
+              <div className={isEditMode ? "flex-shrink-0" : ""}>
+              {/* Header avec bouton fermer */}
+              <div className="flex justify-between items-center p-6 border-b border-cyan-100">
+                  <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                    className="text-gray-400 hover:text-blue-700"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
 
-                {isLoading ? (
-                  <div className="flex items-center justify-center h-80">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
-                    <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
-                  </div>
-                ) : (
-                  <>
-                {/* Container de la roue avec poissons animés */}
-                <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
-                  {/* Poissons qui nagent autour de la roue */}
-                  <div className="absolute inset-0">
-                    {/* Poisson 1 - tourne dans le sens horaire */}
+              {/* Contenu principal */}
+                <div className="p-6 text-center">
+                  <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
+                    🌊 {wheelSettings.description} 🐟
+                  </p>
+
+                  {isLoading ? (
+                    <div className="flex items-center justify-center h-80">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+                      <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
+                    </div>
+                  ) : (
+                    <>
+                  {/* Container de la roue avec poissons animés */}
+                  <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
+                    {/* Poissons qui nagent autour de la roue */}
+                    <div className="absolute inset-0">
+                      {/* Poisson 1 - tourne dans le sens horaire */}
+                      <div 
+                        className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                        style={{
+                          animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
+                          top: '10%',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          transformOrigin: '50% 140px'
+                        }}
+                      >
+                        🐠
+                      </div>
+                      {/* Poisson 2 - tourne dans le sens antihoraire */}
+                      <div 
+                        className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                        style={{
+                          animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
+                          bottom: '10%',
+                          right: '20%',
+                          transformOrigin: '0 -140px'
+                        }}
+                      >
+                        🐟
+                      </div>
+                      {/* Poisson 3 - plus petit, tourne plus vite */}
+                      <div 
+                        className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
+                        style={{
+                          animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
+                          left: '15%',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          transformOrigin: '120px 0'
+                        }}
+                      >
+                        🐡
+                      </div>
+                    </div>
+
+                    {/* Indicateur fixe (flèche) */}
+                    <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
+                            <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
+                    </div>
+
+                    {/* La roue */}
                     <div 
-                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
+                      className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
                       style={{
-                        animation: isSpinning ? 'swim-clockwise 2s linear infinite' : 'float 3s ease-in-out infinite',
-                        top: '10%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
-                        transformOrigin: '50% 140px'
+                        width: '280px',
+                        height: '280px',
+                        margin: '20px auto',
+                        transform: `rotate(${rotation}deg)`,
+                        transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
                       }}
                     >
-                      🐠
-                    </div>
-                    {/* Poisson 2 - tourne dans le sens antihoraire */}
-                    <div 
-                      className={`absolute w-8 h-8 text-2xl ${isSpinning ? 'animate-spin' : ''}`}
-                      style={{
-                        animation: isSpinning ? 'swim-counter-clockwise 2.5s linear infinite' : 'float 4s ease-in-out infinite 1s',
-                        bottom: '10%',
-                        right: '20%',
-                        transformOrigin: '0 -140px'
-                      }}
-                    >
-                      🐟
-                    </div>
-                    {/* Poisson 3 - plus petit, tourne plus vite */}
-                    <div 
-                      className={`absolute w-6 h-6 text-xl ${isSpinning ? 'animate-spin' : ''}`}
-                      style={{
-                        animation: isSpinning ? 'swim-fast 1.5s linear infinite' : 'float 2.5s ease-in-out infinite 0.5s',
-                        left: '15%',
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        transformOrigin: '120px 0'
-                      }}
-                    >
-                      🐡
-                    </div>
-                  </div>
-
-                  {/* Indicateur fixe (flèche) */}
-                  <div className="absolute top-5 left-1/2 transform -translate-x-1/2 -translate-y-1 z-10">
-                          <div className="w-0 h-0 border-l-[15px] border-r-[15px] border-b-[25px] border-l-transparent border-r-transparent border-b-orange-400 drop-shadow-lg"></div>
-                  </div>
-
-                  {/* La roue */}
-                  <div 
-                    className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
-                    style={{
-                      width: '280px',
-                      height: '280px',
-                      margin: '20px auto',
-                      transform: `rotate(${rotation}deg)`,
-                      transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
-                    }}
-                  >
-                    {segments.map((segment, index) => {
-                      const angle = (360 / segments.length) * index;
-                      const nextAngle = (360 / segments.length) * (index + 1);
-                            const midAngle = angle + (nextAngle - angle) / 2;
-                      return (
-                        <div
-                          key={index}
-                                className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
-                          style={{
-                            clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                                  transformOrigin: 'center',
-                          }}
-                        >
-                          <div 
+                      {segments.map((segment, index) => {
+                        const angle = (360 / segments.length) * index;
+                        const nextAngle = (360 / segments.length) * (index + 1);
+                              const midAngle = angle + (nextAngle - angle) / 2;
+                        return (
+                          <div
+                            key={index}
+                                  className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
                             style={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    left: '50%',
-                                    transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
-                                    width: segment.image_url ? '60px' : '120px',
-                                    height: segment.image_url ? '60px' : 'auto',
-                                    textAlign: 'center',
-                                    fontWeight: 'bold',
-                                    fontSize: '0.9rem',
-                                    color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
-                                    textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
+                              clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
+                                    transformOrigin: 'center',
                             }}
                           >
-                                  {segment.image_url ? (
-                                    <img
-                                      src={segment.image_url}
-                                      alt="Segment"
-                                      style={{
-                                        width: '40px',
-                                        height: '40px',
-                                        objectFit: 'cover',
-                                        borderRadius: '6px',
-                                        border: '2px solid rgba(255,255,255,0.9)',
-                                        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                        display: 'block',
-                                        margin: '0 auto',
-                                      }}
-                                    />
-                                  ) : (
-                                    segment.text
-                                  )}
+                            <div 
+                              style={{
+                                      position: 'absolute',
+                                      top: '50%',
+                                      left: '50%',
+                                      transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
+                                      width: segment.image_url ? '60px' : '120px',
+                                      height: segment.image_url ? '60px' : 'auto',
+                                      textAlign: 'center',
+                                      fontWeight: 'bold',
+                                      fontSize: '0.9rem',
+                                      color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
+                                      textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
+                                      whiteSpace: 'nowrap',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                              }}
+                            >
+                                    {segment.image_url ? (
+                                      <img
+                                        src={segment.image_url}
+                                        alt="Segment"
+                                        style={{
+                                          width: '40px',
+                                          height: '40px',
+                                          objectFit: 'cover',
+                                          borderRadius: '6px',
+                                          border: '2px solid rgba(255,255,255,0.9)',
+                                          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                          display: 'block',
+                                          margin: '0 auto',
+                                        }}
+                                      />
+                                    ) : (
+                                      segment.text
+                                    )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                    {/* Centre de la roue avec poisson */}
-                          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
-                            <span className="text-white text-2xl">🐠</span>
+                        );
+                      })}
+                      {/* Centre de la roue avec poisson */}
+                            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
+                              <span className="text-white text-2xl">🐠</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* 🆕 FORMULAIRE D'EMAIL EN DESSOUS DE LA ROUE */}
-                {!emailValidated ? (
-                  <div className="mb-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
-                    <h3 className="text-lg font-bold text-cyan-800 mb-3">
-                      📧 Saisissez votre email pour participer
-                    </h3>
-                    <div className="flex gap-3">
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="votre.email@example.com"
-                        className="flex-1 px-4 py-2 rounded-lg border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-gray-700 font-medium transition-colors"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            handleEmailSubmit();
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={handleEmailSubmit}
-                        disabled={isValidatingEmail || !email.trim() || isCheckingEligibility}
-                        className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isValidatingEmail || isCheckingEligibility ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ) : (
-                          '✅'
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  /* Email validé - badge différent selon le statut */
-                  <div className="mb-4">
-                    {isUserConnected ? (
-                      <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium">
-                        👤 Connecté en tant que {email}
-                      </div>
-                    ) : (
-                      <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
-                        ✅ Email validé : {email}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
-                {!canSpin && timeUntilNextSpin > 0 && (
-                  <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
-                    <div className="text-center">
-                      <div className="text-3xl mb-2">⏰</div>
-                      <h3 className="text-lg font-bold text-orange-800 mb-2">
-                        Patience, aquariophile !
+                  {/* 🆕 FORMULAIRE D'EMAIL EN DESSOUS DE LA ROUE */}
+                  {!emailValidated ? (
+                    <div className="mb-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
+                      <h3 className="text-lg font-bold text-cyan-800 mb-3">
+                        📧 Saisissez votre email pour participer
                       </h3>
-                      
-                      {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
-                      <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
-                        <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
-                        <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
-                          <div className="flex flex-col items-center">
-                            <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
-                              {String(realTimeCountdown.hours).padStart(2, '0')}
-                            </span>
-                            <span className="text-xs text-orange-600 mt-1">heures</span>
-                          </div>
-                          <span className="text-orange-400">:</span>
-                          <div className="flex flex-col items-center">
-                            <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
-                              {String(realTimeCountdown.minutes).padStart(2, '0')}
-                            </span>
-                            <span className="text-xs text-orange-600 mt-1">min</span>
-                          </div>
-                          <span className="text-orange-400">:</span>
-                          <div className="flex flex-col items-center">
-                            <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
-                              {String(realTimeCountdown.seconds).padStart(2, '0')}
-                            </span>
-                            <span className="text-xs text-orange-600 mt-1">sec</span>
+                      <div className="flex gap-3">
+                        <input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="votre.email@example.com"
+                          className="flex-1 px-4 py-2 rounded-lg border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-gray-700 font-medium transition-colors"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleEmailSubmit();
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={handleEmailSubmit}
+                          disabled={isValidatingEmail || !email.trim() || isCheckingEligibility}
+                          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isValidatingEmail || isCheckingEligibility ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          ) : (
+                            '✅'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Email validé - badge différent selon le statut */
+                    <div className="mb-4">
+                      {isUserConnected ? (
+                        <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full font-medium">
+                          👤 Connecté en tant que {email}
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full font-medium">
+                          ✅ Email validé : {email}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
+                  {!canSpin && timeUntilNextSpin > 0 && (
+                    <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
+                      <div className="text-center">
+                        <div className="text-3xl mb-2">⏰</div>
+                        <h3 className="text-lg font-bold text-orange-800 mb-2">
+                          Patience, aquariophile !
+                        </h3>
+                        
+                        {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
+                        <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
+                          <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
+                          <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
+                            <div className="flex flex-col items-center">
+                              <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                                {String(realTimeCountdown.hours).padStart(2, '0')}
+                              </span>
+                              <span className="text-xs text-orange-600 mt-1">heures</span>
+                            </div>
+                            <span className="text-orange-400">:</span>
+                            <div className="flex flex-col items-center">
+                              <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                                {String(realTimeCountdown.minutes).padStart(2, '0')}
+                              </span>
+                              <span className="text-xs text-orange-600 mt-1">min</span>
+                            </div>
+                            <span className="text-orange-400">:</span>
+                            <div className="flex flex-col items-center">
+                              <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
+                                {String(realTimeCountdown.seconds).padStart(2, '0')}
+                              </span>
+                              <span className="text-xs text-orange-600 mt-1">sec</span>
+                            </div>
                           </div>
                         </div>
+                        
+                        <p className="text-sm text-orange-600">
+                          🐠 Un tirage toutes les 72h pour garder la magie !
+                        </p>
                       </div>
-                      
-                      <p className="text-sm text-orange-600">
-                        🐠 Un tirage toutes les 72h pour garder la magie !
-                      </p>
                     </div>
-                  </div>
-                )}
-
-                {/* Bouton pour lancer la roue */}
-                <Button
-                  onClick={handleSpin}
-                  disabled={isSpinning || !emailValidated || !canSpin || isCheckingEligibility}
-                  className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                >
-                  {isSpinning ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      🌊 La roue tourne...
-                    </>
-                  ) : isCheckingEligibility ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      Vérification...
-                    </>
-                  ) : !emailValidated ? (
-                    '📧 Saisissez votre email pour jouer'
-                  ) : !canSpin ? (
-                    `⏰ Attendez ${timeUntilNextSpin}h`
-                  ) : (
-                    '🎣 Lancer la roue aquatique'
                   )}
-                </Button>
+
+                  {/* Bouton pour lancer la roue */}
+                  <Button
+                    onClick={handleSpin}
+                    disabled={isSpinning || !emailValidated || !canSpin || isCheckingEligibility}
+                    className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSpinning ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        🌊 La roue tourne...
+                      </>
+                    ) : isCheckingEligibility ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                        Vérification...
+                      </>
+                    ) : !emailValidated ? (
+                      '📧 Saisissez votre email pour jouer'
+                    ) : !canSpin ? (
+                      `⏰ Attendez ${timeUntilNextSpin}h`
+                    ) : (
+                      '🎣 Lancer la roue aquatique'
+                    )}
+                  </Button>
 
                       <p className="text-xs text-blue-500 mt-4">
                   🐟 Une tentative toutes les 72h • Système anti-contournement actif
@@ -1201,157 +1133,144 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               </div>
             )}
           </div>
+        </div>
 
-          {/* Popup de résultat */}
-          {showResult && winningSegment && (
-            <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-60 animate-fade-in">
-              <div className="relative bg-gradient-to-br from-cyan-50 to-blue-100 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border-4 border-cyan-200 animate-bounce-in">
-                {/* Bouton fermer */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowResult(false)}
-                  className="absolute top-4 right-4 text-gray-400 hover:text-blue-700 z-10"
-                >
-                  <X className="h-6 w-6" />
-                </Button>
+        {/* Popup de résultat */}
+        {showResult && winningSegment && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-60 animate-fade-in">
+            <div className="relative bg-gradient-to-br from-cyan-50 to-blue-100 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border-4 border-cyan-200 animate-bounce-in">
+              {/* Bouton fermer */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowResult(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-blue-700 z-10"
+              >
+                <X className="h-6 w-6" />
+              </Button>
 
-                {/* Header avec animation */}
-                <div className="text-center mb-6">
-                  <div className="text-6xl mb-4 animate-pulse">🎉</div>
-                  <h2 className="text-3xl font-bold mb-2" style={{ color: '#0074b3' }}>Félicitations !</h2>
-                  <p className="font-medium" style={{ color: '#0074b3' }}>🌊 Vous avez gagné :</p>
-                </div>
+              {/* Header avec animation */}
+              <div className="text-center mb-6">
+                <div className="text-6xl mb-4 animate-pulse">🎉</div>
+                <h2 className="text-3xl font-bold mb-2" style={{ color: '#0074b3' }}>Félicitations !</h2>
+                <p className="font-medium" style={{ color: '#0074b3' }}>🌊 Vous avez gagné :</p>
+              </div>
 
-                {/* Contenu du gain */}
-                <div className="text-center mb-8">
-                  {winningSegment.image_url ? (
-                    <div className="flex flex-col items-center gap-4">
-                      <img
-                        src={winningSegment.image_url}
-                        alt="Votre gain"
-                        className="w-32 h-32 object-cover rounded-xl border-4 border-cyan-300 shadow-lg animate-pulse"
-                      />
-                      {winningSegment.text && (
-                        <p className="text-xl font-bold" style={{ color: '#0074b3' }}>{winningSegment.text}</p>
-                      )}
-                      <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
-                        <span className="text-2xl">🎁</span>
-                        <span className="font-medium">Ajout automatique au panier...</span>
-                      </div>
+              {/* Contenu du gain */}
+              <div className="text-center mb-8">
+                {winningSegment.image_url ? (
+                  <div className="flex flex-col items-center gap-4">
+                    <img
+                      src={winningSegment.image_url}
+                      alt="Votre gain"
+                      className="w-32 h-32 object-cover rounded-xl border-4 border-cyan-300 shadow-lg animate-pulse"
+                    />
+                    {winningSegment.text && (
+                      <p className="text-xl font-bold" style={{ color: '#0074b3' }}>{winningSegment.text}</p>
+                    )}
+                    <div className="flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
+                      <span className="text-2xl">🎁</span>
+                      <span className="font-medium">Ajout automatique au panier...</span>
                     </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
-                        <p className="text-4xl font-bold animate-pulse" style={{ color: '#0074b3' }}>
-                          {winningSegment.text}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="p-6 bg-white rounded-xl border-2 border-cyan-300 shadow-inner">
+                      <p className="text-4xl font-bold animate-pulse" style={{ color: '#0074b3' }}>
+                        {winningSegment.text}
+                      </p>
+                    </div>
+                    
+                    {/* Affichage du code promo si présent */}
+                    {winningSegment.promo_code && winningSegment.promo_code.trim() !== '' && (
+                      <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-xl p-4 shadow-lg">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl">🎫</span>
+                          <p className="text-lg font-bold text-purple-800">Code promo :</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="bg-white border-2 border-dashed border-purple-400 px-4 py-2 rounded-lg">
+                            <span className="text-2xl font-mono font-bold text-purple-700 tracking-wider">
+                              {winningSegment.promo_code}
+                            </span>
+                          </div>
+                          <Button
+                            onClick={() => copyPromoCode(winningSegment.promo_code)}
+                            className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
+                          >
+                            📋 Copier
+                          </Button>
+                        </div>
+                        <p className="text-xs text-purple-600 mt-2 animate-pulse">
+                          ✨ Utilisez ce code lors de votre commande !
                         </p>
                       </div>
-                      
-                      {/* Affichage du code promo si présent */}
-                      {winningSegment.promo_code && winningSegment.promo_code.trim() !== '' && (
-                        <div className="bg-gradient-to-r from-purple-100 to-pink-100 border-2 border-purple-300 rounded-xl p-4 shadow-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-2xl">🎫</span>
-                            <p className="text-lg font-bold text-purple-800">Code promo :</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <div className="bg-white border-2 border-dashed border-purple-400 px-4 py-2 rounded-lg">
-                              <span className="text-2xl font-mono font-bold text-purple-700 tracking-wider">
-                                {winningSegment.promo_code}
-                              </span>
-                            </div>
-                            <Button
-                              onClick={() => copyPromoCode(winningSegment.promo_code)}
-                              className="bg-purple-500 hover:bg-purple-600 text-white px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 transform hover:scale-105"
-                            >
-                              📋 Copier
-                            </Button>
-                          </div>
-                          <p className="text-xs text-purple-600 mt-2 animate-pulse">
-                            ✨ Utilisez ce code lors de votre commande !
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
-                {/* Footer avec poissons animés */}
-                <div className="text-center">
-                  <div className="flex justify-center gap-4 mb-4 text-3xl">
-                    <span className="animate-bounce delay-100">🐠</span>
-                    <span className="animate-bounce delay-200">🌊</span>
-                    <span className="animate-bounce delay-300">🐟</span>
-                  </div>
-                  
-                  {/* Boutons d'action */}
-                  <div className="flex gap-3">
-                    <Button
-                      onClick={() => setShowResult(false)}
-                      className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
-                    >
-                      🎣 Fermer
-                    </Button>
-                  </div>
+              {/* Footer avec poissons animés */}
+              <div className="text-center">
+                <div className="flex justify-center gap-4 mb-4 text-3xl">
+                  <span className="animate-bounce delay-100">🐠</span>
+                  <span className="animate-bounce delay-200">🌊</span>
+                  <span className="animate-bounce delay-300">🐟</span>
+                </div>
+                
+                {/* Boutons d'action */}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => setShowResult(false)}
+                    className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105"
+                  >
+                    🎣 Fermer
+                  </Button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Animation de vol vers le panier */}
-          {showAddToCartAnimation && animatingImage && (
-            <div className="fixed inset-0 pointer-events-none z-70">
-              <img
-                src={animatingImage}
-                alt="Gift flying to cart"
-                className="absolute w-16 h-16 object-cover rounded-lg border-2 border-green-400 shadow-lg animate-fly-to-cart"
-                style={{
-                  top: '50%',
-                  left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  animation: 'flyToCart 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
-                }}
-              />
-              
-              {/* Particules d'effet */}
-              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="absolute w-2 h-2 bg-green-400 rounded-full animate-bounce"
-                    style={{
-                      animation: `sparkle-${i} 1.5s ease-out forwards`,
-                      animationDelay: `${i * 0.1}s`,
-                    }}
-                  />
-                ))}
-              </div>
+        {/* Animation de vol vers le panier */}
+        {showAddToCartAnimation && animatingImage && (
+          <div className="fixed inset-0 pointer-events-none z-70">
+            <img
+              src={animatingImage}
+              alt="Gift flying to cart"
+              className="absolute w-16 h-16 object-cover rounded-lg border-2 border-green-400 shadow-lg animate-fly-to-cart"
+              style={{
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                animation: 'flyToCart 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards',
+              }}
+            />
+            
+            {/* Particules d'effet */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-green-400 rounded-full animate-bounce"
+                  style={{
+                    animation: `sparkle-${i} 1.5s ease-out forwards`,
+                    animationDelay: `${i * 0.1}s`,
+                  }}
+                />
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Bouton de réinitialisation (admin uniquement) */}
-          {isAdmin && (
-            <div className="absolute top-2 right-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={resetEmailEntries}
-                className="text-xs"
-              >
-                🔄 Réinitialiser les entrées
-              </Button>
-            </div>
-          )}
-
-          {/* Styles CSS pour les animations des poissons */}
-          <style jsx>{`
-            /* ... (tes animations ici) ... */
-          `}</style>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
+        {/* Styles CSS pour les animations des poissons */}
+        <style jsx>{`
+          /* ... (tes animations ici) ... */
+        `}</style>
+      </div>
+    </DialogContent>
+  </Dialog>
+);
 };
 
 export default LuckyWheelPopup;
