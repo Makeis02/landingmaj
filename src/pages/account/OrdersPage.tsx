@@ -682,7 +682,7 @@ const OrdersPage = () => {
                               </div>
                             <div className="text-right">
                               <span className="font-medium text-blue-600">{(item.price * item.quantity).toFixed(2)}€</span>
-                            </div>
+                              </div>
                             </div>
                           ))}
                       </div>
@@ -777,7 +777,7 @@ const OrdersPage = () => {
                 {getStatusIcon(selectedOrderForDetails.status)}
                 <span className="ml-1">{getStatusText(selectedOrderForDetails.status)}</span>
               </Badge>
-            </div>
+              </div>
 
             {/* Onglets */}
             <div className="flex border-b border-gray-200 mb-6">
@@ -805,7 +805,7 @@ const OrdersPage = () => {
 
             {/* Contenu des onglets */}
             {activeTab === 'produits' && (
-              <div className="space-y-4">
+                <div className="space-y-4">
                 {/* Liste des produits */}
                 <div className="space-y-3">
                   {selectedOrderForDetails.order_items?.filter(item => !item.product_id.startsWith('shipping_')).map((item) => (
@@ -815,7 +815,7 @@ const OrdersPage = () => {
                       ) : (
                         <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center">
                           <Package className="h-8 w-8 text-gray-400" />
-                        </div>
+                      </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900">
@@ -918,7 +918,7 @@ const OrdersPage = () => {
                         }
                         return <span className="text-gray-600 ml-2">({shipping.price.toFixed(2)}€)</span>;
                       })()}
-                    </div>
+                </div>
                     
                     {/* Numéros de suivi */}
                     {selectedOrderForDetails.tracking_numbers && selectedOrderForDetails.tracking_numbers.length > 0 && (
@@ -932,9 +932,9 @@ const OrdersPage = () => {
                           ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
+            )}
+          </div>
+        </div>
 
                 {/* Adresse de livraison */}
                 <div className="bg-gray-50 rounded-lg p-4">

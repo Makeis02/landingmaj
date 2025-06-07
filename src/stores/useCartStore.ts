@@ -294,22 +294,22 @@ export const useCartStore = create<CartStore>()(
     try {
       set({ isLoading: true });
       
-      // Vider le panier local
-      set({ items: [] });
+          // Vider le panier local
+          set({ items: [] });
 
       // 🧹 FORCER la suppression du localStorage persist
       localStorage.removeItem('cart-storage');
       console.log("🧹 [CLEAR-CART] localStorage 'cart-storage' supprimé");
 
-      // Synchro serveur si connecté
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase
-          .from("cart_items")
-          .delete()
-          .eq("user_id", session.user.id);
+          // Synchro serveur si connecté
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            await supabase
+        .from("cart_items")
+        .delete()
+        .eq("user_id", session.user.id);
         console.log("🧹 [CLEAR-CART] Cart_items supprimés de Supabase");
-      }
+          }
       
       console.log("✅ [CLEAR-CART] Panier complètement vidé (local + localStorage + Supabase)");
     } catch (error) {

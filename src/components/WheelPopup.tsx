@@ -470,7 +470,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
           if (hasPromoCode) {
             // Toast d'information pour le code promo
-            setTimeout(() => {
+    setTimeout(() => {
               toast.info('🎫 Code promo disponible !', {
                 description: 'N\'oubliez pas de copier votre code promo avant de fermer',
                 duration: 4000,
@@ -700,6 +700,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     } finally {
       setIsCheckingEligibility(false);
     }
+  };
+
+  // Ajout d'une fonction pour débloquer la roue (reset timer)
+  const handleForceUnlock = () => {
+    setCanSpin(true);
+    setTimeUntilNextSpin(0);
+    setNextSpinTimestamp(null);
+    setRealTimeCountdown({ hours: 0, minutes: 0, seconds: 0 });
+    toast.success('La roue est débloquée pour test !');
   };
 
   if (!isOpen) return null;
@@ -944,21 +953,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <p className="text-sm text-orange-600">
                   🐠 Un tirage toutes les 72h pour garder la magie !
                 </p>
-
-                {/* 🐟 DEBUG : Bouton pour débloquer la roue */}
-                {import.meta.env.DEV && (
-                  <button
-                    className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold shadow hover:bg-green-700 transition"
-                    onClick={() => {
-                      setCanSpin(true);
-                      setTimeUntilNextSpin(0);
-                      setNextSpinTimestamp(null);
-                      toast.success('DEBUG : La roue est débloquée, vous pouvez rejouer !');
-                    }}
-                  >
-                    🔓 Débloquer la roue (DEBUG)
-                  </button>
-                )}
               </div>
             </div>
           )}
@@ -1113,6 +1107,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 )}
               </div>
             ))}
+
+            {/* Bouton pour débloquer la roue (reset timer) */}
+            <div className="mb-4 flex justify-center">
+              <Button onClick={handleForceUnlock} className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow">
+                🔓 Débloquer la roue (test admin)
+              </Button>
+            </div>
           </div>
         )}
       </div>
