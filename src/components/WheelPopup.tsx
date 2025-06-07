@@ -37,7 +37,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [realTimeCountdown, setRealTimeCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   
   // Importer la fonction addItem du store Zustand
-  const { addItem } = useCartStore();
+  const { addItem, items: cartItems } = useCartStore();
 
   // Structure pour gérer texte, images, pourcentages ET codes promo - maintenant chargée depuis Supabase
   const [segmentsData, setSegmentsData] = useState([
@@ -350,30 +350,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     const hoursSinceWin = (now.getTime() - wonAt.getTime()) / (1000 * 60 * 60);
     
     if (hoursSinceWin >= 72) {
-      toast({
-        title: "⏰ Cadeau expiré",
-        description: "Ce cadeau n'est plus disponible. Vous devez rejouer à la roue pour obtenir un nouveau cadeau.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      toast.error("⏰ Cadeau expiré : Ce cadeau n'est plus disponible. Vous devez rejouer à la roue pour obtenir un nouveau cadeau.");
       return;
     }
 
     // Vérifier si le cadeau est déjà dans le panier
-    const existingGift = cartItems.find(item => 
+    const existingGift = cartItems.find((item: any) => 
       item.id === segment.id && 
       item.type === 'wheel_gift'
     );
 
     if (existingGift) {
-      toast({
-        title: "🎁 Déjà ajouté",
-        description: "Ce cadeau est déjà dans votre panier !",
-        status: "info",
-        duration: 3000,
-        isClosable: true,
-      });
+      toast.info("🎁 Ce cadeau est déjà dans votre panier !");
       return;
     }
 
@@ -390,13 +378,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     };
 
     addItem(giftItem);
-    toast({
-      title: "🎁 Cadeau ajouté !",
-      description: "Votre cadeau a été ajouté au panier. N'oubliez pas de finaliser votre commande avant l'expiration !",
-      status: "success",
-      duration: 5000,
-      isClosable: true,
-    });
+    toast.success("🎁 Cadeau ajouté ! Votre cadeau a été ajouté au panier. N'oubliez pas de finaliser votre commande avant l'expiration !");
   };
 
   // Fonction pour déterminer quel segment est réellement sous la flèche

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useCartStore } from "@/stores/cart";
+import { useCartStore } from "@/stores/useCartStore";
 
 interface CartActionsProps {
   total: number;
