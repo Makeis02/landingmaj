@@ -59,12 +59,14 @@ const CartProducts = () => {
     return now > expiresAt;
   };
 
-  // 🆕 Fonction pour calculer le temps restant
+  // 🆕 Fonction pour calculer le temps restant (heures, minutes, secondes)
   const getTimeRemaining = (expiresAt) => {
     const diff = new Date(expiresAt) - now;
+    if (diff <= 0) return 'Expiré';
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${minutes}m`;
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+    return `${hours}h ${minutes}m ${seconds}s`;
   };
 
   return (
@@ -85,17 +87,22 @@ const CartProducts = () => {
                   : 'bg-white border-gray-200'
               }`}
             >
+              {/* 🆕 Timer explicite pour les cadeaux de la roue */}
+              {item.type === 'wheel_gift' && !isExpired && (
+                <div className="flex flex-col items-center mr-4">
+                  <span className="text-xs text-orange-700 font-semibold bg-orange-100 px-2 py-1 rounded mb-1">
+                    ⏰ Temps restant
+                  </span>
+                  <span className="text-sm font-mono text-orange-800 bg-orange-50 px-2 py-1 rounded shadow">
+                    {getTimeRemaining(item.expires_at)}
+                  </span>
+                </div>
+              )}
+
               {/* 🆕 Badge d'expiration */}
               {isExpired && (
                 <div className="absolute top-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
                   ⏰ Expiré
-                </div>
-              )}
-              
-              {/* 🆕 Timer pour les cadeaux non expirés */}
-              {item.type === 'wheel_gift' && !isExpired && (
-                <div className="absolute top-2 right-2 bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded">
-                  ⏰ {getTimeRemaining(item.expires_at)}
                 </div>
               )}
 
