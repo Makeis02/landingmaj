@@ -944,6 +944,21 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <p className="text-sm text-orange-600">
                   🐠 Un tirage toutes les 72h pour garder la magie !
                 </p>
+
+                {/* 🐟 DEBUG : Bouton pour débloquer la roue */}
+                {import.meta.env.DEV && (
+                  <button
+                    className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg font-bold shadow hover:bg-green-700 transition"
+                    onClick={() => {
+                      setCanSpin(true);
+                      setTimeUntilNextSpin(0);
+                      setNextSpinTimestamp(null);
+                      toast.success('DEBUG : La roue est débloquée, vous pouvez rejouer !');
+                    }}
+                  >
+                    🔓 Débloquer la roue (DEBUG)
+                  </button>
+                )}
               </div>
             </div>
           )}
