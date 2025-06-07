@@ -52,6 +52,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
@@ -67,6 +69,51 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setIsUserConnected(false);
       setShowResult(false);
       setWinningSegment(null);
+    }
+  }, [isOpen]);
+
+  // Vérifier l'état de connexion au chargement et quand le popup s'ouvre
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('❌ Erreur lors de la vérification de session:', error);
+          setIsAuthenticated(false);
+          setUserEmail(null);
+          return;
+        }
+
+        if (!session) {
+          console.log('🔒 Aucune session active');
+          setIsAuthenticated(false);
+          setUserEmail(null);
+          return;
+        }
+
+        // Vérifier si la session est toujours valide
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError || !user) {
+          console.log('❌ Session invalide ou expirée');
+          setIsAuthenticated(false);
+          setUserEmail(null);
+          return;
+        }
+
+        console.log('✅ Session valide pour:', user.email);
+        setIsAuthenticated(true);
+        setUserEmail(user.email);
+      } catch (error) {
+        console.error('❌ Erreur lors de la vérification d\'authentification:', error);
+        setIsAuthenticated(false);
+        setUserEmail(null);
+      }
+    };
+
+    if (isOpen) {
+      checkAuth();
     }
   }, [isOpen]);
 
@@ -645,22 +692,42 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
     try {
-      // Vérifier si l'utilisateur a déjà joué aujourd'hui
-      const { data: existingEntry, error } = await supabase
-        .from('wheel_email_entries')
-        .select('created_at')
-        .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
-        .single();
+      // Si l'utilisateur est connecté, vérifier avec son email
+      if (isAuthenticated && userEmail === userEmail) {
+        const { data: existingEntry, error } = await supabase
+          .from('wheel_email_entries')
+          .select('created_at')
+          .eq('email', userEmail.toLowerCase().trim())
+          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+          .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification:', error);
-        return false;
-      }
+        if (error && error.code !== 'PGRST116') {
+          console.error('❌ Erreur lors de la vérification:', error);
+          return false;
+        }
 
-      if (existingEntry) {
-        console.log('⚠️ Utilisateur a déjà joué aujourd\'hui');
-        return false;
+        if (existingEntry) {
+          console.log('⚠️ Utilisateur connecté a déjà joué aujourd\'hui');
+          return false;
+        }
+      } else {
+        // Pour les utilisateurs non connectés, vérifier par email uniquement
+        const { data: existingEntry, error } = await supabase
+          .from('wheel_email_entries')
+          .select('created_at')
+          .eq('email', userEmail.toLowerCase().trim())
+          .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('❌ Erreur lors de la vérification:', error);
+          return false;
+        }
+
+        if (existingEntry) {
+          console.log('⚠️ Email déjà utilisé aujourd\'hui');
+          return false;
+        }
       }
 
       return true;
