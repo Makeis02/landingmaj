@@ -277,6 +277,34 @@ const Checkout = () => {
   };
 
   const handleCheckout = async () => {
+    // 🆕 Vérifier les cadeaux expirés
+    const now = new Date();
+    const expiredGifts = items.filter(item => {
+      if (item.type !== 'wheel_gift') return false;
+      if (!item.expires_at) return false;
+      return new Date(item.expires_at) < now;
+    });
+
+    if (expiredGifts.length > 0) {
+      toast({
+        title: "⏰ Cadeaux expirés",
+        description: "Certains cadeaux de votre panier ont expiré. Veuillez les retirer avant de continuer.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Vérifier si le panier est valide
+    const validation = validateCart(items);
+    if (!validation.panier_valide) {
+      toast({
+        title: "Erreur",
+        description: validation.error || "Une erreur est survenue",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
 

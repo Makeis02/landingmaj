@@ -102,12 +102,26 @@ serve(async (req) => {
         console.log("🎁 Cadeaux de la roue trouvés:", wheelGifts);
         
         if (Array.isArray(wheelGifts) && wheelGifts.length > 0) {
+          // 🆕 Vérifier si les cadeaux sont expirés
+          const now = new Date();
+          const expiredGifts = wheelGifts.filter(gift => {
+            const wonAt = new Date(gift.won_at);
+            const expiresAt = new Date(wonAt.getTime() + 72 * 60 * 60 * 1000); // 72h
+            return now > expiresAt;
+          });
+
+          if (expiredGifts.length > 0) {
+            console.error("❌ Cadeaux expirés détectés:", expiredGifts);
+            return new Response("Certains cadeaux ont expiré", { status: 400 });
+          }
+
           const giftInserts = wheelGifts.map(gift => ({
             order_id: order_id,
             gift_type: 'wheel_gift',
             title: gift.title || 'Cadeau de la roue',
             image_url: gift.image_url,
-            won_at: new Date().toISOString(),
+            won_at: gift.won_at,
+            expires_at: new Date(new Date(gift.won_at).getTime() + 72 * 60 * 60 * 1000).toISOString(), // 🆕 Ajout de la date d'expiration
             segment_position: gift.segment_position || null
           }));
           

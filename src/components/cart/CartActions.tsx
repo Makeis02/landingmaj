@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useCartStore } from "@/stores/cart";
 
 interface CartActionsProps {
   total: number;
@@ -16,6 +17,8 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
   const { toast } = useToast();
   const [discountCode, setDiscountCode] = useState("");
   const navigate = useNavigate();
+  const { items: cartItems } = useCartStore();
+  const now = new Date();
 
   // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
   const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
@@ -25,6 +28,13 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
   // Ajout : récupération du seuil de livraison gratuite et du prix de livraison
   const [freeShippingThreshold, setFreeShippingThreshold] = useState<number | null>(null);
   const [shippingPrice, setShippingPrice] = useState<number | null>(null);
+
+  // 🆕 Vérifier si des cadeaux sont expirés
+  const hasExpiredGifts = items.some(item => {
+    if (item.type !== 'wheel_gift') return false;
+    if (!item.expires_at) return false;
+    return new Date(item.expires_at) < now;
+  });
 
   useEffect(() => {
     const fetchThreshold = async () => {
@@ -82,8 +92,45 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
     }
   }
 
+  // 🆕 Filtrer les cadeaux expirés
+  const handleCheckout = () => {
+    if (hasExpiredGifts) {
+      toast({
+        title: "⏰ Cadeaux expirés",
+        description: "Certains cadeaux de votre panier ont expiré. Veuillez les retirer avant de continuer.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+    onCheckout();
+  };
+
   return (
     <div className="mt-6 space-y-4">
+      {hasExpiredGifts && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">
+                Cadeaux expirés dans votre panier
+              </h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>
+                  Certains cadeaux de votre panier ont expiré. Veuillez les retirer avant de continuer.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Input
           placeholder="Code de réduction"
@@ -143,7 +190,7 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
                   : 'bg-[#0074b3] text-white hover:bg-[#005a8c]'
               }`}
               disabled={!canCheckout}
-              onClick={() => { onCheckout(); navigate("/checkout"); }}
+              onClick={handleCheckout}
             >
               {!canCheckout ? (
                 <>

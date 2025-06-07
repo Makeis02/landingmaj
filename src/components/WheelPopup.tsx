@@ -342,23 +342,60 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Fonction pour ajouter un cadeau au panier avec animation
   const handleAddGiftToCart = async (segment: any) => {
+    if (!segment) return;
+
+    // 🆕 Vérifier si le cadeau n'a pas expiré
+    const wonAt = new Date(segment.won_at);
+    const now = new Date();
+    const hoursSinceWin = (now.getTime() - wonAt.getTime()) / (1000 * 60 * 60);
+    
+    if (hoursSinceWin >= 72) {
+      toast({
+        title: "⏰ Cadeau expiré",
+        description: "Ce cadeau n'est plus disponible. Vous devez rejouer à la roue pour obtenir un nouveau cadeau.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Vérifier si le cadeau est déjà dans le panier
+    const existingGift = cartItems.find(item => 
+      item.id === segment.id && 
+      item.type === 'wheel_gift'
+    );
+
+    if (existingGift) {
+      toast({
+        title: "🎁 Déjà ajouté",
+        description: "Ce cadeau est déjà dans votre panier !",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Ajouter le cadeau au panier
     const giftItem = {
-      id: `wheel_gift_${Date.now()}`,
-      title: segment.text || 'Cadeau mystère',
-      image_url: segment.image_url || segment.image,
+      id: segment.id,
+      type: 'wheel_gift',
+      title: segment.title,
+      image: segment.image_url,
       price: 0,
       quantity: 1,
-      is_gift: true,
-      segment_position: segment.position || 0
+      won_at: segment.won_at,
+      expires_at: new Date(wonAt.getTime() + 72 * 60 * 60 * 1000).toISOString() // 🆕 Date d'expiration
     };
 
     addItem(giftItem);
-    toast.success(`🎁 ${segment.text} ajouté à votre panier !`, {
-      style: { 
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: 'white',
-        border: 'none'
-      }
+    toast({
+      title: "🎁 Cadeau ajouté !",
+      description: "Votre cadeau a été ajouté au panier. N'oubliez pas de finaliser votre commande avant l'expiration !",
+      status: "success",
+      duration: 5000,
+      isClosable: true,
     });
   };
 
