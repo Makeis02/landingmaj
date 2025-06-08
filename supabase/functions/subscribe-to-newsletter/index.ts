@@ -1,13 +1,17 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, access-control-allow-headers, access-control-allow-methods, access-control-allow-origin',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Remplace par ta clé API Omisend dans les variables d'environnement Supabase
-const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY") || "<TA_CLE_OMISEND>";
+const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY");
+if (!OMISEND_API_KEY) {
+  console.error("❌ OMISEND_API_KEY manquante");
+  throw new Error("OMISEND_API_KEY manquante");
+}
+
 const OMISEND_API_URL = "https://api.omisend.com/v3/contacts";
 
 serve(async (req) => {
@@ -17,9 +21,9 @@ serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     console.log("🔄 Réponse OPTIONS avec headers CORS");
-    return new Response(null, { 
+    return new Response(null, {
       status: 204,
-      headers: corsHeaders 
+      headers: corsHeaders,
     });
   }
 
@@ -73,10 +77,9 @@ serve(async (req) => {
   console.log("📤 Payload Omisend:", omisendPayload);
 
   // Appel Omisend
-  let omisendRes, omisendData;
   try {
     console.log("🚀 Appel API Omisend...");
-    omisendRes = await fetch(OMISEND_API_URL, {
+    const omisendRes = await fetch(OMISEND_API_URL, {
       method: "POST",
       headers: {
         "X-API-KEY": OMISEND_API_KEY,
@@ -84,8 +87,37 @@ serve(async (req) => {
       },
       body: JSON.stringify(omisendPayload),
     });
-    omisendData = await omisendRes.json();
+
+    const contentType = omisendRes.headers.get("content-type") || "";
+
+    if (!omisendRes.ok) {
+      const errorPayload = contentType.includes("application/json")
+        ? await omisendRes.json()
+        : await omisendRes.text();
+
+      console.error("❌ Erreur Omisend:", errorPayload);
+      return new Response(
+        JSON.stringify({ success: false, message: "Erreur Omisend", omisend: errorPayload }),
+        {
+          status: omisendRes.status || 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const omisendData = await omisendRes.json();
     console.log("📥 Réponse Omisend:", omisendData);
+
+    // Succès
+    console.log("✅ Inscription réussie pour:", email);
+    return new Response(
+      JSON.stringify({ success: true, omisend: omisendData }), 
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
+
   } catch (err) {
     console.error("❌ Erreur réseau Omisend:", err);
     return new Response(
@@ -96,25 +128,4 @@ serve(async (req) => {
       }
     );
   }
-
-  if (!omisendRes.ok) {
-    console.error("❌ Erreur Omisend:", omisendData);
-    return new Response(
-      JSON.stringify({ success: false, message: "Erreur Omisend", omisend: omisendData }), 
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
-  }
-
-  // Succès
-  console.log("✅ Inscription réussie pour:", email);
-  return new Response(
-    JSON.stringify({ success: true, omisend: omisendData }), 
-    {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" }
-    }
-  );
 }); 
