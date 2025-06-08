@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS'
 };
 
 // Remplace par ta clé API Omisend dans les variables d'environnement Supabase
@@ -17,12 +17,21 @@ serve(async (req) => {
   // CORS preflight
   if (req.method === "OPTIONS") {
     console.log("🔄 Réponse OPTIONS avec headers CORS");
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { 
+      status: 204,
+      headers: corsHeaders 
+    });
   }
 
   if (req.method !== "POST") {
     console.log("❌ Méthode non autorisée:", req.method);
-    return new Response("Méthode non autorisée", { status: 405, headers: corsHeaders });
+    return new Response(
+      JSON.stringify({ error: "Méthode non autorisée" }), 
+      { 
+        status: 405, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
+    );
   }
 
   let body;
@@ -31,10 +40,13 @@ serve(async (req) => {
     console.log("📦 Body reçu:", body);
   } catch (err) {
     console.error("❌ Erreur parsing body:", err);
-    return new Response(JSON.stringify({ success: false, message: "Corps de requête invalide" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, message: "Corps de requête invalide" }), 
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
   }
 
   const email = body.email;
@@ -43,10 +55,13 @@ serve(async (req) => {
 
   if (!email || typeof email !== "string") {
     console.log("❌ Email manquant ou invalide:", email);
-    return new Response(JSON.stringify({ success: false, message: "Email manquant ou invalide" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, message: "Email manquant ou invalide" }), 
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
   }
 
   // Prépare le payload Omisend
@@ -73,24 +88,33 @@ serve(async (req) => {
     console.log("📥 Réponse Omisend:", omisendData);
   } catch (err) {
     console.error("❌ Erreur réseau Omisend:", err);
-    return new Response(JSON.stringify({ success: false, message: "Erreur réseau Omisend", error: String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, message: "Erreur réseau Omisend", error: String(err) }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
   }
 
   if (!omisendRes.ok) {
     console.error("❌ Erreur Omisend:", omisendData);
-    return new Response(JSON.stringify({ success: false, message: "Erreur Omisend", omisend: omisendData }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ success: false, message: "Erreur Omisend", omisend: omisendData }), 
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      }
+    );
   }
 
   // Succès
   console.log("✅ Inscription réussie pour:", email);
-  return new Response(JSON.stringify({ success: true, omisend: omisendData }), {
-    status: 200,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({ success: true, omisend: omisendData }), 
+    {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
+    }
+  );
 }); 
