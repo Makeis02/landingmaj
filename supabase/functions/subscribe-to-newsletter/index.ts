@@ -1,23 +1,22 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 // Remplace par ta clé API Omisend dans les variables d'environnement Supabase
 const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY") || "<TA_CLE_OMISEND>";
 const OMISEND_API_URL = "https://api.omisend.com/v3/contacts";
 
 serve(async (req) => {
-  // GESTION CORS
+  // CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", {
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "content-type, authorization, apikey, x-client-info",
-      },
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== "POST") {
-    return new Response("Méthode non autorisée", { status: 405 });
+    return new Response("Méthode non autorisée", { status: 405, headers: corsHeaders });
   }
 
   let body;
@@ -26,7 +25,7 @@ serve(async (req) => {
   } catch {
     return new Response(JSON.stringify({ success: false, message: "Corps de requête invalide" }), {
       status: 400,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -37,7 +36,7 @@ serve(async (req) => {
   if (!email || typeof email !== "string") {
     return new Response(JSON.stringify({ success: false, message: "Email manquant ou invalide" }), {
       status: 400,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
@@ -63,20 +62,20 @@ serve(async (req) => {
   } catch (err) {
     return new Response(JSON.stringify({ success: false, message: "Erreur réseau Omisend", error: String(err) }), {
       status: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   if (!omisendRes.ok) {
     return new Response(JSON.stringify({ success: false, message: "Erreur Omisend", omisend: omisendData }), {
       status: 500,
-      headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 
   // Succès
   return new Response(JSON.stringify({ success: true, omisend: omisendData }), {
     status: 200,
-    headers: { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json" },
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }); 
