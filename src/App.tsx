@@ -114,32 +114,22 @@ const App = () => {
   // Vérifier si la roue est activée
   useEffect(() => {
     const checkWheelStatus = async () => {
-      console.log("Checking wheel status...");
       const { data, error } = await supabase
         .from('wheel_settings')
         .select('is_enabled')
         .single();
 
-      console.log("Wheel settings response:", { data, error });
-
       if (!error && data) {
         setIsWheelEnabled(data.is_enabled);
-        console.log("Wheel enabled:", data.is_enabled);
         // Afficher la roue après 5 secondes si elle est activée
         if (data.is_enabled) {
-          console.log("Setting timeout to show wheel...");
-          setTimeout(() => {
-            console.log("Timeout completed, showing wheel...");
-            setShowWheel(true);
-          }, 5000);
+          setTimeout(() => setShowWheel(true), 5000);
         }
       }
     };
 
     checkWheelStatus();
   }, []);
-
-  console.log("Current wheel state:", { isWheelEnabled, showWheel });
 
   return (
   <QueryClientProvider client={queryClient}>
