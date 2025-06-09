@@ -86,6 +86,7 @@ serve(async (req) => {
     identifiers: [{ type: "email", id: email }],
     tags: [...tags, source],
     status: "subscribed",
+    statusDate: new Date().toISOString()
   };
   console.log("📤 Payload Omisend:", omisendPayload);
 

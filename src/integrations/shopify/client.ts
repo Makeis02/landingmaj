@@ -291,6 +291,7 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
     const payload = {
       email,
       status: "subscribed",
+      statusDate: new Date().toISOString(),
       tags: ["pack_mensuel_retargeting"],
       consented: true,
       consentedAt: new Date().toISOString(),
