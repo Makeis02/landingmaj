@@ -289,9 +289,16 @@ export const subscribeToNewsletter = async (email: string): Promise<{ success: b
 const addToOmnisend = async (email: string): Promise<boolean> => {
   try {
     const payload = {
-      email,
-      status: "subscribed",
-      statusDate: new Date().toISOString(),
+      identifiers: [{
+        type: "email",
+        id: email,
+        channels: {
+          email: {
+            status: "subscribed",
+            statusDate: new Date().toISOString()
+          }
+        }
+      }],
       tags: ["pack_mensuel_retargeting"],
       consented: true,
       consentedAt: new Date().toISOString(),
@@ -302,7 +309,7 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-KEY": "66cc578af53d03f7ab4a06ca-buL32ZBhW3XPHHcyVpINDfDJsoOGC0bJA3ZXmm4LG7n5RHB9rx",
+        "X-API-KEY": process.env.OMNISEND_API_KEY!,
       },
       body: JSON.stringify(payload),
     });

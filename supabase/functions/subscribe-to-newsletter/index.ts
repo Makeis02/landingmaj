@@ -7,7 +7,6 @@ const corsHeaders = {
 };
 
 const OMISEND_API_URL = "https://api.omnisend.com/v3/contacts";
-const OMISEND_API_KEY = "66cc578af53d03f7ab4a06ca-buL32ZBhW3XPHHcyVpINDfDJsoOGC0bJA3ZXmm4LG7n5RHB9rx";
 
 serve(async (req) => {
   console.log("🔥 Fonction appelée ! Méthode:", req.method);
@@ -23,6 +22,7 @@ serve(async (req) => {
   }
 
   // Vérification de la clé API Omisend
+  const OMISEND_API_KEY = Deno.env.get("OMNISEND_API_KEY");
   console.log("🔑 OMISEND_API_KEY:", OMISEND_API_KEY ? "✅ Présente" : "❌ Manquante");
   console.log("🔍 Toutes les variables d'environnement:", Object.keys(Deno.env.toObject()));
   
@@ -83,10 +83,17 @@ serve(async (req) => {
 
   // Prépare le payload Omisend
   const omisendPayload = {
-    identifiers: [{ type: "email", id: email }],
-    tags: [...tags, source],
-    status: "subscribed",
-    statusDate: new Date().toISOString()
+    identifiers: [{
+      type: "email",
+      id: email,
+      channels: {
+        email: {
+          status: "subscribed",
+          statusDate: new Date().toISOString()
+        }
+      }
+    }],
+    tags: [...tags, source]
   };
   console.log("📤 Payload Omisend:", omisendPayload);
 
