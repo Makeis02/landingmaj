@@ -6,12 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY");
-if (!OMISEND_API_KEY) {
-  console.error("❌ OMISEND_API_KEY manquante");
-  throw new Error("OMISEND_API_KEY manquante");
-}
-
 const OMISEND_API_URL = "https://api.omisend.com/v3/contacts";
 
 serve(async (req) => {
@@ -25,6 +19,22 @@ serve(async (req) => {
       status: 204,
       headers: corsHeaders,
     });
+  }
+
+  // Vérification de la clé API Omisend
+  const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY");
+  if (!OMISEND_API_KEY) {
+    console.error("❌ OMISEND_API_KEY manquante");
+    return new Response(
+      JSON.stringify({ error: "Clé API Omisend manquante" }),
+      {
+        status: 500,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      }
+    );
   }
 
   if (req.method !== "POST") {
