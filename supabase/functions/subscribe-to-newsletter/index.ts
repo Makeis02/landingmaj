@@ -22,7 +22,7 @@ serve(async (req) => {
   }
 
   // Vérification de la clé API Omisend
-  const OMISEND_API_KEY = Deno.env.get("OMISEND_API_KEY");
+  const OMISEND_API_KEY = Deno.env.get("OMNISEND_API_KEY");
   console.log("🔑 OMISEND_API_KEY:", OMISEND_API_KEY ? "✅ Présente" : "❌ Manquante");
   console.log("🔍 Toutes les variables d'environnement:", Object.keys(Deno.env.toObject()));
   
