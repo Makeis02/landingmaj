@@ -20,11 +20,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [wheelSettings, setWheelSettings] = useState({ 
-    title: 'Roue Aquatique', 
-    description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
-    is_enabled: true 
-  });
+  const [wheelSettings, setWheelSettings] = useState({ title: 'Roue Aquatique', description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !' });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
   const [email, setEmail] = useState('');
@@ -129,8 +125,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       if (!settingsError && settings) {
         setWheelSettings({
           title: settings.title || 'Roue Aquatique',
-          description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
-          is_enabled: settings.is_enabled || true
+          description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !'
         });
       }
 
@@ -724,28 +719,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  // Fonction pour sauvegarder les paramètres de la roue
-  const saveWheelSettings = async (newSettings: any) => {
-    if (!isEditMode) return;
-
-    try {
-      const { error } = await supabase
-        .from('wheel_settings')
-        .upsert({
-          ...newSettings,
-          updated_at: new Date().toISOString()
-        });
-
-      if (error) throw error;
-      
-      setWheelSettings(newSettings);
-      toast.success('Paramètres sauvegardés !');
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde des paramètres:', error);
-      toast.error('Erreur de sauvegarde');
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -1028,50 +1001,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
           <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
-            {/* Paramètres généraux */}
-            <div className="mb-4 p-3 bg-white rounded border">
-              <h3 className="font-bold text-sm mb-2" style={{ color: '#0074b3' }}>Paramètres généraux</h3>
-              
-              {/* Titre */}
-              <div className="mb-2">
-                <label className="text-xs text-gray-600">Titre</label>
-                <input
-                  type="text"
-                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={wheelSettings.title}
-                  onChange={e => saveWheelSettings({ ...wheelSettings, title: e.target.value })}
-                />
-              </div>
-
-              {/* Description */}
-              <div className="mb-2">
-                <label className="text-xs text-gray-600">Description</label>
-                <textarea
-                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={wheelSettings.description}
-                  onChange={e => saveWheelSettings({ ...wheelSettings, description: e.target.value })}
-                  rows={2}
-                />
-              </div>
-
-              {/* Toggle pour activer/désactiver */}
-              <div className="flex items-center justify-between mt-2">
-                <label className="text-xs text-gray-600">Activer la roue</label>
-                <button
-                  onClick={() => saveWheelSettings({ ...wheelSettings, is_enabled: !wheelSettings.is_enabled })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    wheelSettings.is_enabled ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      wheelSettings.is_enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-sm mb-1" style={{ color: '#0074b3' }}>Édition des segments</h3>
               {isSaving && (
@@ -1080,6 +1009,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   <span className="text-xs text-blue-600">Sauvegarde...</span>
                 </div>
               )}
+            </div>
+            
+            {/* Indicateur du total des pourcentages */}
+            <div className={`p-2 rounded text-xs font-medium ${
+              Math.abs(totalPercentage - 100) < 0.1 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              Total: {totalPercentage.toFixed(1)}% 
+              {Math.abs(totalPercentage - 100) < 0.1 ? ' ✅' : ' ⚠️'}
             </div>
             
             {segmentsData.map((data, idx) => (
