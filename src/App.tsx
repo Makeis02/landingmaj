@@ -115,52 +115,24 @@ const App = () => {
   useEffect(() => {
     const checkWheelStatus = async () => {
       console.log("Checking wheel status...");
-      try {
-        const { data, error } = await supabase
-          .from('wheel_settings')
-          .select('is_enabled')
-          .single();
+      const { data, error } = await supabase
+        .from('wheel_settings')
+        .select('is_enabled')
+        .single();
 
-        console.log("Wheel settings response:", { data, error });
+      console.log("Wheel settings response:", { data, error });
 
-        if (error) {
-          console.error("Error fetching wheel settings:", error);
-          // En cas d'erreur, on active la roue par défaut
-          setIsWheelEnabled(true);
-          setTimeout(() => {
-            console.log("Timeout completed, showing wheel...");
-            setShowWheel(true);
-          }, 5000);
-          return;
-        }
-
-        if (data) {
-          setIsWheelEnabled(data.is_enabled);
-          console.log("Wheel enabled:", data.is_enabled);
-          // Afficher la roue après 5 secondes si elle est activée
-          if (data.is_enabled) {
-            console.log("Setting timeout to show wheel...");
-            setTimeout(() => {
-              console.log("Timeout completed, showing wheel...");
-              setShowWheel(true);
-            }, 5000);
-          }
-        } else {
-          // Si pas de données, on active la roue par défaut
-          setIsWheelEnabled(true);
+      if (!error && data) {
+        setIsWheelEnabled(data.is_enabled);
+        console.log("Wheel enabled:", data.is_enabled);
+        // Afficher la roue après 5 secondes si elle est activée
+        if (data.is_enabled) {
+          console.log("Setting timeout to show wheel...");
           setTimeout(() => {
             console.log("Timeout completed, showing wheel...");
             setShowWheel(true);
           }, 5000);
         }
-      } catch (err) {
-        console.error("Unexpected error checking wheel status:", err);
-        // En cas d'erreur inattendue, on active la roue par défaut
-        setIsWheelEnabled(true);
-        setTimeout(() => {
-          console.log("Timeout completed, showing wheel...");
-          setShowWheel(true);
-        }, 5000);
       }
     };
 
