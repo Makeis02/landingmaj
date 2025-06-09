@@ -58,9 +58,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
 
-  const [isEligible, setIsEligible] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
-
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
     if (isOpen) {
@@ -756,191 +753,105 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
-        {/* En-tête avec titre et bouton de fermeture */}
-        <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">{wheelSettings.title}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="relative w-full max-w-2xl p-4 sm:p-6 bg-white rounded-lg shadow-xl mx-4">
+        {/* Bouton de fermeture mobile */}
+        <button 
+          onClick={onClose}
+          className="absolute -top-3 -right-3 sm:top-2 sm:right-2 bg-red-500 text-white rounded-full p-2 shadow-lg hover:bg-red-600 transition-colors z-10"
+          aria-label="Fermer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
 
-        {/* Contenu principal */}
-        <div className="p-4 max-h-[80vh] overflow-y-auto">
-          {/* Description */}
-          <p className="text-sm text-gray-600 mb-4">{wheelSettings.description}</p>
-
-          {/* Roue */}
-          <div className="relative w-full aspect-square max-w-[280px] mx-auto mb-4">
-            <div className="absolute inset-0">
-              <svg viewBox="0 0 100 100" className="w-full h-full">
-                {segments.map((segment, index) => {
-                  const startAngle = (index * 360) / segments.length;
-                  const endAngle = ((index + 1) * 360) / segments.length;
-                  const startRad = (startAngle - 90) * (Math.PI / 180);
-                  const endRad = (endAngle - 90) * (Math.PI / 180);
-                  
-                  const x1 = 50 + 50 * Math.cos(startRad);
-                  const y1 = 50 + 50 * Math.sin(startRad);
-                  const x2 = 50 + 50 * Math.cos(endRad);
-                  const y2 = 50 + 50 * Math.sin(endRad);
-                  
-                  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
-                  
-                  const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
-                  
-                  return (
-                    <g key={index}>
-                      <path
-                        d={path}
-                        fill={segment.color}
-                        stroke="white"
-                        strokeWidth="0.5"
-                      />
-                      <text
-                        x="50"
-                        y="50"
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        fill="white"
-                        fontSize="4"
-                        transform={`rotate(${(startAngle + endAngle) / 2} 50 50)`}
-                        style={{
-                          transformBox: 'fill-box',
-                          transformOrigin: 'center',
-                          transform: `rotate(${(startAngle + endAngle) / 2}deg)`,
-                        }}
-                      >
-                        {segment.text}
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
-              <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-red-500"
-                style={{
-                  clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Formulaire email */}
-          {!isSpinning && !showResult && (
-            <div className="space-y-4">
-              <div className="flex flex-col gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Votre email"
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                  disabled={isSpinning}
-                />
-                <button
-                  onClick={handleEmailSubmit}
-                  disabled={!validateEmail(email) || isSpinning}
-                  className={`w-full py-2 px-4 rounded-lg text-white text-sm font-medium ${
-                    validateEmail(email) && !isSpinning
-                      ? 'bg-blue-600 hover:bg-blue-700'
-                      : 'bg-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  {isSpinning ? 'Chargement...' : 'Faire tourner la roue'}
-                </button>
+        {/* Contenu de la popup */}
+        <div className="relative">
+          {isEditMode ? (
+            <>
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{wheelSettings.title}</h2>
+                <p className="text-sm sm:text-base text-gray-600">{wheelSettings.description}</p>
               </div>
-              {!isEligible && (
-                <p className="text-sm text-red-600">
-                  Vous avez déjà utilisé la roue. Réessayez plus tard !
-                </p>
-              )}
-            </div>
-          )}
 
-          {/* Résultat */}
-          {showResult && (
-            <div className="text-center space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="text-lg font-semibold text-blue-900 mb-2">Félicitations !</h3>
-                <p className="text-blue-800">
-                  Vous avez gagné : {segments[winningSegment].text}
-                </p>
-                {segments[winningSegment].promo_code && (
-                  <div className="mt-3">
-                    <p className="text-sm text-blue-700 mb-2">Votre code promo :</p>
-                    <div className="flex items-center justify-center gap-2">
-                      <code className="bg-white px-3 py-1 rounded border text-blue-900 font-mono">
-                        {segments[winningSegment].promo_code}
-                      </code>
-                      <button
-                        onClick={() => copyPromoCode(segments[winningSegment].promo_code)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
-                )}
+              {/* Zone de la roue */}
+              <div className="relative w-full max-w-[300px] sm:max-w-[400px] mx-auto mb-4">
+                {/* ... existing wheel content ... */}
               </div>
-              <button
-                onClick={onClose}
-                className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-sm font-medium"
-              >
-                Fermer
-              </button>
-            </div>
-          )}
 
-          {/* Mode édition */}
-          {isEditMode && (
-            <div className="mt-6 space-y-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Titre</label>
-                <input
-                  type="text"
-                  value={wheelSettings.title}
-                  onChange={(e) => setWheelSettings({ ...wheelSettings, title: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">Description</label>
-                <textarea
-                  value={wheelSettings.description}
-                  onChange={(e) => setWheelSettings({ ...wheelSettings, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm"
-                  rows={3}
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">Activer la roue</label>
-                <button
-                  onClick={() => setWheelSettings({ ...wheelSettings, is_enabled: !wheelSettings.is_enabled })}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                    wheelSettings.is_enabled ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                      wheelSettings.is_enabled ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+              {/* Zone de l'email */}
+              {!emailValidated && !showResult && (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Votre email"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
+                  <button
+                    onClick={handleEmailSubmit}
+                    disabled={!validateEmail(email)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Valider mon email
+                  </button>
+                </div>
+              )}
+
+              {/* Bouton de fermeture en bas */}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={onClose}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Je ne veux pas jouer maintenant
                 </button>
               </div>
-              <button
-                onClick={() => saveWheelSettings(wheelSettings)}
-                disabled={isSaving}
-                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium"
-              >
-                {isSaving ? 'Enregistrement...' : 'Enregistrer les paramètres'}
-              </button>
-            </div>
+            </>
+          ) : (
+            <>
+              <div className="text-center mb-4">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">{wheelSettings.title}</h2>
+                <p className="text-sm sm:text-base text-gray-600">{wheelSettings.description}</p>
+              </div>
+
+              {/* Zone de la roue */}
+              <div className="relative w-full max-w-[300px] sm:max-w-[400px] mx-auto mb-4">
+                {/* ... existing wheel content ... */}
+              </div>
+
+              {/* Zone de l'email */}
+              {!emailValidated && !showResult && (
+                <div className="mt-4 space-y-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Votre email"
+                    className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    onClick={handleEmailSubmit}
+                    disabled={!validateEmail(email)}
+                    className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Valider mon email
+                  </button>
+                </div>
+              )}
+
+              {/* Bouton de fermeture en bas */}
+              <div className="mt-4 text-center">
+                <button
+                  onClick={onClose}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Je ne veux pas jouer maintenant
+                </button>
+              </div>
+            </>
           )}
         </div>
       </div>
