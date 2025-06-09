@@ -12,13 +12,14 @@ interface LuckyWheelPopupProps {
 }
 
 const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false }) => {
+  console.log("WheelPopup rendered with isOpen:", isOpen);
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
   const [winningSegment, setWinningSegment] = useState<any>(null);
   const [showAddToCartAnimation, setShowAddToCartAnimation] = useState(false);
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [wheelSettings, setWheelSettings] = useState({ 
     title: 'Roue Aquatique', 
@@ -746,7 +747,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log("WheelPopup not showing because isOpen is false");
+    return null;
+  }
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
