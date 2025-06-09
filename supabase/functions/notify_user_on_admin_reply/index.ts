@@ -8,6 +8,7 @@ const corsHeaders = {
 }
 
 const OMNISEND_API_URL = 'https://api.omnisend.com/v3'
+const OMNISEND_API_KEY = '66cc578af53d03f7ab4a06ca-buL32ZBhW3XPHHcyVpINDfDJsoOGC0bJA3ZXmm4LG7n5RHB9rx'
 
 console.log('⚡️ Fonction déclenchée');
 
@@ -38,19 +39,16 @@ serve(async (req) => {
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-    const OMNISEND_API_KEY = Deno.env.get('OMNISEND_API_KEY') ?? '';
     const SITE_URL = Deno.env.get('SITE_URL') ?? '';
 
     console.log('🔍 Vérification des variables d\'environnement :');
     console.log('SUPABASE_URL:', SUPABASE_URL || '❌ NON DÉFINIE');
     console.log('SUPABASE_SERVICE_ROLE_KEY:', SUPABASE_SERVICE_ROLE_KEY ? '✅ DÉFINIE' : '❌ NON DÉFINIE');
-    console.log('OMNISEND_API_KEY:', OMNISEND_API_KEY ? '✅ DÉFINIE' : '❌ NON DÉFINIE');
     console.log('SITE_URL:', SITE_URL || '❌ NON DÉFINIE');
 
     const missingVars = [];
     if (!SUPABASE_URL) missingVars.push('SUPABASE_URL');
     if (!SUPABASE_SERVICE_ROLE_KEY) missingVars.push('SUPABASE_SERVICE_ROLE_KEY');
-    if (!OMNISEND_API_KEY) missingVars.push('OMNISEND_API_KEY');
     if (!SITE_URL) missingVars.push('SITE_URL');
 
     if (missingVars.length > 0) {

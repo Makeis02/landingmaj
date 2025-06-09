@@ -6,7 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const OMISEND_API_URL = "https://api.omisend.com/v3/contacts";
+const OMISEND_API_URL = "https://api.omnisend.com/v3/contacts";
+const OMISEND_API_KEY = "66cc578af53d03f7ab4a06ca-buL32ZBhW3XPHHcyVpINDfDJsoOGC0bJA3ZXmm4LG7n5RHB9rx";
 
 serve(async (req) => {
   console.log("🔥 Fonction appelée ! Méthode:", req.method);
@@ -22,7 +23,6 @@ serve(async (req) => {
   }
 
   // Vérification de la clé API Omisend
-  const OMISEND_API_KEY = Deno.env.get("OMNISEND_API_KEY");
   console.log("🔑 OMISEND_API_KEY:", OMISEND_API_KEY ? "✅ Présente" : "❌ Manquante");
   console.log("🔍 Toutes les variables d'environnement:", Object.keys(Deno.env.toObject()));
   
@@ -92,6 +92,12 @@ serve(async (req) => {
   // Appel Omisend
   try {
     console.log("🚀 Appel API Omisend...");
+    console.log("URL:", OMISEND_API_URL);
+    console.log("Headers:", {
+      "X-API-KEY": "***" + OMISEND_API_KEY.slice(-4),
+      "Content-Type": "application/json",
+    });
+
     const omisendRes = await fetch(OMISEND_API_URL, {
       method: "POST",
       headers: {
@@ -101,14 +107,23 @@ serve(async (req) => {
       body: JSON.stringify(omisendPayload),
     });
 
+    console.log("📥 Status Omisend:", omisendRes.status);
+    console.log("📥 Headers Omisend:", Object.fromEntries(omisendRes.headers.entries()));
+
     const contentType = omisendRes.headers.get("content-type") || "";
+    console.log("📥 Content-Type:", contentType);
 
     if (!omisendRes.ok) {
-      const errorPayload = contentType.includes("application/json")
-        ? await omisendRes.json()
-        : await omisendRes.text();
+      const errorText = await omisendRes.text();
+      console.error("❌ Erreur Omisend (raw):", errorText);
+      
+      let errorPayload;
+      try {
+        errorPayload = JSON.parse(errorText);
+      } catch (e) {
+        errorPayload = { raw: errorText };
+      }
 
-      console.error("❌ Erreur Omisend:", errorPayload);
       return new Response(
         JSON.stringify({ success: false, message: "Erreur Omisend", omisend: errorPayload }),
         {

@@ -301,7 +301,7 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-API-KEY": process.env.OMNISEND_API_KEY!,
+        "X-API-KEY": "66cc578af53d03f7ab4a06ca-buL32ZBhW3XPHHcyVpINDfDJsoOGC0bJA3ZXmm4LG7n5RHB9rx",
       },
       body: JSON.stringify(payload),
     });
