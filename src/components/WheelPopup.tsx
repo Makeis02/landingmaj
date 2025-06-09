@@ -11,19 +11,6 @@ interface LuckyWheelPopupProps {
   isEditMode?: boolean;
 }
 
-interface WheelSegment {
-  text: string;
-  percentage: number;
-  promo_code?: string;
-  image_url?: string;
-}
-
-interface WheelSettings {
-  title: string;
-  description: string;
-  is_enabled: boolean;
-}
-
 const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false }) => {
   console.log("WheelPopup rendered with isOpen:", isOpen);
   const [isSpinning, setIsSpinning] = useState(false);
@@ -34,10 +21,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [wheelSettings, setWheelSettings] = useState<WheelSettings>({
-    title: "Tentez votre chance !",
-    description: "Faites tourner la roue pour gagner des cadeaux",
-    is_enabled: true
+  const [wheelSettings, setWheelSettings] = useState({ 
+    title: 'Roue Aquatique', 
+    description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
+    is_enabled: true 
   });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
@@ -70,6 +57,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+
+  const [isEligible, setIsEligible] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
@@ -767,182 +757,188 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-full max-w-[95vw] sm:max-w-2xl bg-white rounded-lg shadow-xl overflow-hidden">
-        {/* En-tête avec bouton de fermeture */}
-        <div className="absolute top-2 right-2 z-10">
-          <button
-            onClick={onClose}
-            className="p-2 rounded-full bg-white/80 hover:bg-white shadow-md transition-colors"
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="relative w-full max-w-md bg-white rounded-lg shadow-xl overflow-hidden">
+        {/* En-tête avec titre et bouton de fermeture */}
+        <div className="p-4 border-b flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">{wheelSettings.title}</h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Contenu principal */}
-        <div className="p-4 sm:p-6">
-          {/* Titre et description */}
-          <div className="text-center mb-4">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-              {isEditMode ? (
-                <input
-                  type="text"
-                  value={wheelSettings.title}
-                  onChange={(e) => setWheelSettings({ ...wheelSettings, title: e.target.value })}
-                  className="w-full text-center border rounded px-2 py-1"
-                />
-              ) : (
-                wheelSettings.title
-              )}
-            </h2>
-            <p className="text-sm sm:text-base text-gray-600">
-              {isEditMode ? (
-                <textarea
-                  value={wheelSettings.description}
-                  onChange={(e) => setWheelSettings({ ...wheelSettings, description: e.target.value })}
-                  className="w-full text-center border rounded px-2 py-1"
-                  rows={2}
-                />
-              ) : (
-                wheelSettings.description
-              )}
-            </p>
-          </div>
+        <div className="p-4 max-h-[80vh] overflow-y-auto">
+          {/* Description */}
+          <p className="text-sm text-gray-600 mb-4">{wheelSettings.description}</p>
 
           {/* Roue */}
-          <div className="relative w-full max-w-[280px] sm:max-w-[400px] mx-auto mb-4">
-            <div
-              className="relative w-full aspect-square"
-              style={{
-                transform: `rotate(${rotation}deg)`,
-                transition: isSpinning ? 'transform 5s cubic-bezier(0.17, 0.67, 0.83, 0.67)' : 'none'
-              }}
-            >
-              {segments.map((segment, index) => {
-                const angle = (360 / segments.length) * index;
-                const nextAngle = (360 / segments.length) * (index + 1);
-                      const midAngle = angle + (nextAngle - angle) / 2;
-                return (
-                  <div
-                    key={index}
-                          className={`absolute w-full h-full ${segment.color} border-r border-white/30`}
-                    style={{
-                      clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos((angle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((angle - 90) * Math.PI / 180)}%, ${50 + 50 * Math.cos((nextAngle - 90) * Math.PI / 180)}% ${50 + 50 * Math.sin((nextAngle - 90) * Math.PI / 180)}%)`,
-                            transformOrigin: 'center',
-                    }}
-                  >
-                    <div 
-                      style={{
-                              position: 'absolute',
-                              top: '50%',
-                              left: '50%',
-                              transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
-                              width: segment.image_url ? '60px' : '120px',
-                              height: segment.image_url ? '60px' : 'auto',
-                              textAlign: 'center',
-                              fontWeight: 'bold',
-                              fontSize: '0.9rem',
-                              color: segment.color.includes('bg-[#e0f2fe]') || segment.color.includes('bg-[#60a5fa]') ? '#1e3a8a' : '#ffffff',
-                              textShadow: '1px 1px 3px rgba(0,0,0,0.7)',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                      }}
-                    >
-                            {segment.image_url ? (
-                              <img
-                                src={segment.image_url}
-                                alt="Segment"
-                                style={{
-                                  width: '40px',
-                                  height: '40px',
-                                  objectFit: 'cover',
-                                  borderRadius: '6px',
-                                  border: '2px solid rgba(255,255,255,0.9)',
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                  display: 'block',
-                                  margin: '0 auto',
-                                }}
-                              />
-                            ) : (
-                              segment.text
-                            )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12">
-              <div className="w-full h-full bg-white rounded-full shadow-lg flex items-center justify-center">
-                <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-500 rounded-full"></div>
-              </div>
+          <div className="relative w-full aspect-square max-w-[280px] mx-auto mb-4">
+            <div className="absolute inset-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full">
+                {segments.map((segment, index) => {
+                  const startAngle = (index * 360) / segments.length;
+                  const endAngle = ((index + 1) * 360) / segments.length;
+                  const startRad = (startAngle - 90) * (Math.PI / 180);
+                  const endRad = (endAngle - 90) * (Math.PI / 180);
+                  
+                  const x1 = 50 + 50 * Math.cos(startRad);
+                  const y1 = 50 + 50 * Math.sin(startRad);
+                  const x2 = 50 + 50 * Math.cos(endRad);
+                  const y2 = 50 + 50 * Math.sin(endRad);
+                  
+                  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+                  
+                  const path = `M 50 50 L ${x1} ${y1} A 50 50 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+                  
+                  return (
+                    <g key={index}>
+                      <path
+                        d={path}
+                        fill={segment.color}
+                        stroke="white"
+                        strokeWidth="0.5"
+                      />
+                      <text
+                        x="50"
+                        y="50"
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fill="white"
+                        fontSize="4"
+                        transform={`rotate(${(startAngle + endAngle) / 2} 50 50)`}
+                        style={{
+                          transformBox: 'fill-box',
+                          transformOrigin: 'center',
+                          transform: `rotate(${(startAngle + endAngle) / 2}deg)`,
+                        }}
+                      >
+                        {segment.text}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+              <div
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-4 h-8 bg-red-500"
+                style={{
+                  clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                }}
+              />
             </div>
           </div>
 
           {/* Formulaire email */}
           {!isSpinning && !showResult && (
-            <div className="max-w-xs mx-auto">
-              <div className="flex flex-col sm:flex-row gap-2">
+            <div className="space-y-4">
+              <div className="flex flex-col gap-2">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Votre email"
-                  className="flex-1 min-w-0 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  disabled={isSpinning}
                 />
                 <button
                   onClick={handleEmailSubmit}
                   disabled={!validateEmail(email) || isSpinning}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className={`w-full py-2 px-4 rounded-lg text-white text-sm font-medium ${
+                    validateEmail(email) && !isSpinning
+                      ? 'bg-blue-600 hover:bg-blue-700'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
                 >
-                  Faire tourner
+                  {isSpinning ? 'Chargement...' : 'Faire tourner la roue'}
                 </button>
               </div>
-              {!canSpin && (
-                <p className="mt-2 text-sm text-red-600 text-center">
-                  Vous avez déjà utilisé la roue aujourd'hui. Réessayez demain !
+              {!isEligible && (
+                <p className="text-sm text-red-600">
+                  Vous avez déjà utilisé la roue. Réessayez plus tard !
                 </p>
               )}
             </div>
           )}
 
           {/* Résultat */}
-          {showResult && winningSegment && (
-            <div className="text-center">
-              <div className="mb-4">
-                <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">Félicitations !</h3>
-                <p className="text-gray-600">Vous avez gagné :</p>
-                <p className="text-xl sm:text-2xl font-bold text-blue-600 mt-2">
-                  {winningSegment.text}
+          {showResult && (
+            <div className="text-center space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold text-blue-900 mb-2">Félicitations !</h3>
+                <p className="text-blue-800">
+                  Vous avez gagné : {segments[winningSegment].text}
                 </p>
-              </div>
-              {winningSegment.promo_code && (
-                <div className="mb-4">
-                  <p className="text-sm text-gray-600 mb-2">Votre code promo :</p>
-                  <div className="flex items-center justify-center gap-2">
-                    <code className="px-3 py-2 bg-gray-100 rounded-lg font-mono text-sm sm:text-base">
-                      {winningSegment.promo_code}
-                    </code>
-                    <button
-                      onClick={() => copyPromoCode(winningSegment.promo_code)}
-                      className="p-2 text-blue-600 hover:text-blue-700"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                      </svg>
-                    </button>
+                {segments[winningSegment].promo_code && (
+                  <div className="mt-3">
+                    <p className="text-sm text-blue-700 mb-2">Votre code promo :</p>
+                    <div className="flex items-center justify-center gap-2">
+                      <code className="bg-white px-3 py-1 rounded border text-blue-900 font-mono">
+                        {segments[winningSegment].promo_code}
+                      </code>
+                      <button
+                        onClick={() => copyPromoCode(segments[winningSegment].promo_code)}
+                        className="text-blue-600 hover:text-blue-800"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
               <button
                 onClick={onClose}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="w-full py-2 px-4 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-sm font-medium"
               >
                 Fermer
+              </button>
+            </div>
+          )}
+
+          {/* Mode édition */}
+          {isEditMode && (
+            <div className="mt-6 space-y-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Titre</label>
+                <input
+                  type="text"
+                  value={wheelSettings.title}
+                  onChange={(e) => setWheelSettings({ ...wheelSettings, title: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <textarea
+                  value={wheelSettings.description}
+                  onChange={(e) => setWheelSettings({ ...wheelSettings, description: e.target.value })}
+                  className="w-full px-3 py-2 border rounded-lg text-sm"
+                  rows={3}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-700">Activer la roue</label>
+                <button
+                  onClick={() => setWheelSettings({ ...wheelSettings, is_enabled: !wheelSettings.is_enabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full ${
+                    wheelSettings.is_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                      wheelSettings.is_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <button
+                onClick={() => saveWheelSettings(wheelSettings)}
+                disabled={isSaving}
+                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm font-medium"
+              >
+                {isSaving ? 'Enregistrement...' : 'Enregistrer les paramètres'}
               </button>
             </div>
           )}
