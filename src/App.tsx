@@ -99,7 +99,8 @@ import CookieBanner from "@/components/CookieBanner";
 import LuckyWheelPopup from "@/components/WheelPopup";
 import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -108,6 +109,27 @@ const App = () => {
   const { isEditMode } = useEditStore();
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
+  const [isWheelEnabled, setIsWheelEnabled] = useState(true);
+
+  // Vérifier si la roue est activée
+  useEffect(() => {
+    const checkWheelStatus = async () => {
+      const { data, error } = await supabase
+        .from('wheel_settings')
+        .select('is_enabled')
+        .single();
+
+      if (!error && data) {
+        setIsWheelEnabled(data.is_enabled);
+        // Afficher la roue après 5 secondes si elle est activée
+        if (data.is_enabled) {
+          setTimeout(() => setShowWheel(true), 5000);
+        }
+      }
+    };
+
+    checkWheelStatus();
+  }, []);
 
   return (
   <QueryClientProvider client={queryClient}>
