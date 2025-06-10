@@ -135,6 +135,16 @@ const App = () => {
   useEffect(() => {
     if (!wheelSettings || !isWheelEnabled) return;
 
+    // 1. Anti-spam localStorage (popup_seen_cooldown)
+    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+    const cooldownDays = wheelSettings.popup_seen_cooldown || 1;
+    if (lastSeen) {
+      const lastDate = new Date(lastSeen);
+      const now = new Date();
+      const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diff < cooldownDays) return; // Ne pas afficher le popup
+    }
+
     // 2. Vérifie la page courante
     const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
     const currentPath = location.pathname;
@@ -157,11 +167,12 @@ const App = () => {
     // 5. Affichage automatique après délai paramétrable
     setTimeout(() => {
       setShowWheel(true);
+      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
     }, (wheelSettings.auto_show_delay || 5) * 1000);
   }, [wheelSettings, isWheelEnabled, location.pathname]);
 
   // Affichage du bouton flottant si activé (toujours visible si besoin)
-  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text && !editWheel;
+  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text;
   const floatingButtonStyle: React.CSSProperties = {
     position: 'fixed',
     zIndex: 1000,
@@ -262,18 +273,26 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Bouton flottant pour ouvrir la roue */}
-        {showFloatingButton && !showWheel && (
+        {/* Bouton flottant pour ouvrir la roue en mode édition */}
+        {isEditMode && (
+          <button
+            onClick={() => { setShowWheel(true); setEditWheel(true); }}
+            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+          >
+            🎡 Tester la roue
+          </button>
+        )}
+        {showFloatingButton && (
           isMobile ? (
             <button
               style={floatingButtonStyle}
-              className="bg-[#0277b6] rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-white"
+              className="bg-cyan-600 rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-white"
               onClick={() => setShowWheel(true)}
             >
-              {/* Miniature de roue SVG couleur #0277b6 */}
+              {/* Miniature de roue SVG */}
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#0277b6" strokeWidth="4" />
-                <circle cx="20" cy="20" r="12" fill="#0277b6" />
+                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#06b6d4" strokeWidth="4" />
+                <circle cx="20" cy="20" r="12" fill="#06b6d4" />
                 <path d="M20 8V20L32 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                 <circle cx="20" cy="20" r="3" fill="#fff" />
               </svg>

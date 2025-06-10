@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { useCartStore } from '@/stores/useCartStore';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { useMediaQuery } from 'react-responsive';
 
 interface LuckyWheelPopupProps {
   isOpen: boolean;
@@ -66,8 +65,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
@@ -781,10 +778,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="absolute top-3 right-3 z-50 text-white bg-[#0277b6] hover:bg-blue-800 rounded-full shadow-lg p-2 md:top-4 md:right-4 md:text-gray-400 md:bg-transparent md:hover:bg-gray-200"
-            style={{ fontSize: isMobile ? 32 : 24, width: isMobile ? 48 : 36, height: isMobile ? 48 : 36 }}
+              className="text-gray-400 hover:text-blue-700"
           >
-            <X className="h-8 w-8" />
+            <X className="h-5 w-5" />
           </Button>
         </div>
 
@@ -972,14 +968,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           )}
 
           {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
-          {!canSpin && (
+          {!canSpin && timeUntilNextSpin > 0 && (
             <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
               <div className="text-center">
                 <div className="text-3xl mb-2">⏰</div>
                 <h3 className="text-lg font-bold text-orange-800 mb-2">
                   Patience, aquariophile !
                 </h3>
-                {/* Timer toujours affiché si pas éligible */}
+                
+                {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
                 <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
                   <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
                   <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
@@ -1005,8 +1002,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     </div>
                   </div>
                 </div>
+                
                 <p className="text-sm text-orange-600">
-                  🐠 Un tirage toutes les {wheelSettings.participation_delay || 72}h pour garder la magie !
+                  🐠 Un tirage toutes les 72h pour garder la magie !
                 </p>
               </div>
             </div>
