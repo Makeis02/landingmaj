@@ -110,69 +110,118 @@ const App = () => {
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
+  
+  // Fonction de debug pour réinitialiser les paramètres de la roue
+  const resetWheelState = () => {
+    localStorage.removeItem('wheel_popup_dismissed');
+    localStorage.removeItem('wheel_popup_last_seen');
+    localStorage.removeItem('wheel_email_entries');
+    console.log('🔄 État de la roue réinitialisé');
+    setShowWheel(true);
+  };
 
   // Vérifier si la roue est activée
   useEffect(() => {
     const checkWheelStatus = async () => {
-      const { data, error } = await supabase
-        .from('wheel_settings')
-        .select('*') // Récupère tous les paramètres
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      try {
+        const { data, error } = await supabase
+          .from('wheel_settings')
+          .select('*') // Récupère tous les paramètres
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .single();
 
-      if (!error && data && data.length > 0) {
-        const settings = data[0];
+        // Si pas de paramètres ou erreur, utiliser des valeurs par défaut
+        const settings = data || {
+          is_enabled: true,
+          popup_seen_cooldown: 1,
+          show_on_pages: '/',
+          auto_show_delay: 5
+        };
+
+        if (error && error.code !== 'PGRST116') {
+          console.warn('⚠️ Erreur lors de la récupération des paramètres de la roue:', error);
+          console.log('🔄 Utilisation des paramètres par défaut');
+        }
         
         // Vérifie si la roue est activée
         if (!settings.is_enabled) {
+          console.log('❌ Roue désactivée par l\'admin');
           setIsWheelEnabled(false);
           return;
         }
         
         setIsWheelEnabled(true);
+        console.log('✅ Roue activée, vérification des conditions...');
         
-        // Logique anti-spam : vérifie si le popup a déjà été vu récemment
+        // 🆕 Logique anti-spam moins restrictive : on vérifie seulement si l'utilisateur a fermé explicitement
+        const userDismissed = localStorage.getItem('wheel_popup_dismissed');
         const lastSeen = localStorage.getItem('wheel_popup_last_seen');
         const cooldownDays = settings.popup_seen_cooldown || 1;
-        if (lastSeen) {
+        
+        if (userDismissed && lastSeen) {
           const lastDate = new Date(lastSeen);
           const now = new Date();
           const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
           if (diffDays < cooldownDays) {
-            console.log(`Anti-spam activé: popup vu il y a ${diffDays.toFixed(1)} jours, cooldown de ${cooldownDays} jours`);
+            console.log(`⏰ Anti-spam activé: popup fermé il y a ${diffDays.toFixed(1)} jours, cooldown de ${cooldownDays} jours`);
             return; // Ne pas afficher le popup
+          } else {
+            // Cooldown expiré, on peut réafficher
+            localStorage.removeItem('wheel_popup_dismissed');
+            localStorage.removeItem('wheel_popup_last_seen');
+            console.log('🔄 Cooldown expiré, popup peut être réaffiché');
           }
         }
         
-        // Vérifie si on est sur la bonne page
+        // Vérifie si on est sur la bonne page (logique plus permissive)
         const currentPath = window.location.pathname;
-        const allowedPages = settings.show_on_pages?.split(',').map(p => p.trim()) || ['/'];
+        const allowedPagesStr = settings.show_on_pages || '/';
+        const allowedPages = allowedPagesStr.split(',').map(p => p.trim());
+        
         const pageMatches = allowedPages.some(page => {
+          if (page === '/' && currentPath === '/') return true;
+          if (page === '*') return true; // Toutes les pages
           if (page.endsWith('*')) {
-            return currentPath.startsWith(page.slice(0, -1));
+            const basePath = page.slice(0, -1);
+            return currentPath.startsWith(basePath);
           }
-          return currentPath === page;
+          return currentPath === page || currentPath.startsWith(page + '/');
         });
         
         if (!pageMatches) {
-          console.log(`Page non autorisée: ${currentPath}, pages autorisées: ${allowedPages.join(', ')}`);
+          console.log(`📍 Page non autorisée: ${currentPath}, pages autorisées: ${allowedPages.join(', ')}`);
           return;
         }
+        
+        console.log(`📍 Page autorisée: ${currentPath}`);
         
         // TODO: Ajouter logique panier si nécessaire (show_when_cart)
         // TODO: Ajouter logique ciblage utilisateurs si nécessaire (show_to)
         
         // Affiche la roue après le délai configuré
-        const delay = (settings.auto_show_delay || 5) * 1000;
+        const delay = Math.max((settings.auto_show_delay || 5) * 1000, 1000); // Minimum 1 seconde
+        console.log(`⏱️ Affichage de la roue dans ${delay/1000} secondes...`);
+        
+        setTimeout(() => {
+          console.log('🎡 Affichage de la roue !');
+          setShowWheel(true);
+        }, delay);
+        
+      } catch (err) {
+        console.error('❌ Erreur lors de la vérification de la roue:', err);
+        // En cas d'erreur, afficher quand même la roue avec des paramètres par défaut
+        console.log('🔄 Affichage de la roue avec paramètres par défaut');
         setTimeout(() => {
           setShowWheel(true);
-          // Enregistre que le popup a été vu
-          localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-        }, delay);
+        }, 5000);
       }
     };
 
-    checkWheelStatus();
+    // Ne pas vérifier en mode admin
+    if (!window.location.pathname.includes('/admin')) {
+      checkWheelStatus();
+    }
   }, []);
 
   return (
@@ -266,16 +315,34 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Bouton flottant pour ouvrir la roue en mode édition */}
+        {/* Boutons flottants pour les tests en mode édition */}
         {isEditMode && (
-          <button
-            onClick={() => { setShowWheel(true); setEditWheel(true); }}
-            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-          >
-            🎡 Tester la roue
-          </button>
+          <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
+            <button
+              onClick={() => { setShowWheel(true); setEditWheel(true); }}
+              className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+            >
+              🎡 Tester la roue
+            </button>
+            <button
+              onClick={resetWheelState}
+              className="bg-red-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-red-700 transition text-sm"
+            >
+              🔄 Reset roue
+            </button>
+          </div>
         )}
-        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+        <LuckyWheelPopup 
+          isOpen={showWheel} 
+          onClose={() => {
+            setShowWheel(false);
+            // Enregistrer que l'utilisateur a fermé explicitement le popup
+            localStorage.setItem('wheel_popup_dismissed', 'true');
+            localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+            console.log('❌ Popup fermé par l\'utilisateur, anti-spam activé');
+          }} 
+          isEditMode={editWheel} 
+        />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
