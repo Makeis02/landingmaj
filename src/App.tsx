@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, BrowserRouter } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
@@ -101,8 +101,6 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useLocation } from "react-router-dom";
-import { useCartStore } from "@/stores/useCartStore";
 
 const queryClient = new QueryClient();
 
@@ -112,128 +110,70 @@ const App = () => {
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
-  const [wheelSettings, setWheelSettings] = useState(null);
-  const location = useLocation();
-  const { items: cartItems } = useCartStore();
 
-  // Vérifier si la roue est activée et récupérer tous les paramètres
+  // Vérifier si la roue est activée
   useEffect(() => {
     const checkWheelStatus = async () => {
       const { data, error } = await supabase
         .from('wheel_settings')
-        .select('*')
+        .select('*') // Récupère tous les paramètres
         .order('updated_at', { ascending: false })
         .limit(1);
 
       if (!error && data && data.length > 0) {
         const settings = data[0];
-        setWheelSettings(settings);
-        setIsWheelEnabled(settings.is_enabled);
         
-        if (settings.is_enabled) {
-          // Vérifier toutes les conditions avant d'afficher
-          if (await shouldShowWheel(settings)) {
-            setTimeout(() => setShowWheel(true), (settings.auto_show_delay || 5) * 1000);
+        // Vérifie si la roue est activée
+        if (!settings.is_enabled) {
+          setIsWheelEnabled(false);
+          return;
+        }
+        
+        setIsWheelEnabled(true);
+        
+        // Logique anti-spam : vérifie si le popup a déjà été vu récemment
+        const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+        const cooldownDays = settings.popup_seen_cooldown || 1;
+        if (lastSeen) {
+          const lastDate = new Date(lastSeen);
+          const now = new Date();
+          const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (diffDays < cooldownDays) {
+            console.log(`Anti-spam activé: popup vu il y a ${diffDays.toFixed(1)} jours, cooldown de ${cooldownDays} jours`);
+            return; // Ne pas afficher le popup
           }
         }
+        
+        // Vérifie si on est sur la bonne page
+        const currentPath = window.location.pathname;
+        const allowedPages = settings.show_on_pages?.split(',').map(p => p.trim()) || ['/'];
+        const pageMatches = allowedPages.some(page => {
+          if (page.endsWith('*')) {
+            return currentPath.startsWith(page.slice(0, -1));
+          }
+          return currentPath === page;
+        });
+        
+        if (!pageMatches) {
+          console.log(`Page non autorisée: ${currentPath}, pages autorisées: ${allowedPages.join(', ')}`);
+          return;
+        }
+        
+        // TODO: Ajouter logique panier si nécessaire (show_when_cart)
+        // TODO: Ajouter logique ciblage utilisateurs si nécessaire (show_to)
+        
+        // Affiche la roue après le délai configuré
+        const delay = (settings.auto_show_delay || 5) * 1000;
+        setTimeout(() => {
+          setShowWheel(true);
+          // Enregistre que le popup a été vu
+          localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+        }, delay);
       }
     };
 
     checkWheelStatus();
-  }, [location.pathname]); // Re-vérifier à chaque changement de page
-
-  // Fonction pour vérifier si la roue doit être affichée
-  const shouldShowWheel = async (settings) => {
-    // 1. Vérifier les pages autorisées
-    if (!checkPageMatch(settings.show_on_pages || '/', location.pathname)) {
-      console.log('🚫 Page non autorisée pour la roue');
-      return false;
-    }
-
-    // 2. Vérifier la condition du panier
-    if (!checkCartCondition(settings.show_when_cart || 'any', cartItems)) {
-      console.log('🚫 Condition panier non respectée');
-      return false;
-    }
-
-    // 3. Vérifier l'anti-spam (localStorage)
-    if (!checkAntiSpam(settings.popup_seen_cooldown || 1)) {
-      console.log('🚫 Popup déjà vu récemment (anti-spam)');
-      return false;
-    }
-
-    // 4. Vérifier le ciblage utilisateur (TODO: implémenter selon besoins)
-    if (!await checkUserTargeting(settings.show_to || 'all')) {
-      console.log('🚫 Ciblage utilisateur non respecté');
-      return false;
-    }
-
-    return true;
-  };
-
-  // Vérifier si la page actuelle correspond aux pages autorisées
-  const checkPageMatch = (allowedPages, currentPath) => {
-    const pages = allowedPages.split(',').map(p => p.trim());
-    return pages.some(page => {
-      if (page === '/') return currentPath === '/';
-      if (page.endsWith('*')) {
-        const prefix = page.slice(0, -1);
-        return currentPath.startsWith(prefix);
-      }
-      return currentPath === page;
-    });
-  };
-
-  // Vérifier la condition du panier
-  const checkCartCondition = (condition, cartItems) => {
-    switch (condition) {
-      case 'empty':
-        return !cartItems || cartItems.length === 0;
-      case 'full':
-        return cartItems && cartItems.length > 0;
-      case 'any':
-      default:
-        return true;
-    }
-  };
-
-  // Vérifier l'anti-spam via localStorage
-  const checkAntiSpam = (cooldownDays) => {
-    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-    if (!lastSeen) return true;
-    
-    const lastDate = new Date(lastSeen);
-    const now = new Date();
-    const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-    
-    return diffDays >= cooldownDays;
-  };
-
-  // Vérifier le ciblage utilisateur
-  const checkUserTargeting = async (targetType) => {
-    switch (targetType) {
-      case 'new':
-        // Vérifier si c'est un nouveau visiteur (jamais joué)
-        const { data } = await supabase
-          .from('wheel_spins')
-          .select('id')
-          .limit(1);
-        return !data || data.length === 0;
-      case 'not_subscribed':
-        // TODO: vérifier si pas abonné à la newsletter
-        return true; // Pour l'instant, on accepte tout le monde
-      case 'all':
-      default:
-        return true;
-    }
-  };
-
-  // Fonction appelée quand le popup se ferme
-  const handleWheelClose = () => {
-    setShowWheel(false);
-    // Marquer comme vu pour l'anti-spam
-    localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-  };
+  }, []);
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -335,13 +275,7 @@ const App = () => {
             🎡 Tester la roue
           </button>
         )}
-        {isWheelEnabled && wheelSettings && (
-          <LuckyWheelPopup 
-            isOpen={showWheel} 
-            onClose={handleWheelClose}
-            wheelSettings={wheelSettings}
-          />
-        )}
+        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
