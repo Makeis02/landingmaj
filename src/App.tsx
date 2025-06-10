@@ -267,22 +267,19 @@ const App = () => {
           <Route path="/lucky-wheel" element={
             <div className="flex flex-col items-center justify-center min-h-screen">
               <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
-              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+              <LuckyWheelPopup 
+                isOpen={showWheel} 
+                onClose={() => setShowWheel(false)} 
+                isEditMode={editWheel}
+                isMobile={isMobile}
+              />
             </div>
           } />
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Bouton flottant pour ouvrir la roue en mode édition */}
-        {isEditMode && (
-          <button
-            onClick={() => { setShowWheel(true); setEditWheel(true); }}
-            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-          >
-            🎡 Tester la roue
-          </button>
-        )}
-        {showFloatingButton && (
+        {/* Bouton flottant pour ouvrir la roue */}
+        {showFloatingButton && !showWheel && !editWheel && (
           isMobile ? (
             <button
               style={floatingButtonStyle}
@@ -291,8 +288,8 @@ const App = () => {
             >
               {/* Miniature de roue SVG */}
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#06b6d4" strokeWidth="4" />
-                <circle cx="20" cy="20" r="12" fill="#06b6d4" />
+                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#0277b6" strokeWidth="4" />
+                <circle cx="20" cy="20" r="12" fill="#0277b6" />
                 <path d="M20 8V20L32 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                 <circle cx="20" cy="20" r="3" fill="#fff" />
               </svg>
@@ -307,7 +304,12 @@ const App = () => {
             </button>
           )
         )}
-        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+        <LuckyWheelPopup 
+          isOpen={showWheel} 
+          onClose={() => setShowWheel(false)} 
+          isEditMode={editWheel}
+          isMobile={isMobile}
+        />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>

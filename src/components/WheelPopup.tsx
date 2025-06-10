@@ -9,9 +9,10 @@ interface LuckyWheelPopupProps {
   isOpen: boolean;
   onClose: () => void;
   isEditMode?: boolean;
+  isMobile?: boolean;
 }
 
-const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false }) => {
+const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, isMobile = false }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -769,18 +770,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
-        {/* Roue à gauche */}
-        <div className={isEditMode ? "flex-shrink-0" : ""}>
         {/* Header avec bouton fermer */}
         <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
+          <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-              className="text-gray-400 hover:text-blue-700"
+            className={`text-gray-400 hover:text-blue-700 ${isMobile ? 'absolute top-2 right-2 !text-[#0277b6] !w-12 !h-12 !p-0' : ''}`}
+            style={isMobile ? { fontSize: 32, color: '#0277b6', right: 12, top: 12, position: 'absolute', padding: 0 } : {}}
           >
-            <X className="h-5 w-5" />
+            <X className={isMobile ? 'w-10 h-10' : 'h-5 w-5'} />
           </Button>
         </div>
 
