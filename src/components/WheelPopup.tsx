@@ -24,7 +24,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     title: 'Roue Aquatique', 
     description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
     is_enabled: true,
+    auto_show_enabled: true,
+    trigger_type: 'delay' as 'delay' | 'scroll',
     auto_show_delay: 5,
+    scroll_percentage: 50,
     show_on_pages: '/',
     show_when_cart: 'any',
     show_to: 'all',
@@ -117,7 +120,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 title: latestSettings.title || 'Roue Aquatique',
                 description: latestSettings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
                 is_enabled: latestSettings.is_enabled || true,
+                auto_show_enabled: latestSettings.auto_show_enabled ?? true,
+                trigger_type: latestSettings.trigger_type || 'delay',
                 auto_show_delay: latestSettings.auto_show_delay || 5,
+                scroll_percentage: latestSettings.scroll_percentage || 50,
                 show_on_pages: latestSettings.show_on_pages || '/',
                 show_when_cart: latestSettings.show_when_cart || 'any',
                 show_to: latestSettings.show_to || 'all',
@@ -219,7 +225,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           title: settings.title || 'Roue Aquatique',
           description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
           is_enabled: settings.is_enabled || true,
+          auto_show_enabled: settings.auto_show_enabled ?? true,
+          trigger_type: settings.trigger_type || 'delay',
           auto_show_delay: settings.auto_show_delay || 5,
+          scroll_percentage: settings.scroll_percentage || 50,
           show_on_pages: settings.show_on_pages || '/',
           show_when_cart: settings.show_when_cart || 'any',
           show_to: settings.show_to || 'all',
@@ -1628,17 +1637,65 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </button>
               </div>
 
-              {/* Délai avant affichage */}
-              <div className="mb-2">
-                <label className="text-xs text-gray-600">Délai avant affichage (secondes)</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={wheelSettings.auto_show_delay}
-                  onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
-                  min={0}
-                />
+              {/* Toggle pour affichage automatique */}
+              <div className="flex items-center justify-between mt-2">
+                <label className="text-xs text-gray-600">Affichage automatique</label>
+                <button
+                  onClick={() => saveWheelSettings({ ...wheelSettings, auto_show_enabled: !wheelSettings.auto_show_enabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    wheelSettings.auto_show_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      wheelSettings.auto_show_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
+
+              {/* Type de déclenchement */}
+              {wheelSettings.auto_show_enabled && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-600">Type de déclenchement</label>
+                  <select
+                    className="w-full border rounded px-2 py-1 text-xs"
+                    value={wheelSettings.trigger_type}
+                    onChange={e => saveWheelSettings({ ...wheelSettings, trigger_type: e.target.value as 'delay' | 'scroll' })}
+                  >
+                    <option value="delay">Délai temporel</option>
+                    <option value="scroll">Pourcentage de scroll</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Délai avant affichage OU Pourcentage de scroll */}
+              {wheelSettings.auto_show_enabled && wheelSettings.trigger_type === 'delay' && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-600">Délai avant affichage (secondes)</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={wheelSettings.auto_show_delay}
+                    onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
+                    min={0}
+                  />
+                </div>
+              )}
+
+              {wheelSettings.auto_show_enabled && wheelSettings.trigger_type === 'scroll' && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-600">Pourcentage de scroll (%)</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={wheelSettings.scroll_percentage}
+                    onChange={e => saveWheelSettings({ ...wheelSettings, scroll_percentage: parseInt(e.target.value) })}
+                    min={0}
+                    max={100}
+                  />
+                </div>
+              )}
 
               {/* Pages où afficher */}
               <div className="mb-2">
