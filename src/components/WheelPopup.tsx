@@ -1330,12 +1330,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full h-[95vh] sm:h-[90vh]' : 'max-w-lg w-full max-h-[95vh] sm:max-h-[90vh]'} overflow-hidden`}>
         {/* Roue à gauche */}
-        <div className={isEditMode ? "flex-shrink-0" : ""}>
-        {/* Header avec bouton fermer */}
-        <div className="flex justify-between items-center p-6 border-b border-cyan-100">
+        <div className={`${isEditMode ? "flex-shrink-0" : "flex flex-col w-full"}`}>
+        {/* Header avec bouton fermer - FIXE */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-cyan-100 flex-shrink-0">
             <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
           <Button
             variant="ghost"
@@ -1347,8 +1347,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           </Button>
         </div>
 
-        {/* Contenu principal */}
-          <div className="p-6 text-center">
+        {/* Contenu principal - SCROLLABLE */}
+          <div className={`${isEditMode ? 'p-2 sm:p-4' : 'p-4 sm:p-6'} text-center overflow-y-auto flex-1`}>
             <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
               🌊 {wheelSettings.description} 🐟
             </p>
@@ -1361,7 +1361,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             ) : (
               <>
           {/* Container de la roue avec poissons animés */}
-          <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
+          <div className="relative mx-auto mb-6 sm:mb-8 flex-shrink-0" style={{ width: '280px', height: '280px' }}>
             {/* Poissons qui nagent autour de la roue */}
             <div className="absolute inset-0">
               {/* Poisson 1 - tourne dans le sens horaire */}
@@ -1413,8 +1413,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             <div 
               className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
               style={{
-                width: '280px',
-                height: '280px',
+                width: '240px',
+                height: '240px',
                 margin: '20px auto',
                 transform: `rotate(${rotation}deg)`,
                 transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
@@ -1631,7 +1631,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
-          <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
+          <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 overflow-y-auto flex-shrink-0">
             {/* Paramètres généraux */}
             <div className="mb-4 p-3 bg-white rounded border">
               <h3 className="font-bold text-sm mb-2" style={{ color: '#0074b3' }}>Paramètres généraux</h3>
