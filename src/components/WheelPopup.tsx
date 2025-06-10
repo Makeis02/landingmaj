@@ -32,7 +32,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     participation_frequency: 'per_3days',
     floating_button_text: 'Tentez votre chance !',
     floating_button_position: 'bottom_right',
-    popup_seen_cooldown: 1
+    popup_seen_cooldown: 1,
+    updated_at: null as string | null
   });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
@@ -69,6 +70,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
     if (isOpen) {
+      console.log('⭐ 🔄 Popup ouverte - Chargement des données et paramètres...');
       loadWheelData();
       // 🆕 Vérifier si l'utilisateur est connecté
       checkUserAuth();
@@ -82,6 +84,69 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setWinningSegment(null);
     }
   }, [isOpen]);
+
+  // 🆕 SURVEILLANCE DES PARAMÈTRES - Recharger si modifiés en mode édition
+  useEffect(() => {
+    if (isOpen && !isEditMode) {
+      console.log('⭐ 🔄 Mode client - Surveillance des paramètres...');
+      
+      const checkForUpdatedSettings = async () => {
+        try {
+          const { data: latestSettings, error } = await supabase
+            .from('wheel_settings')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (!error && latestSettings) {
+            const currentTimestamp = wheelSettings.updated_at;
+            const latestTimestamp = latestSettings.updated_at;
+            
+            console.log('⭐ 🔄 Vérification timestamps:', {
+              current: currentTimestamp,
+              latest: latestTimestamp,
+              needsUpdate: latestTimestamp !== currentTimestamp
+            });
+            
+            // Si les paramètres ont été mis à jour
+            if (latestTimestamp !== currentTimestamp) {
+              console.log('⭐ 🔄 PARAMÈTRES MODIFIÉS - Rechargement...');
+              
+              setWheelSettings({
+                title: latestSettings.title || 'Roue Aquatique',
+                description: latestSettings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
+                is_enabled: latestSettings.is_enabled || true,
+                auto_show_delay: latestSettings.auto_show_delay || 5,
+                show_on_pages: latestSettings.show_on_pages || '/',
+                show_when_cart: latestSettings.show_when_cart || 'any',
+                show_to: latestSettings.show_to || 'all',
+                participation_delay: latestSettings.participation_delay || 72,
+                participation_frequency: latestSettings.participation_frequency || 'per_3days',
+                floating_button_text: latestSettings.floating_button_text || 'Tentez votre chance !',
+                floating_button_position: latestSettings.floating_button_position || 'bottom_right',
+                popup_seen_cooldown: latestSettings.popup_seen_cooldown || 1,
+                updated_at: latestSettings.updated_at
+              });
+
+              // 🔄 Recalculer le timer avec les nouveaux paramètres si email validé
+              if (email && emailValidated) {
+                console.log('⭐ 🔄 [CLIENT] Recalcul timer avec paramètres mis à jour:', latestSettings.participation_delay);
+                await recalculateTimerWithNewSettings(email, latestSettings.participation_delay || 72);
+              }
+            }
+          }
+        } catch (error) {
+          console.error('⭐ ❌ Erreur surveillance paramètres:', error);
+        }
+      };
+
+      // Vérifier toutes les 2 secondes
+      const interval = setInterval(checkForUpdatedSettings, 2000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, isEditMode, wheelSettings.updated_at, email, emailValidated]);
 
   // 🆕 TIMER EN TEMPS RÉEL - Met à jour le compte à rebours chaque seconde
   useEffect(() => {
@@ -162,7 +227,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           participation_frequency: settings.participation_frequency || 'per_3days',
           floating_button_text: settings.floating_button_text || 'Tentez votre chance !',
           floating_button_position: settings.floating_button_position || 'bottom_right',
-          popup_seen_cooldown: settings.popup_seen_cooldown || 1
+          popup_seen_cooldown: settings.popup_seen_cooldown || 1,
+          updated_at: settings.updated_at || null
         });
       }
 
