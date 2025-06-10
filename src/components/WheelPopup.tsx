@@ -757,14 +757,38 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       console.log('⭐ 🔍 Recherche de participations existantes pour email:', email.toLowerCase().trim());
       
       // Chercher d'abord dans wheel_spins (utilisateurs avec compte)
+      console.log('⭐ 🔍 REQUÊTE wheel_spins avec:', {
+        table: 'wheel_spins',
+        email: email.toLowerCase().trim(),
+        emailOriginal: email
+      });
+      
       const { data: spinsForEmail, error: spinsEmailError } = await supabase
         .from('wheel_spins')
-        .select('user_id, created_at')
+        .select('user_id, created_at, user_email')  // Ajout user_email pour debug
         .eq('user_email', email.toLowerCase().trim())
         .order('created_at', { ascending: false })
         .limit(1);
 
-      console.log('⭐ 📊 Résultat wheel_spins par email:', { spinsForEmail, error: spinsEmailError?.message });
+      console.log('⭐ 📊 Résultat wheel_spins par email:', { 
+        spinsForEmail, 
+        error: spinsEmailError?.message,
+        found: spinsForEmail?.length || 0
+      });
+      
+      // 🔍 DEBUG : Test d'une requête plus large pour voir si on trouve quelque chose
+      const { data: allSpinsForDebug, error: debugError } = await supabase
+        .from('wheel_spins')
+        .select('user_id, created_at, user_email')
+        .ilike('user_email', `%${email.split('@')[0]}%`)  // Recherche partielle
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      console.log('⭐ 🔍 DEBUG - Recherche large wheel_spins:', { 
+        allSpinsForDebug, 
+        debugError: debugError?.message,
+        searchPattern: `%${email.split('@')[0]}%`
+      });
 
       let userId = null;
       let isExistingUser = false;
@@ -1604,6 +1628,56 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                    className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs mt-1 w-full"
                  >
                    🔍 Debug localStorage
+                 </Button>
+                 
+                 {/* 🧪 Bouton test insertion directe en base */}
+                 <Button 
+                   onClick={async () => {
+                     if (!testEmail) {
+                       alert('Entrez un email d\'abord');
+                       return;
+                     }
+                     
+                     try {
+                       console.log('🧪 [TEST] Insertion forcée pour:', testEmail);
+                       
+                       // Insertion directe dans wheel_email_entries
+                       const { data, error } = await supabase
+                         .from('wheel_email_entries')
+                         .insert({
+                           email: testEmail.toLowerCase().trim(),
+                           user_id: null,
+                           ip_address: 'test_debug',
+                           browser_fingerprint: 'debug_fingerprint',
+                           created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1h dans le passé
+                         })
+                         .select();
+                       
+                       console.log('🧪 [TEST] Résultat insertion:', { data, error });
+                       
+                       if (error) {
+                         alert(`Erreur insertion: ${error.message}`);
+                       } else {
+                         alert('✅ Insertion réussie ! Testez maintenant l\'éligibilité.');
+                         
+                         // Test immédiat de récupération
+                         const { data: checkData, error: checkError } = await supabase
+                           .from('wheel_email_entries')
+                           .select('*')
+                           .eq('email', testEmail.toLowerCase().trim())
+                           .order('created_at', { ascending: false })
+                           .limit(1);
+                         
+                         console.log('🧪 [TEST] Vérification post-insertion:', { checkData, checkError });
+                       }
+                     } catch (err) {
+                       console.error('🧪 [TEST] Erreur:', err);
+                       alert(`Erreur: ${err.message}`);
+                     }
+                   }}
+                   className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs mt-1 w-full"
+                 >
+                   🧪 Test Insertion DB
                  </Button>
                </div>
             </div>
