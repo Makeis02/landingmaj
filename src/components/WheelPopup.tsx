@@ -470,9 +470,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       return;
     }
 
+    // Créer un ID unique basé sur la position et le texte/image
+    const uniqueId = segment.id || `wheel_segment_${segment.position}_${segment.text || 'image'}`;
+    
     // Vérifier si le cadeau est déjà dans le panier
     const existingGift = cartItems.find((item: any) => 
-      item.id === segment.id && 
+      item.id === uniqueId && 
       item.type === 'wheel_gift'
     );
 
@@ -483,16 +486,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     // Mapping conforme à CartItem
     const giftItem = {
-      id: segment.id,
+      id: uniqueId,
       type: 'wheel_gift' as 'wheel_gift',
       title: segment.title || segment.text || 'Cadeau de la roue',
       image_url: segment.image_url,
       price: 0,
       quantity: 1,
       won_at: wonAt.toISOString(),
-      expires_at: new Date(wonAt.getTime() + 72 * 60 * 60 * 1000).toISOString(),
+      expires_at: new Date(wonAt.getTime() + (wheelSettings.participation_delay || 72) * 60 * 60 * 1000).toISOString(),
       is_gift: true
     };
+    
+    console.log('🎁 Ajout cadeau au panier:', { uniqueId, title: giftItem.title, expires_at: giftItem.expires_at });
 
     addItem(giftItem);
     toast.success("🎁 Cadeau ajouté ! Votre cadeau a été ajouté au panier. N'oubliez pas de finaliser votre commande avant l'expiration !");

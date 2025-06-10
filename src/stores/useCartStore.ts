@@ -602,17 +602,39 @@ export const useCartStore = create<CartStore>()(
 
   // 🎁 Méthode pour recalculer l'expiration d'un cadeau de la roue
   updateWheelGiftExpiration: async (giftId: string, newExpirationHours: number) => {
-    const item = get().items.find(i => i.id === giftId && i.type === 'wheel_gift');
-    if (!item || !item.won_at) return;
+    console.log(`🎁 🔄 updateWheelGiftExpiration appelée pour:`, { giftId, newExpirationHours });
+    
+    const allItems = get().items;
+    const wheelGifts = allItems.filter(i => i.type === 'wheel_gift');
+    console.log(`🎁 🔄 Items dans le panier:`, allItems.map(i => ({ id: i.id, type: i.type, title: i.title })));
+    console.log(`🎁 🔄 Cadeaux de la roue trouvés:`, wheelGifts.map(i => ({ id: i.id, title: i.title, won_at: i.won_at, expires_at: i.expires_at })));
+    
+    const item = wheelGifts.find(i => i.id === giftId);
+    if (!item) {
+      console.log(`🎁 ❌ Cadeau avec ID ${giftId} non trouvé`);
+      return;
+    }
+
+    if (!item.won_at) {
+      console.log(`🎁 ❌ Cadeau ${giftId} n'a pas de won_at`);
+      return;
+    }
 
     const wonAt = new Date(item.won_at);
     const newExpiresAt = new Date(wonAt.getTime() + newExpirationHours * 60 * 60 * 1000);
+    
+    console.log(`🎁 🔄 Recalcul pour ${giftId}:`, {
+      wonAt: wonAt.toISOString(),
+      newExpirationHours,
+      ancienExpiresAt: item.expires_at,
+      nouveauExpiresAt: newExpiresAt.toISOString()
+    });
     
     await get().updateItem(giftId, {
       expires_at: newExpiresAt.toISOString()
     });
     
-    console.log(`🎁 Timer recalculé pour cadeau ${giftId}: expire maintenant le ${newExpiresAt.toISOString()}`);
+    console.log(`🎁 ✅ Timer recalculé pour cadeau ${giftId}: expire maintenant le ${newExpiresAt.toISOString()}`);
   },
 
   // 🎁 Méthode pour nettoyer les cadeaux expirés
