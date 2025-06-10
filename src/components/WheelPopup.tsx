@@ -115,7 +115,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [nextSpinTimestamp, canSpin]);
+  }, [nextSpinTimestamp, lastSpinDate, participationDelay]);
 
   // Fonction pour charger les données de la roue depuis Supabase
   const loadWheelData = async () => {
