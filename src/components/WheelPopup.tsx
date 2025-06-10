@@ -484,7 +484,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     // Mapping conforme à CartItem
     const giftItem = {
       id: segment.id,
-      type: 'wheel_gift',
+      type: 'wheel_gift' as 'wheel_gift',
       title: segment.title || segment.text || 'Cadeau de la roue',
       image_url: segment.image_url,
       price: 0,
@@ -1552,7 +1552,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </div>
                 
                 <p className="text-sm text-orange-600">
-                  🐠 Un tirage toutes les {wheelSettings.participation_delay || 72}h pour garder la magie !
+                  🐠 Fréquence configurée : {
+                    wheelSettings.participation_frequency === 'per_3days' ? `${wheelSettings.participation_delay || 72}h (personnalisé)` :
+                    wheelSettings.participation_frequency === 'per_session' ? 'Par session' :
+                    wheelSettings.participation_frequency === 'per_day' ? '24h (quotidien)' :
+                    wheelSettings.participation_frequency === 'per_week' ? '168h (hebdomadaire)' :
+                    `${wheelSettings.participation_delay || 72}h`
+                  } pour garder la magie !
                 </p>
               </div>
             </div>
@@ -1584,13 +1590,26 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           </Button>
 
                 <div className="text-xs text-blue-500 mt-4 space-y-1">
-            <p>🐟 Une tentative toutes les {wheelSettings.participation_delay || 72}h • Système anti-contournement actif</p>
+            <p>🐟 Fréquence : {
+              wheelSettings.participation_frequency === 'per_3days' ? `Toutes les ${wheelSettings.participation_delay || 72}h (personnalisé)` :
+              wheelSettings.participation_frequency === 'per_session' ? 'Une fois par session de navigation' :
+              wheelSettings.participation_frequency === 'per_day' ? 'Une fois par jour (24h)' :
+              wheelSettings.participation_frequency === 'per_week' ? 'Une fois par semaine (168h)' :
+              `Toutes les ${wheelSettings.participation_delay || 72}h`
+            } • Système anti-contournement actif</p>
             {isEditMode && (
               <div className="bg-blue-50 p-2 rounded border border-blue-200">
                 <p className="font-semibold text-blue-700 mb-1">⚙️ Configuration actuelle :</p>
                 <p>• Popup auto : {wheelSettings.auto_show_popup ? `✅ Oui (${wheelSettings.auto_show_delay}s)` : '❌ Non'}</p>
                 <p>• Scroll trigger : {wheelSettings.scroll_trigger_enabled ? `✅ Oui (${wheelSettings.scroll_trigger_percentage}%)` : '❌ Non'}</p>
                 <p>• Délai participation : {wheelSettings.participation_delay}h</p>
+                <p>• Mode fréquence : {
+                  wheelSettings.participation_frequency === 'per_3days' ? `Personnalisé (${wheelSettings.participation_delay}h)` :
+                  wheelSettings.participation_frequency === 'per_session' ? 'Par session' :
+                  wheelSettings.participation_frequency === 'per_day' ? 'Quotidien (24h)' :
+                  wheelSettings.participation_frequency === 'per_week' ? 'Hebdomadaire (168h)' :
+                  'Personnalisé'
+                }</p>
               </div>
             )}
           </div>
@@ -1767,17 +1786,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
               {/* Fréquence de participation */}
               <div className="mb-2">
-                <label className="text-xs text-gray-600">Fréquence de participation</label>
+                <label className="text-xs text-gray-600">Fréquence de participation (basée sur le délai ci-dessus)</label>
                 <select
                   className="w-full border rounded px-2 py-1 text-xs"
                   value={wheelSettings.participation_frequency}
                   onChange={e => saveWheelSettings({ ...wheelSettings, participation_frequency: e.target.value })}
                 >
-                  <option value="per_3days">Toutes les 72h</option>
-                  <option value="per_session">Par session</option>
-                  <option value="per_day">Par jour</option>
-                  <option value="per_week">Par semaine</option>
+                  <option value="per_3days">Toutes les {wheelSettings.participation_delay || 72}h (personnalisé)</option>
+                  <option value="per_session">Par session de navigation</option>
+                  <option value="per_day">Une fois par jour (24h)</option>
+                  <option value="per_week">Une fois par semaine (168h)</option>
                 </select>
+                <div className="text-xs text-blue-600 mt-1">
+                  ℹ️ Mode "{wheelSettings.participation_frequency === 'per_3days' ? 'personnalisé' : 
+                         wheelSettings.participation_frequency === 'per_session' ? 'par session' :
+                         wheelSettings.participation_frequency === 'per_day' ? 'quotidien' : 'hebdomadaire'}" activé
+                </div>
               </div>
 
               {/* Texte du bouton flottant */}
