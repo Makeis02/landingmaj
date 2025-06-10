@@ -1,12 +1,41 @@
 import { useCartStore } from "@/stores/useCartStore";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus, Trash2 } from "lucide-react";
+import { Plus, Minus, Trash2, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect } from "react";
+import WheelGiftTimer from "./WheelGiftTimer";
 
 const CartProducts = () => {
   const { items, updateQuantity, removeItem } = useCartStore();
-  const now = new Date();
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // 🆕 Timer temps réel pour mettre à jour les compteurs toutes les secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // 🆕 Fonction pour retirer automatiquement les cadeaux expirés
+  useEffect(() => {
+    const expiredGifts = items.filter(item => 
+      (item as any).type === 'wheel_gift' && 
+      (item as any).expires_at && 
+      new Date((item as any).expires_at) < currentTime
+    );
+
+    expiredGifts.forEach(gift => {
+      removeItem(gift.id);
+      toast({
+        title: "🎁 Cadeau expiré retiré",
+        description: `Le cadeau "${gift.title}" a été automatiquement retiré car il a expiré.`,
+        variant: "destructive",
+      });
+    });
+  }, [currentTime, items, removeItem]);
 
   const handleQuantityChange = async (productId: string, change: number, isGift: boolean, isThresholdGift: boolean) => {
     if (isGift || isThresholdGift) {
@@ -51,17 +80,17 @@ const CartProducts = () => {
   };
 
   // 🆕 Fonction pour vérifier si un cadeau est expiré
-  const isGiftExpired = (item) => {
+  const isGiftExpired = (item: any) => {
     if (item.type !== 'wheel_gift') return false;
     if (!item.expires_at) return false;
     
     const expiresAt = new Date(item.expires_at);
-    return now > expiresAt;
+    return currentTime > expiresAt;
   };
 
   // 🆕 Fonction pour calculer le temps restant (heures, minutes, secondes)
-  const getTimeRemaining = (expiresAt) => {
-    const diff = new Date(expiresAt) - now;
+  const getTimeRemaining = (expiresAt: string) => {
+    const diff = new Date(expiresAt).getTime() - currentTime.getTime();
     if (diff <= 0) return 'Expiré';
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -87,24 +116,7 @@ const CartProducts = () => {
                   : 'bg-white border-gray-200'
               }`}
             >
-              {/* 🆕 Timer explicite pour les cadeaux de la roue */}
-              {item.type === 'wheel_gift' && !isExpired && (
-                <div className="flex flex-col items-center mr-4">
-                  <span className="text-xs text-orange-700 font-semibold bg-orange-100 px-2 py-1 rounded mb-1">
-                    ⏰ Temps restant
-                  </span>
-                  <span className="text-sm font-mono text-orange-800 bg-orange-50 px-2 py-1 rounded shadow">
-                    {getTimeRemaining(item.expires_at)}
-                  </span>
-                </div>
-              )}
 
-              {/* 🆕 Badge d'expiration */}
-              {isExpired && (
-                <div className="absolute top-2 right-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded">
-                  ⏰ Expiré
-                </div>
-              )}
 
             {item.image_url && (
               <img
@@ -127,6 +139,17 @@ const CartProducts = () => {
                   </motion.span>
                 )}
               </h3>
+
+              {/* 🎁 Affichage spécialisé pour les cadeaux de la roue */}
+              {(item as any).type === 'wheel_gift' && (item as any).expires_at && (
+                <div className="mt-3">
+                  <WheelGiftTimer
+                    expiresAt={(item as any).expires_at}
+                    title={item.title}
+                    isExpired={isExpired}
+                  />
+                </div>
+              )}
               
               {/* Afficher la variante si elle existe */}
               {item.variant && (
