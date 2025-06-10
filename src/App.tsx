@@ -101,6 +101,7 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useMediaQuery } from 'react-responsive';
 
 const queryClient = new QueryClient();
 
@@ -112,6 +113,7 @@ const App = () => {
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
   const [wheelSettings, setWheelSettings] = useState(null);
   const location = useLocation();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   // Récupère les settings complets de la roue
   useEffect(() => {
@@ -281,13 +283,29 @@ const App = () => {
           </button>
         )}
         {showFloatingButton && (
-          <button
-            style={floatingButtonStyle}
-            className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-            onClick={() => setShowWheel(true)}
-          >
-            {wheelSettings.floating_button_text}
-          </button>
+          isMobile ? (
+            <button
+              style={floatingButtonStyle}
+              className="bg-cyan-600 rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-white"
+              onClick={() => setShowWheel(true)}
+            >
+              {/* Miniature de roue SVG */}
+              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#06b6d4" strokeWidth="4" />
+                <circle cx="20" cy="20" r="12" fill="#06b6d4" />
+                <path d="M20 8V20L32 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+                <circle cx="20" cy="20" r="3" fill="#fff" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              style={floatingButtonStyle}
+              className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+              onClick={() => setShowWheel(true)}
+            >
+              {wheelSettings.floating_button_text}
+            </button>
+          )
         )}
         <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
       <CookieBanner />
