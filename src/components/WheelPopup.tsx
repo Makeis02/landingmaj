@@ -615,57 +615,40 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       const participationHours = settings.participation_delay || 72;
       const hoursAgo = new Date(Date.now() - participationHours * 60 * 60 * 1000);
       
-      // 🆕 VÉRIFICATION COMPLÈTE : Chercher dans les deux tables pour cet email
-      console.log('🔍 Vérification complète pour email:', userEmail);
-      
-      let lastPlayTime = null;
-      
-      // 1. Vérifier dans wheel_spins (si c'est un utilisateur avec compte)
+      // Vérification simple et cohérente
+      let existingEntry = null;
+      let error = null;
+
       if (userId) {
-        console.log('🔍 Recherche dans wheel_spins pour user_id:', userId);
-        const { data: spinsData, error: spinsError } = await supabase
+        // ✅ Utilisateur avec compte : utiliser wheel_spins (logique qui marche déjà)
+        console.log('🔍 Vérification wheel_spins pour user_id:', userId);
+        const { data, error: spinsError } = await supabase
           .from('wheel_spins')
           .select('created_at')
           .eq('user_id', userId)
           .gte('created_at', hoursAgo.toISOString())
           .order('created_at', { ascending: false })
-          .limit(1);
+          .limit(1)
+          .single();
         
-        if (!spinsError && spinsData && spinsData.length > 0) {
-          lastPlayTime = new Date(spinsData[0].created_at);
-          console.log('✅ Dernière participation trouvée dans wheel_spins:', lastPlayTime);
-        }
-      }
-      
-      // 2. Vérifier aussi dans wheel_email_entries (pour cet email)
-      console.log('🔍 Recherche dans wheel_email_entries pour email:', userEmail);
-      const { data: entriesData, error: entriesError } = await supabase
-        .from('wheel_email_entries')
-        .select('created_at')
-        .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', hoursAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (!entriesError && entriesData && entriesData.length > 0) {
-        const emailLastPlay = new Date(entriesData[0].created_at);
-        console.log('✅ Dernière participation trouvée dans wheel_email_entries:', emailLastPlay);
-        
-        // Prendre la date la plus récente entre les deux sources
-        if (!lastPlayTime || emailLastPlay > lastPlayTime) {
-          lastPlayTime = emailLastPlay;
-        }
-      }
-      
-      // 3. Déterminer l'éligibilité basée sur la dernière participation trouvée
-      let existingEntry = null;
-      let error = null;
-      
-      if (lastPlayTime) {
-        existingEntry = { created_at: lastPlayTime.toISOString() };
-        console.log('🕒 Dernière participation retenue:', lastPlayTime);
+        existingEntry = data;
+        error = spinsError;
+        console.log('📊 Résultat wheel_spins:', { data, error: spinsError?.message });
       } else {
-        console.log('✅ Aucune participation récente trouvée, utilisateur éligible');
+        // ✅ Utilisateur invité : utiliser wheel_email_entries (même logique exacte)
+        console.log('🔍 Vérification wheel_email_entries pour email:', userEmail);
+        const { data, error: entriesError } = await supabase
+          .from('wheel_email_entries')
+          .select('created_at')
+          .eq('email', userEmail.toLowerCase().trim())
+          .gte('created_at', hoursAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        existingEntry = data;
+        error = entriesError;
+        console.log('📊 Résultat wheel_email_entries:', { data, error: entriesError?.message });
       }
 
       if (error && error.code !== 'PGRST116') {
