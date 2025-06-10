@@ -859,75 +859,164 @@ const Checkout = () => {
                     <CardTitle>Récapitulatif de commande</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {items.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                        {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt={item.title}
-                            className="w-16 h-16 object-cover rounded"
-                          />
-                        )}
-                        
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
-                          {item.variant && (
-                            <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
-                          )}
-                          <div className="text-sm">
-                            {item.has_discount && item.original_price ? (
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500 line-through">
-                                  {item.original_price.toFixed(2)}€
-                                </span>
-                                <span className="text-red-600 font-medium">
-                                  {item.price.toFixed(2)}€
-                                </span>
-                                <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
-                                  -{item.discount_percentage}%
-                                </span>
+                    {/* 🎁 Section des cadeaux de la roue */}
+                    {giftItems.length > 0 && (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
+                          <span className="text-2xl">🎁</span>
+                          <h3 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h3>
+                          <Badge className="bg-blue-100 text-blue-800">{giftItems.length}</Badge>
+                        </div>
+                        {giftItems.map((item) => (
+                          <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
+                            {/* Effet scintillant pour les cadeaux */}
+                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                            
+                            {item.image_url && (
+                              <div className="relative">
+                                <img
+                                  src={item.image_url}
+                                  alt={item.title}
+                                  className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
+                                />
+                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-xs">🎁</span>
+                                </div>
                               </div>
-                            ) : (
-                              <span className="text-gray-600">{item.price.toFixed(2)}€</span>
                             )}
+                            
+                            <div className="flex-1 min-w-0 relative z-10">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
+                                <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
+                              </div>
+                              
+                              {item.expires_at && (
+                                <div className="text-xs text-blue-600 mb-2">
+                                  ⏰ Expire le {new Date(item.expires_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit',
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
+                              
+                              <div className="text-sm font-bold text-green-600">
+                                OFFERT 🎉
+                              </div>
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                                  Quantité: {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
+                                  onClick={() => removeItem(item.id)}
+                                  title="Retirer ce cadeau"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right relative z-10">
+                              <p className="text-lg font-bold text-green-600">
+                                GRATUIT
+                              </p>
+                              <p className="text-xs text-green-500">
+                                0,00€
+                              </p>
+                            </div>
                           </div>
-                          
-                          <div className="flex items-center gap-2 mt-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, -1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
-                              onClick={() => removeItem(item.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right">
-                          <p className="font-medium text-sm">
-                            {(item.price * item.quantity).toFixed(2)}€
-                          </p>
-                        </div>
+                        ))}
                       </div>
-                    ))}
+                    )}
+
+                    {/* 💰 Section des produits payants */}
+                    {payableItems.length > 0 && (
+                      <div className="space-y-3">
+                        {giftItems.length > 0 && (
+                          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mt-6">
+                            <span className="text-2xl">🛒</span>
+                            <h3 className="font-semibold text-gray-800">Produits</h3>
+                            <Badge className="bg-gray-100 text-gray-800">{payableItems.length}</Badge>
+                          </div>
+                        )}
+                        {payableItems.map((item) => (
+                          <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            {item.image_url && (
+                              <img
+                                src={item.image_url}
+                                alt={item.title}
+                                className="w-16 h-16 object-cover rounded"
+                              />
+                            )}
+                            
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
+                              {item.variant && (
+                                <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
+                              )}
+                              <div className="text-sm">
+                                {item.has_discount && item.original_price ? (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-gray-500 line-through">
+                                      {item.original_price.toFixed(2)}€
+                                    </span>
+                                    <span className="text-red-600 font-medium">
+                                      {item.price.toFixed(2)}€
+                                    </span>
+                                    <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
+                                      -{item.discount_percentage}%
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-600">{item.price.toFixed(2)}€</span>
+                                )}
+                              </div>
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleQuantityChange(item.id, -1)}
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleQuantityChange(item.id, 1)}
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
+                                  onClick={() => removeItem(item.id)}
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right">
+                              <p className="font-medium text-sm">
+                                {(item.price * item.quantity).toFixed(2)}€
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Affichage du point relais sélectionné si Mondial Relay */}
                     {selectedShipping === 'mondial_relay' && selectedRelais && (
