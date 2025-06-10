@@ -846,11 +846,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             // 2. 🎯 VÉRIFIER L'ÉLIGIBILITÉ selon la participation trouvée
       console.log('⭐ 🔍 [INVITÉ] Vérification éligibilité...');
       
-      if (lastParticipation) {
-        // On a trouvé une participation - calculer le timer à partir de celle-ci
-        const lastSpinDate = new Date(lastParticipation.created_at);
-        const now = new Date();
-        const participationHours = 72; // Force 72h comme dans l'interface
+             if (lastParticipation) {
+         // On a trouvé une participation - calculer le timer à partir de celle-ci
+         const lastSpinDate = new Date(lastParticipation.created_at);
+         const now = new Date();
+         // 🔄 Utiliser les paramètres actuels (soit ceux de la base, soit ceux du mode édition)
+         const participationHours = wheelSettings.participation_delay || 72;
         const nextAllowedTime = new Date(lastSpinDate.getTime() + participationHours * 60 * 60 * 1000);
         const timeLeft = nextAllowedTime.getTime() - now.getTime();
         
@@ -916,13 +917,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setShowEmailForm(false);
       setEmailValidated(true);
       
-      // 6. Debug - affichage des valeurs (utiliser les états actuels)
-      console.log('⭐ 🔍 Debug après validation email:', {
-        canSpin,
-        timeUntilNextSpin,
-        nextSpinTimestamp,
-        emailValidated: true
-      });
+      // 6. Debug - affichage des valeurs après délai pour assurer la synchronisation
+      setTimeout(() => {
+        console.log('⭐ 🔍 Debug FINAL après validation email:', {
+          canSpin,
+          timeUntilNextSpin,
+          nextSpinTimestamp: nextSpinTimestamp?.toISOString(),
+          emailValidated: true
+        });
+      }, 100);
       
       if (canSpin) {
         toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
@@ -1057,16 +1060,85 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setWheelSettings(newSettings);
       toast.success('Paramètres sauvegardés !');
       
-      // Re-vérifier l'éligibilité avec les nouveaux paramètres si un email est présent
+      // 🔄 Re-calculer le timer avec les nouveaux paramètres si un email est présent
       if (email && emailValidated) {
-        const eligibilityResult = await checkSpinEligibilityWithSettings(null, email);
-        setCanSpin(eligibilityResult.canSpin);
-        setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
-        setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
+        console.log('⭐ 🔄 [ÉDITION] Recalcul timer avec nouveaux paramètres:', newSettings.participation_delay);
+        await recalculateTimerWithNewSettings(email, newSettings.participation_delay || 72);
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);
       toast.error('Erreur de sauvegarde');
+    }
+  };
+
+  // 🆕 Fonction pour recalculer le timer avec de nouveaux paramètres
+  const recalculateTimerWithNewSettings = async (emailToCheck: string, newParticipationHours: number) => {
+    try {
+      console.log('⭐ 🔄 [ÉDITION] Recalcul en cours pour:', emailToCheck, 'avec', newParticipationHours, 'heures');
+      
+      // Rechercher la dernière participation (même logique que handleEmailSubmit)
+      const { data: spinsForEmail } = await supabase
+        .from('wheel_spins')
+        .select('user_id, created_at, user_email')
+        .eq('user_email', emailToCheck.toLowerCase().trim())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const { data: entriesForEmail } = await supabase
+        .from('wheel_email_entries')
+        .select('created_at, email')
+        .eq('email', emailToCheck.toLowerCase().trim())
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      let lastParticipation = null;
+      const hasSpins = spinsForEmail && spinsForEmail.length > 0;
+      const hasEntries = entriesForEmail && entriesForEmail.length > 0;
+
+      if (hasSpins && hasEntries) {
+        const spinsDate = new Date(spinsForEmail[0].created_at);
+        const entriesDate = new Date(entriesForEmail[0].created_at);
+        lastParticipation = spinsDate > entriesDate ? spinsForEmail[0] : entriesForEmail[0];
+      } else if (hasSpins) {
+        lastParticipation = spinsForEmail[0];
+      } else if (hasEntries) {
+        lastParticipation = entriesForEmail[0];
+      }
+
+      if (lastParticipation) {
+        const lastSpinDate = new Date(lastParticipation.created_at);
+        const now = new Date();
+        const nextAllowedTime = new Date(lastSpinDate.getTime() + newParticipationHours * 60 * 60 * 1000);
+        const timeLeft = nextAllowedTime.getTime() - now.getTime();
+
+        console.log('⭐ 🔄 [ÉDITION] Nouveau calcul:', {
+          lastSpinDate: lastSpinDate.toISOString(),
+          newParticipationHours,
+          nextAllowedTime: nextAllowedTime.toISOString(),
+          timeLeft,
+          canSpin: timeLeft <= 0
+        });
+
+        if (timeLeft > 0) {
+          const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+          setCanSpin(false);
+          setTimeUntilNextSpin(hoursLeft);
+          setNextSpinTimestamp(nextAllowedTime);
+          console.log('⭐ ✅ [ÉDITION] Timer recalculé:', hoursLeft, 'heures');
+        } else {
+          setCanSpin(true);
+          setTimeUntilNextSpin(0);
+          setNextSpinTimestamp(null);
+          console.log('⭐ ✅ [ÉDITION] Timer expiré avec nouveaux paramètres');
+        }
+      } else {
+        setCanSpin(true);
+        setTimeUntilNextSpin(0);
+        setNextSpinTimestamp(null);
+        console.log('⭐ ✅ [ÉDITION] Aucune participation - peut jouer');
+      }
+    } catch (error) {
+      console.error('⭐ ❌ [ÉDITION] Erreur recalcul timer:', error);
     }
   };
 
