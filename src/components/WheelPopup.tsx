@@ -545,6 +545,94 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
+  // 🆕 FONCTION pour vérifier l'authentification de l'utilisateur
+  const checkUserAuth = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.email) {
+        // Utilisateur connecté : utiliser automatiquement son email
+        setEmail(user.email);
+        setEmailValidated(true);
+        setIsUserConnected(true);
+        console.log('Utilisateur connecté détecté:', user.email);
+        
+        // 🆕 Vérifier l'éligibilité pour jouer APRÈS avoir chargé les paramètres
+        await checkSpinEligibilityWithSettings(user.id, user.email);
+      } else {
+        // Utilisateur non connecté : formulaire de saisie requis
+        setEmail('');
+        setEmailValidated(false);
+        setIsUserConnected(false);
+        console.log('Utilisateur non connecté : saisie email requise');
+      }
+    } catch (error) {
+      console.error('Erreur vérification auth:', error);
+      // En cas d'erreur, demander la saisie d'email
+      setEmail('');
+      setEmailValidated(false);
+      setIsUserConnected(false);
+    }
+  };
+
+  // 🆕 FONCTION pour vérifier l'éligibilité avec les paramètres actuels
+  const checkSpinEligibilityWithSettings = async (userId: string | null, userEmail: string): Promise<boolean> => {
+    try {
+      // Récupérer les paramètres les plus récents
+      const { data: settings, error: settingsError } = await supabase
+        .from('wheel_settings')
+        .select('*')
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (settingsError || !settings) {
+        console.error('❌ Erreur récupération paramètres:', settingsError);
+        return false;
+      }
+
+      const participationHours = settings.participation_delay || 72;
+      const hoursAgo = new Date(Date.now() - participationHours * 60 * 60 * 1000);
+      
+      // Vérifier si l'utilisateur a déjà joué dans la période définie
+      const { data: existingEntry, error } = await supabase
+        .from('wheel_email_entries')
+        .select('created_at')
+        .eq('email', userEmail.toLowerCase().trim())
+        .gte('created_at', hoursAgo.toISOString())
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Erreur lors de la vérification:', error);
+        return false;
+      }
+
+      if (existingEntry) {
+        console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationHours}h`);
+        
+        // Calculer le temps restant avant de pouvoir rejouer
+        const lastPlayTime = new Date(existingEntry.created_at);
+        const nextAllowedTime = new Date(lastPlayTime.getTime() + participationHours * 60 * 60 * 1000);
+        const timeLeft = nextAllowedTime.getTime() - Date.now();
+        
+        if (timeLeft > 0) {
+          setNextSpinTimestamp(nextAllowedTime);
+          setTimeUntilNextSpin(Math.ceil(timeLeft / (1000 * 60 * 60))); // heures restantes
+          setCanSpin(false);
+        } else {
+          setCanSpin(true);
+        }
+        
+        return timeLeft <= 0;
+      }
+
+      setCanSpin(true);
+      return true;
+    } catch (error) {
+      console.error('❌ Erreur lors de la vérification d\'éligibilité:', error);
+      return false;
+    }
+  };
+
   // 🆕 FONCTION pour valider et passer à l'étape suivante
   const handleEmailSubmit = async () => {
     if (!email || !validateEmail(email)) {
@@ -554,10 +642,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     setIsLoading(true);
     try {
-      // 1. Vérifier l'éligibilité au spin
-      const isEligible = await checkSpinEligibility(null, email);
+      // 1. Vérifier l'éligibilité au spin avec les paramètres actuels
+      const isEligible = await checkSpinEligibilityWithSettings(null, email);
       if (!isEligible) {
-        toast.error("Vous avez déjà joué aujourd'hui. Revenez demain !");
+        toast.error("Vous avez déjà joué récemment. Veuillez attendre avant de rejouer !");
         setIsLoading(false);
         return;
       }
@@ -587,42 +675,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       // 4. Continuer avec le spin
       setShowEmailForm(false);
-      setCanSpin(true);
+      setEmailValidated(true);
       toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
     } catch (error) {
       console.error('❌ Erreur lors de la soumission:', error);
       toast.error("Une erreur est survenue. Veuillez réessayer.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // 🆕 FONCTION pour vérifier l'authentification de l'utilisateur
-  const checkUserAuth = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user && user.email) {
-        // Utilisateur connecté : utiliser automatiquement son email
-        setEmail(user.email);
-        setEmailValidated(true);
-        setIsUserConnected(true);
-        console.log('Utilisateur connecté détecté:', user.email);
-        
-        // 🆕 Vérifier l'éligibilité pour jouer
-        await checkSpinEligibility(user.id, user.email);
-      } else {
-        // Utilisateur non connecté : formulaire de saisie requis
-        setEmail('');
-        setEmailValidated(false);
-        setIsUserConnected(false);
-        console.log('Utilisateur non connecté : saisie email requise');
-      }
-    } catch (error) {
-      console.error('Erreur vérification auth:', error);
-      // En cas d'erreur, demander la saisie d'email
-      setEmail('');
-      setEmailValidated(false);
-      setIsUserConnected(false);
     }
   };
 
@@ -664,51 +723,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       return data.ip;
     } catch {
       return 'unknown'; // Fallback pour éviter le blocage CORS
-    }
-  };
-
-  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (utilise les paramètres admin)
-  const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
-    try {
-      const participationHours = wheelSettings.participation_delay || 72; // Utilise les paramètres admin
-      const hoursAgo = new Date(Date.now() - participationHours * 60 * 60 * 1000);
-      
-      // Vérifier si l'utilisateur a déjà joué dans la période définie
-      const { data: existingEntry, error } = await supabase
-        .from('wheel_email_entries')
-        .select('created_at')
-        .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', hoursAgo.toISOString())
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification:', error);
-        return false;
-      }
-
-      if (existingEntry) {
-        console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationHours}h`);
-        
-        // Calculer le temps restant avant de pouvoir rejouer
-        const lastPlayTime = new Date(existingEntry.created_at);
-        const nextAllowedTime = new Date(lastPlayTime.getTime() + participationHours * 60 * 60 * 1000);
-        const timeLeft = nextAllowedTime.getTime() - Date.now();
-        
-        if (timeLeft > 0) {
-          setNextSpinTimestamp(nextAllowedTime);
-          setTimeUntilNextSpin(Math.ceil(timeLeft / (1000 * 60 * 60))); // heures restantes
-          setCanSpin(false);
-        } else {
-          setCanSpin(true);
-        }
-        
-        return timeLeft <= 0;
-      }
-
-      return true;
-    } catch (error) {
-      console.error('❌ Erreur lors de la vérification d\'éligibilité:', error);
-      return false;
     }
   };
 
@@ -761,7 +775,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  // Fonction pour sauvegarder les paramètres de la roue
+  // Fonction pour sauvegarder les paramètres de la roue et re-vérifier l'éligibilité
   const saveWheelSettings = async (newSettings: any) => {
     if (!isEditMode) return;
 
@@ -777,6 +791,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       
       setWheelSettings(newSettings);
       toast.success('Paramètres sauvegardés !');
+      
+      // Re-vérifier l'éligibilité avec les nouveaux paramètres si un email est présent
+      if (email && emailValidated) {
+        await checkSpinEligibilityWithSettings(null, email);
+      }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);
       toast.error('Erreur de sauvegarde');
