@@ -273,26 +273,18 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Bouton flottant pour ouvrir la roue en mode édition */}
-        {isEditMode && (
-          <button
-            onClick={() => { setShowWheel(true); setEditWheel(true); }}
-            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-          >
-            🎡 Tester la roue
-          </button>
-        )}
-        {showFloatingButton && (
+        {/* Bouton flottant pour ouvrir la roue (caché si popup ouvert) */}
+        {showFloatingButton && !showWheel && (
           isMobile ? (
             <button
               style={floatingButtonStyle}
-              className="bg-cyan-600 rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-white"
+              className="bg-white rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-[#0277b6]"
               onClick={() => setShowWheel(true)}
             >
-              {/* Miniature de roue SVG */}
+              {/* Miniature de roue SVG couleur #0277b6 */}
               <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#06b6d4" strokeWidth="4" />
-                <circle cx="20" cy="20" r="12" fill="#06b6d4" />
+                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#0277b6" strokeWidth="4" />
+                <circle cx="20" cy="20" r="12" fill="#0277b6" />
                 <path d="M20 8V20L32 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
                 <circle cx="20" cy="20" r="3" fill="#fff" />
               </svg>
