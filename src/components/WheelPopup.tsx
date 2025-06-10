@@ -502,6 +502,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         const nextAllowedTime = new Date(Date.now() + participationHours * 60 * 60 * 1000);
         setNextSpinTimestamp(nextAllowedTime);
         
+        // 🆕 SAUVEGARDER dans localStorage pour synchroniser les timers
+        const lastSpinKey = `last_wheel_spin_${email.toLowerCase().trim()}`;
+        localStorage.setItem(lastSpinKey, new Date().toISOString());
+        console.log('⭐ ✅ Timer localStorage enregistré:', lastSpinKey, '=', new Date().toISOString());
+        
         // Ajout automatique si image_url
         if (winningSegmentData?.image_url) {
           handleAddGiftToCart({
@@ -738,6 +743,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       return;
     }
 
+    // 🔍 DEBUG : Vérifier localStorage avant validation
+    console.log('⭐ 🔍 localStorage actuel pour tous les éléments wheel:', {
+      popupDismissed: localStorage.getItem('wheel_popup_dismissed'),
+      lastSeen: localStorage.getItem('wheel_popup_last_seen'),
+      emailEntries: localStorage.getItem('wheel_email_entries'),
+      allWheelKeys: Object.keys(localStorage).filter(key => key.includes('wheel'))
+    });
+
     setIsLoading(true);
     try {
       // 1. Approche simplifiée : vérifier directement dans wheel_spins par email
@@ -772,13 +785,51 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
       console.log('⭐ 🔍 AVANT vérification éligibilité avec:', { userId, email: email.toLowerCase().trim() });
-      const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
-      console.log('⭐ 📊 RÉSULTAT vérification éligibilité:', eligibilityResult);
       
-      // 2. Mettre à jour les états avec les résultats de la vérification
-      setCanSpin(eligibilityResult.canSpin);
-      setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
-      setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
+      // 🔍 NOUVEAU : Vérifier d'abord s'il y a un timer localStorage actif
+      const lastSpinKey = `last_wheel_spin_${email.toLowerCase().trim()}`;
+      const lastSpinTime = localStorage.getItem(lastSpinKey);
+      console.log('⭐ 🔍 Vérification localStorage timer pour:', lastSpinKey, '=', lastSpinTime);
+      
+      if (lastSpinTime) {
+        const lastSpinDate = new Date(lastSpinTime);
+        const now = new Date();
+        const participationHours = 72; // Force 72h comme affiché
+        const nextAllowedTime = new Date(lastSpinDate.getTime() + participationHours * 60 * 60 * 1000);
+        const timeLeft = nextAllowedTime.getTime() - now.getTime();
+        
+        console.log('⭐ 🔍 Calcul timer localStorage:', {
+          lastSpinDate: lastSpinDate.toISOString(),
+          now: now.toISOString(),
+          nextAllowedTime: nextAllowedTime.toISOString(),
+          timeLeft,
+          canSpin: timeLeft <= 0
+        });
+        
+        if (timeLeft > 0) {
+          // Timer localStorage actif - utiliser ces données
+          const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+          setCanSpin(false);
+          setTimeUntilNextSpin(hoursLeft);
+          setNextSpinTimestamp(nextAllowedTime);
+          console.log('⭐ ✅ Timer localStorage trouvé et appliqué');
+        } else {
+          // Timer localStorage expiré
+          localStorage.removeItem(lastSpinKey);
+          setCanSpin(true);
+          setTimeUntilNextSpin(0);
+          setNextSpinTimestamp(null);
+          console.log('⭐ ✅ Timer localStorage expiré et supprimé');
+        }
+             } else {
+         // Pas de timer localStorage - vérifier base de données
+         const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
+         console.log('⭐ 📊 RÉSULTAT vérification éligibilité:', eligibilityResult);
+         
+         setCanSpin(eligibilityResult.canSpin);
+         setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
+         setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
+       }
 
       // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
       const newsletterResult = await subscribeToNewsletter(email);
@@ -807,18 +858,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setShowEmailForm(false);
       setEmailValidated(true);
       
-      // 6. Debug - affichage des valeurs
+      // 6. Debug - affichage des valeurs (utiliser les états actuels)
       console.log('⭐ 🔍 Debug après validation email:', {
-        canSpin: eligibilityResult.canSpin,
-        timeUntilNextSpin: eligibilityResult.timeUntilNextSpin,
-        nextSpinTimestamp: eligibilityResult.nextSpinTimestamp,
+        canSpin,
+        timeUntilNextSpin,
+        nextSpinTimestamp,
         emailValidated: true
       });
       
-      if (eligibilityResult.canSpin) {
+      if (canSpin) {
         toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
       } else {
-        toast.info(`Email enregistré ! Vous pourrez rejouer dans ${eligibilityResult.timeUntilNextSpin}h`);
+        toast.info(`Email enregistré ! Vous pourrez rejouer dans ${timeUntilNextSpin}h`);
       }
     } catch (error) {
       console.error('❌ Erreur lors de la soumission:', error);
@@ -1514,31 +1565,47 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 🔓 Débloquer la roue (test admin)
               </Button>
               
-              {/* 🔍 Bouton test éligibilité pour un email */}
-              <div className="bg-yellow-50 p-2 rounded border">
-                <label className="text-xs text-gray-600 block mb-1">Test éligibilité email :</label>
-                <div className="flex gap-1">
-                  <input
-                    type="email"
-                    value={testEmail}
-                    onChange={(e) => setTestEmail(e.target.value)}
-                    placeholder="email@test.com"
-                    className="flex-1 px-2 py-1 border rounded text-xs"
-                  />
-                  <Button 
-                    onClick={async () => {
-                      if (!testEmail) return;
-                      console.log('🔍 [TEST] Test éligibilité pour:', testEmail);
-                      const result = await checkSpinEligibilityWithSettings(null, testEmail);
-                      console.log('🔍 [TEST] Résultat pour', testEmail, ':', result);
-                      alert(`Résultat pour ${testEmail}:\nPeut jouer: ${result.canSpin}\nTemps restant: ${result.timeUntilNextSpin}h`);
-                    }}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs"
-                  >
-                    🔍 Test
-                  </Button>
-                </div>
-              </div>
+                             {/* 🔍 Bouton test éligibilité pour un email */}
+               <div className="bg-yellow-50 p-2 rounded border">
+                 <label className="text-xs text-gray-600 block mb-1">Test éligibilité email :</label>
+                 <div className="flex gap-1">
+                   <input
+                     type="email"
+                     value={testEmail}
+                     onChange={(e) => setTestEmail(e.target.value)}
+                     placeholder="email@test.com"
+                     className="flex-1 px-2 py-1 border rounded text-xs"
+                   />
+                   <Button 
+                     onClick={async () => {
+                       if (!testEmail) return;
+                       console.log('🔍 [TEST] Test éligibilité pour:', testEmail);
+                       const result = await checkSpinEligibilityWithSettings(null, testEmail);
+                       console.log('🔍 [TEST] Résultat pour', testEmail, ':', result);
+                       alert(`Résultat pour ${testEmail}:\nPeut jouer: ${result.canSpin}\nTemps restant: ${result.timeUntilNextSpin}h`);
+                     }}
+                     className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs"
+                   >
+                     🔍 Test
+                   </Button>
+                 </div>
+                 <Button 
+                   onClick={() => {
+                     const wheelKeys = Object.keys(localStorage).filter(key => key.includes('wheel') || key.includes('last_wheel_spin'));
+                     console.log('🔍 [DEBUG] Toutes les clés localStorage wheel:', wheelKeys);
+                     wheelKeys.forEach(key => {
+                       console.log(`🔍 [DEBUG] ${key} =`, localStorage.getItem(key));
+                     });
+                     if (testEmail) {
+                       const key = `last_wheel_spin_${testEmail.toLowerCase().trim()}`;
+                       console.log(`🔍 [DEBUG] Timer spécifique pour ${testEmail}:`, localStorage.getItem(key));
+                     }
+                   }}
+                   className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs mt-1 w-full"
+                 >
+                   🔍 Debug localStorage
+                 </Button>
+               </div>
             </div>
 
             {/* 🆕 Formulaire de test en mode édition */}
