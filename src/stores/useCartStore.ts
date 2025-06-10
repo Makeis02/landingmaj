@@ -50,6 +50,7 @@ interface CartStore {
   // 🎁 Gestion des cadeaux de la roue
   updateWheelGiftExpiration: (giftId: string, newExpirationHours: number) => Promise<void>;
   cleanupExpiredGifts: () => void;
+  clearWheelGifts: () => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -655,6 +656,17 @@ export const useCartStore = create<CartStore>()(
     });
     
     set({ items: validItems });
+  },
+
+  // 🎁 Méthode pour supprimer tous les cadeaux de la roue (pour le mode édition)
+  clearWheelGifts: () => {
+    const wheelGifts = get().items.filter(item => item.type === 'wheel_gift');
+    const remainingItems = get().items.filter(item => item.type !== 'wheel_gift');
+    
+    console.log(`🎁 🗑️ Suppression de ${wheelGifts.length} cadeau(x) de la roue:`, wheelGifts.map(g => g.title));
+    set({ items: remainingItems });
+    
+    return wheelGifts.length;
   }
 }),
 {

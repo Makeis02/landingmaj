@@ -53,8 +53,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [nextSpinTimestamp, setNextSpinTimestamp] = useState<Date | null>(null);
   const [realTimeCountdown, setRealTimeCountdown] = useState({ hours: 0, minutes: 0, seconds: 0 });
   
-  // Importer la fonction addItem du store Zustand
-  const { addItem, items: cartItems } = useCartStore();
+  // Importer les fonctions du store Zustand
+  const { addItem, items: cartItems, clearWheelGifts } = useCartStore();
 
   // Structure pour gérer texte, images, pourcentages ET codes promo - maintenant chargée depuis Supabase
   const [segmentsData, setSegmentsData] = useState([
@@ -1140,6 +1140,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     toast.success('La roue est débloquée pour test !');
   };
 
+  // 🎁 Fonction pour vider le panier des cadeaux de la roue
+  const handleClearWheelGifts = () => {
+    const clearedCount = clearWheelGifts();
+    if (clearedCount > 0) {
+      toast.success(`🗑️ ${clearedCount} cadeau(x) de la roue supprimé(s) du panier !`);
+    } else {
+      toast.info('Aucun cadeau de la roue à supprimer dans le panier.');
+    }
+  };
+
   // Vérification de la somme des pourcentages
   useEffect(() => {
     const total = segmentsData.reduce((sum, seg) => sum + (Number(seg.percentage) || 0), 0);
@@ -1953,6 +1963,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             <div className="mb-4 flex flex-col gap-2">
               <Button onClick={handleForceUnlock} className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow text-sm">
                 🔓 Débloquer la roue (test admin)
+              </Button>
+              
+              {/* 🎁 Bouton pour vider le panier des cadeaux de la roue */}
+              <Button onClick={handleClearWheelGifts} className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded shadow text-sm">
+                🗑️ Vider le panier des cadeaux ({cartItems.filter(item => item.type === 'wheel_gift').length})
               </Button>
               
                              {/* 🔍 Bouton test éligibilité pour un email */}
