@@ -766,27 +766,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   if (!isOpen) return null;
 
-  // Détermine le style du popup selon le mode
-  const popupStyle: React.CSSProperties = !isEditMode ? {
-    maxWidth: 340,
-    width: '90vw',
-    minHeight: 340,
-    maxHeight: 420,
-    borderRadius: 24,
-    padding: 0,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-    background: 'white',
-  } : {};
-
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : ''}`}
-        style={popupStyle}
-      >
+      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
         {/* Roue à gauche */}
         <div className={isEditMode ? "flex-shrink-0" : ""}>
         {/* Header avec bouton fermer */}
