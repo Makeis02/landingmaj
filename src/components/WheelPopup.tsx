@@ -1315,25 +1315,25 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-auto">
-      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'} max-h-[95vh] overflow-y-auto my-auto`}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'}`}>
         {/* Roue à gauche */}
         <div className={isEditMode ? "flex-shrink-0" : ""}>
         {/* Header avec bouton fermer */}
-        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-cyan-100">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight pr-4" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
+        <div className="flex justify-between items-center p-6 border-b border-cyan-100">
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-              className="text-gray-400 hover:text-blue-700 flex-shrink-0 ml-2"
+              className="text-gray-400 hover:text-blue-700"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
         {/* Contenu principal */}
-          <div className="p-4 sm:p-6 text-center">
+          <div className="p-6 text-center">
             <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
               🌊 {wheelSettings.description} 🐟
             </p>
@@ -1346,7 +1346,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             ) : (
               <>
           {/* Container de la roue avec poissons animés */}
-          <div className="relative mx-auto mb-8 w-[280px] h-[280px] sm:w-[320px] sm:h-[320px]">
+          <div className="relative mx-auto mb-8" style={{ width: '320px', height: '320px' }}>
             {/* Poissons qui nagent autour de la roue */}
             <div className="absolute inset-0">
               {/* Poisson 1 - tourne dans le sens horaire */}
@@ -1396,8 +1396,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
             {/* La roue */}
             <div 
-              className="relative rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden w-60 h-60 sm:w-70 sm:h-70 mx-auto my-5"
+              className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
               style={{
+                width: '280px',
+                height: '280px',
+                margin: '20px auto',
                 transform: `rotate(${rotation}deg)`,
                 transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
               }}
