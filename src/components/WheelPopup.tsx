@@ -705,51 +705,61 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     setIsLoading(true);
     try {
-      // 1. Vérifier si l'email correspond à un compte utilisateur existant
-      console.log('⭐ 🔍 Recherche du compte pour email:', email.toLowerCase().trim());
+      console.log('⭐ 🔍 Début validation email:', email.toLowerCase().trim());
       
-      // Méthode simple : chercher dans wheel_spins si cet email a déjà un user_id
+      // 1. D'ABORD : Vérifier si l'utilisateur est connecté MAINTENANT
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      console.log('⭐ 🔍 Utilisateur actuellement connecté:', currentUser?.id, currentUser?.email);
+      
       let userData = null;
       let userError = null;
-      
-      try {
-        console.log('⭐ 🔍 Recherche dans wheel_spins par email...');
-        const { data: spinsData, error: spinsError } = await supabase
-          .from('wheel_spins')
-          .select('user_id, user_email')
-          .eq('user_email', email.toLowerCase().trim())
-          .limit(1);
-        
-        if (!spinsError && spinsData && spinsData.length > 0) {
-          userData = { id: spinsData[0].user_id, email: spinsData[0].user_email };
-          console.log('⭐ ✅ Utilisateur trouvé via wheel_spins:', spinsData[0].user_id);
-        } else {
-          userError = { message: 'Aucun compte trouvé pour cet email' };
-          console.log('⭐ 👤 Aucun compte trouvé dans wheel_spins pour cet email');
-        }
-      } catch (err) {
-        console.log('⭐ ❌ Erreur lors de la recherche utilisateur:', err);
-        userError = { message: 'Erreur recherche utilisateur' };
-      }
-
-      console.log('⭐ 📊 Résultat recherche compte:', { userData, userError: userError?.message });
-
-      let userId = null;
       let isExistingUser = false;
-
-      if (!userError && userData) {
-        // Email correspond à un compte existant
-        userId = userData.id;
+      
+      if (currentUser && currentUser.email === email.toLowerCase().trim()) {
+        // L'utilisateur est connecté et c'est son email -> utiliser ses données
+        userData = { id: currentUser.id, email: currentUser.email };
         isExistingUser = true;
         setIsUserConnected(true);
-        console.log('⭐ ✅ Email correspond au compte utilisateur:', userData.id);
-        console.log('⭐ ➡️ Utilisation de wheel_spins pour cet utilisateur');
+        console.log('⭐ ✅ Utilisateur connecté détecté ! ID:', currentUser.id);
+        console.log('⭐ ➡️ Utilisation de wheel_spins pour utilisateur connecté');
       } else {
-        // Email ne correspond à aucun compte (utilisateur invité)
-        setIsUserConnected(false);
-        console.log('⭐ 👤 Email invité (pas de compte), erreur:', userError?.message);
-        console.log('⭐ ➡️ Utilisation de wheel_email_entries pour cet email');
+        // 2. L'utilisateur n'est pas connecté OU l'email ne correspond pas
+        // Chercher dans wheel_spins si cet email a déjà joué avec un compte
+        console.log('⭐ 🔍 Recherche dans wheel_spins par email...');
+        try {
+          const { data: spinsData, error: spinsError } = await supabase
+            .from('wheel_spins')
+            .select('user_id, user_email')
+            .eq('user_email', email.toLowerCase().trim())
+            .limit(1);
+          
+          if (!spinsError && spinsData && spinsData.length > 0) {
+            userData = { id: spinsData[0].user_id, email: spinsData[0].user_email };
+            isExistingUser = true;
+            setIsUserConnected(true);
+            console.log('⭐ ✅ Utilisateur trouvé via wheel_spins:', spinsData[0].user_id);
+            console.log('⭐ ➡️ Utilisation de wheel_spins pour cet utilisateur');
+          } else {
+            userError = { message: 'Aucun compte trouvé pour cet email' };
+            setIsUserConnected(false);
+            console.log('⭐ 👤 Aucun compte trouvé dans wheel_spins pour cet email');
+            console.log('⭐ ➡️ Utilisation de wheel_email_entries pour cet email invité');
+          }
+        } catch (err) {
+          console.log('⭐ ❌ Erreur lors de la recherche utilisateur:', err);
+          userError = { message: 'Erreur recherche utilisateur' };
+          setIsUserConnected(false);
+        }
       }
+
+      console.log('⭐ 📊 Résultat recherche compte:', { 
+        userData, 
+        userError: userError?.message, 
+        isExistingUser,
+        willUseWheelSpins: !!userData?.id 
+      });
+
+      let userId = userData?.id || null;
 
       // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
       const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
