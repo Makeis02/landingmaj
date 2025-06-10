@@ -1516,7 +1516,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           )}
 
           {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
-          {emailValidated && !canSpin && timeUntilNextSpin > 0 && (
+          {emailValidated && !canSpin && nextSpinTimestamp && (
             <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
               <div className="text-center">
                 <div className="text-3xl mb-2">⏰</div>
