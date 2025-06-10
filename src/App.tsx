@@ -135,16 +135,6 @@ const App = () => {
   useEffect(() => {
     if (!wheelSettings || !isWheelEnabled) return;
 
-    // 1. Anti-spam localStorage (popup_seen_cooldown)
-    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-    const cooldownDays = wheelSettings.popup_seen_cooldown || 1;
-    if (lastSeen) {
-      const lastDate = new Date(lastSeen);
-      const now = new Date();
-      const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diff < cooldownDays) return; // Ne pas afficher le popup
-    }
-
     // 2. Vérifie la page courante
     const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
     const currentPath = location.pathname;
@@ -167,7 +157,6 @@ const App = () => {
     // 5. Affichage automatique après délai paramétrable
     setTimeout(() => {
       setShowWheel(true);
-      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
     }, (wheelSettings.auto_show_delay || 5) * 1000);
   }, [wheelSettings, isWheelEnabled, location.pathname]);
 
