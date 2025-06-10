@@ -463,6 +463,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         // Enregistrer le tirage dans Supabase
         try {
+          // 1. Enregistrer dans wheel_email_entries (pour le système de limitation)
+          await supabase
+            .from('wheel_email_entries')
+            .insert({
+              email: email.toLowerCase().trim(),
+              user_id: user?.id || null,
+              ip_address: clientIP,
+              browser_fingerprint: browserFingerprint,
+              created_at: new Date().toISOString()
+            });
+          
+          // 2. Enregistrer le résultat détaillé pour les utilisateurs connectés
           if (user) {
             await supabase
               .from('wheel_spins')
@@ -475,8 +487,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 user_email: user.email
               });
           }
+          
+          console.log('✅ Tirage enregistré pour l\'email:', email);
         } catch (error) {
-          console.error('Erreur lors de l\'enregistrement du tirage:', error);
+          console.error('❌ Erreur lors de l\'enregistrement du tirage:', error);
         }
         
         // 🆕 Mettre à jour l'éligibilité après le spin
@@ -601,29 +615,68 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       const participationHours = settings.participation_delay || 72;
       const hoursAgo = new Date(Date.now() - participationHours * 60 * 60 * 1000);
       
-      // Vérifier si l'utilisateur a déjà joué dans la période définie
-      const { data: existingEntry, error } = await supabase
+      console.log(`🔍 Vérification pour l'email: ${userEmail}`);
+      
+      // 1. Vérifier d'abord si cet email correspond à un compte actif (wheel_spins)
+      const { data: userSpinEntry, error: spinError } = await supabase
+        .from('wheel_spins')
+        .select('created_at')
+        .eq('user_email', userEmail.toLowerCase().trim())
+        .gte('created_at', hoursAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      // 2. Vérifier aussi dans wheel_email_entries (pour les invités)
+      const { data: emailEntry, error: emailError } = await supabase
         .from('wheel_email_entries')
         .select('created_at')
         .eq('email', userEmail.toLowerCase().trim())
         .gte('created_at', hoursAgo.toISOString())
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification:', error);
-        return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours };
+      if (spinError && spinError.code !== 'PGRST116') {
+        console.error('❌ Erreur lors de la vérification wheel_spins:', spinError);
       }
 
-      if (existingEntry) {
-        console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationHours}h`);
+      if (emailError && emailError.code !== 'PGRST116') {
+        console.error('❌ Erreur lors de la vérification wheel_email_entries:', emailError);
+      }
+
+      // 3. Prendre la date la plus récente entre les deux tables
+      let lastPlayTime = null;
+      let source = '';
+
+      if (userSpinEntry && emailEntry) {
+        const spinDate = new Date(userSpinEntry.created_at);
+        const emailDate = new Date(emailEntry.created_at);
+        if (spinDate > emailDate) {
+          lastPlayTime = spinDate;
+          source = 'wheel_spins (compte actif)';
+        } else {
+          lastPlayTime = emailDate;
+          source = 'wheel_email_entries (invité)';
+        }
+      } else if (userSpinEntry) {
+        lastPlayTime = new Date(userSpinEntry.created_at);
+        source = 'wheel_spins (compte actif)';
+      } else if (emailEntry) {
+        lastPlayTime = new Date(emailEntry.created_at);
+        source = 'wheel_email_entries (invité)';
+      }
+
+      if (lastPlayTime) {
+        console.log(`⚠️ Email trouvé dans ${source}, dernière participation: ${lastPlayTime.toISOString()}`);
         
         // Calculer le temps restant avant de pouvoir rejouer
-        const lastPlayTime = new Date(existingEntry.created_at);
         const nextAllowedTime = new Date(lastPlayTime.getTime() + participationHours * 60 * 60 * 1000);
         const timeLeft = nextAllowedTime.getTime() - Date.now();
         
         if (timeLeft > 0) {
           const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+          console.log(`⏰ Timer actif: ${hoursLeft}h restantes`);
           return {
             canSpin: false,
             nextSpinTimestamp: nextAllowedTime,
@@ -631,6 +684,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             participationHours
           };
         } else {
+          console.log('✅ Cooldown expiré, peut jouer');
           return {
             canSpin: true,
             nextSpinTimestamp: null,
@@ -640,6 +694,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         }
       }
 
+      console.log('✅ Aucune participation récente trouvée, peut jouer');
       return {
         canSpin: true,
         nextSpinTimestamp: null,
@@ -695,6 +750,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       // 5. Passer à l'étape suivante dans tous les cas
       setShowEmailForm(false);
       setEmailValidated(true);
+      
+      // 6. Debug - affichage des valeurs
+      console.log('🔍 Debug après validation email:', {
+        canSpin: eligibilityResult.canSpin,
+        timeUntilNextSpin: eligibilityResult.timeUntilNextSpin,
+        nextSpinTimestamp: eligibilityResult.nextSpinTimestamp,
+        emailValidated: true
+      });
       
       if (eligibilityResult.canSpin) {
         toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
@@ -766,6 +829,19 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       console.warn(`⚠️ La somme des pourcentages de la roue est ${total}%. Corrigez pour obtenir 100%.`);
     }
   }, [segmentsData]);
+
+  // 🔍 Debug - surveillance des états
+  useEffect(() => {
+    if (emailValidated) {
+      console.log('🔍 États actuels:', {
+        emailValidated,
+        canSpin,
+        timeUntilNextSpin,
+        nextSpinTimestamp,
+        showTimer: emailValidated && !canSpin && timeUntilNextSpin > 0
+      });
+    }
+  }, [emailValidated, canSpin, timeUntilNextSpin, nextSpinTimestamp]);
 
   // 🆕 Formulaire de test en mode édition
   const handleTestEmailSubmit = async () => {
@@ -1033,7 +1109,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           )}
 
           {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
-          {!canSpin && timeUntilNextSpin > 0 && (
+          {emailValidated && !canSpin && timeUntilNextSpin > 0 && (
             <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
               <div className="text-center">
                 <div className="text-3xl mb-2">⏰</div>
