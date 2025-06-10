@@ -619,6 +619,31 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       let existingEntry = null;
       let error = null;
 
+      console.log('⭐ 🔍 Vérification éligibilité - Paramètres:', {
+        userId,
+        userEmail: userEmail.toLowerCase().trim(),
+        participationHours,
+        hoursAgo: hoursAgo.toISOString(),
+        useWheelSpins: !!userId
+      });
+
+      // 🔍 DEBUG : Regarder TOUTES les entrées pour cet email/user (pas seulement dans la fenêtre)
+      if (userId) {
+        const { data: allSpins } = await supabase
+          .from('wheel_spins')
+          .select('created_at, user_email')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false });
+        console.log('⭐ 🔍 DEBUG - TOUTES les participations de ce user_id:', allSpins);
+      } else {
+        const { data: allEntries } = await supabase
+          .from('wheel_email_entries')
+          .select('created_at, email')
+          .eq('email', userEmail.toLowerCase().trim())
+          .order('created_at', { ascending: false });
+        console.log('⭐ 🔍 DEBUG - TOUTES les participations de cet email:', allEntries);
+      }
+
       if (userId) {
         // ✅ Utilisateur avec compte : utiliser wheel_spins (logique qui marche déjà)
         console.log('⭐ 🔍 Vérification wheel_spins pour user_id:', userId);
@@ -634,10 +659,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         existingEntry = data;
         error = spinsError;
-        console.log('⭐ 📊 Résultat wheel_spins:', { data, error: spinsError?.message });
+        console.log('⭐ 📊 Résultat wheel_spins:', { 
+          spinsData, 
+          error: spinsError?.message,
+          foundEntry: !!data,
+          entryDate: data?.created_at 
+        });
       } else {
         // ✅ Utilisateur invité : utiliser wheel_email_entries (même logique exacte)
-        console.log('⭐ 🔍 Vérification wheel_email_entries pour email:', userEmail);
+        console.log('⭐ 🔍 Vérification wheel_email_entries pour email:', userEmail.toLowerCase().trim());
         const { data: entriesData, error: entriesError } = await supabase
           .from('wheel_email_entries')
           .select('created_at')
@@ -650,7 +680,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         existingEntry = data;
         error = entriesError;
-        console.log('⭐ 📊 Résultat wheel_email_entries:', { data, error: entriesError?.message });
+        console.log('⭐ 📊 Résultat wheel_email_entries:', { 
+          entriesData, 
+          error: entriesError?.message,
+          foundEntry: !!data,
+          entryDate: data?.created_at 
+        });
       }
 
       if (error) {
@@ -736,7 +771,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       }
 
       // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
+      console.log('⭐ 🔍 AVANT vérification éligibilité avec:', { userId, email: email.toLowerCase().trim() });
       const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
+      console.log('⭐ 📊 RÉSULTAT vérification éligibilité:', eligibilityResult);
       
       // 2. Mettre à jour les états avec les résultats de la vérification
       setCanSpin(eligibilityResult.canSpin);
@@ -1472,10 +1509,36 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             ))}
 
             {/* Bouton pour débloquer la roue (reset timer) */}
-            <div className="mb-4 flex justify-center">
-              <Button onClick={handleForceUnlock} className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow">
+            <div className="mb-4 flex flex-col gap-2">
+              <Button onClick={handleForceUnlock} className="bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-2 rounded shadow text-sm">
                 🔓 Débloquer la roue (test admin)
               </Button>
+              
+              {/* 🔍 Bouton test éligibilité pour un email */}
+              <div className="bg-yellow-50 p-2 rounded border">
+                <label className="text-xs text-gray-600 block mb-1">Test éligibilité email :</label>
+                <div className="flex gap-1">
+                  <input
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="email@test.com"
+                    className="flex-1 px-2 py-1 border rounded text-xs"
+                  />
+                  <Button 
+                    onClick={async () => {
+                      if (!testEmail) return;
+                      console.log('🔍 [TEST] Test éligibilité pour:', testEmail);
+                      const result = await checkSpinEligibilityWithSettings(null, testEmail);
+                      console.log('🔍 [TEST] Résultat pour', testEmail, ':', result);
+                      alert(`Résultat pour ${testEmail}:\nPeut jouer: ${result.canSpin}\nTemps restant: ${result.timeUntilNextSpin}h`);
+                    }}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs"
+                  >
+                    🔍 Test
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* 🆕 Formulaire de test en mode édition */}

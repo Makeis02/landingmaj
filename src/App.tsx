@@ -113,10 +113,23 @@ const App = () => {
   
   // Fonction de debug pour réinitialiser les paramètres de la roue
   const resetWheelState = () => {
+    console.log('🔄 [DEBUG] État localStorage AVANT reset:', {
+      dismissed: localStorage.getItem('wheel_popup_dismissed'),
+      lastSeen: localStorage.getItem('wheel_popup_last_seen'),
+      emailEntries: localStorage.getItem('wheel_email_entries')
+    });
+    
     localStorage.removeItem('wheel_popup_dismissed');
     localStorage.removeItem('wheel_popup_last_seen');
     localStorage.removeItem('wheel_email_entries');
-    console.log('🔄 État de la roue réinitialisé');
+    
+    console.log('🔄 [DEBUG] État localStorage APRÈS reset:', {
+      dismissed: localStorage.getItem('wheel_popup_dismissed'),
+      lastSeen: localStorage.getItem('wheel_popup_last_seen'),
+      emailEntries: localStorage.getItem('wheel_email_entries')
+    });
+    
+    console.log('🔄 État de la roue réinitialisé - Ouverture forcée du popup');
     setShowWheel(true);
   };
 
@@ -170,6 +183,16 @@ const App = () => {
           const lastDate = new Date(lastSeen);
           const now = new Date();
           const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          console.log('🔍 [DEBUG] Calcul cooldown:', {
+            lastDate: lastDate.toISOString(),
+            now: now.toISOString(),
+            diffMs: now.getTime() - lastDate.getTime(),
+            diffDays: diffDays.toFixed(2),
+            cooldownDays,
+            shouldBlock: diffDays < cooldownDays
+          });
+          
           if (diffDays < cooldownDays) {
             console.log(`⏰ Anti-spam activé: popup fermé il y a ${diffDays.toFixed(1)} jours, cooldown de ${cooldownDays} jours`);
             return; // Ne pas afficher le popup
