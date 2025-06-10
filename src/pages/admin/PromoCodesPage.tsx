@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { Loader2, Plus, Edit, Trash2, Copy, Percent, Euro, Calendar, Users } from "lucide-react";
+import { Loader2, Plus, Edit, Trash2, Copy, Percent, Euro, Calendar, Users, Package, Tags } from "lucide-react";
 import AdminHeader from "@/components/admin/layout/AdminHeader";
 import Footer from "@/components/Footer";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,10 @@ interface PromoCode {
   description: string;
   type: 'percentage' | 'fixed';
   value: number;
+  application_type: 'all' | 'specific_product' | 'category';
+  product_id?: string;
+  product_title?: string;
+  category_name?: string;
   minimum_amount?: number;
   maximum_discount?: number;
   usage_limit?: number;
@@ -37,14 +41,21 @@ const PromoCodesPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCode, setEditingCode] = useState<PromoCode | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  const [availableProducts, setAvailableProducts] = useState<{id: string, title: string}[]>([]);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(false);
+  
   const { toast } = useToast();
 
-  // États du formulaire
   const [formData, setFormData] = useState({
     code: '',
     description: '',
     type: 'percentage' as 'percentage' | 'fixed',
     value: 0,
+    application_type: 'all' as 'all' | 'specific_product' | 'category',
+    product_id: '',
+    category_name: '',
     minimum_amount: '',
     maximum_discount: '',
     usage_limit: '',
@@ -52,17 +63,70 @@ const PromoCodesPage = () => {
     is_active: true
   });
 
-  // Charger les codes promo depuis la base
+  const loadAvailableProducts = async () => {
+    setLoadingProducts(true);
+    try {
+      const { data, error } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .like('content_key', 'product_%_title');
+
+      if (error) throw error;
+
+      const products = data.map(item => ({
+        id: item.content_key.replace('product_', '').replace('_title', ''),
+        title: item.content
+      })).filter(product => product.title && product.title.trim() !== '');
+
+      setAvailableProducts(products);
+    } catch (error) {
+      console.error('Erreur lors du chargement des produits:', error);
+      setAvailableProducts([]);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  const loadAvailableCategories = async () => {
+    try {
+      const categories = [
+        'Aquariums',
+        'Poissons',
+        'Plantes aquatiques',
+        'Filtration',
+        'Éclairage',
+        'Chauffage',
+        'Décoration',
+        'Nourriture',
+        'Accessoires',
+        'Entretien'
+      ];
+      setAvailableCategories(categories);
+    } catch (error) {
+      console.error('Erreur lors du chargement des catégories:', error);
+      setAvailableCategories([]);
+    }
+  };
+
   const loadPromoCodes = async () => {
     setIsLoading(true);
     try {
-      // Pour l'instant on simule avec du local storage, plus tard on utilisera Supabase
-      const savedCodes = localStorage.getItem('promo_codes');
-      const codes = savedCodes ? JSON.parse(savedCodes) : [];
-      setPromoCodes(codes);
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setPromoCodes(data || []);
     } catch (error) {
       console.error('Erreur lors du chargement:', error);
       setPromoCodes([]);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les codes promo",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -70,15 +134,19 @@ const PromoCodesPage = () => {
 
   useEffect(() => {
     loadPromoCodes();
+    loadAvailableProducts();
+    loadAvailableCategories();
   }, []);
 
-  // Réinitialiser le formulaire
   const resetForm = () => {
     setFormData({
       code: '',
       description: '',
       type: 'percentage',
       value: 0,
+      application_type: 'all',
+      product_id: '',
+      category_name: '',
       minimum_amount: '',
       maximum_discount: '',
       usage_limit: '',
@@ -88,7 +156,6 @@ const PromoCodesPage = () => {
     setEditingCode(null);
   };
 
-  // Ouvrir le dialog
   const openDialog = (code?: PromoCode) => {
     if (code) {
       setEditingCode(code);
@@ -97,6 +164,9 @@ const PromoCodesPage = () => {
         description: code.description,
         type: code.type,
         value: code.value,
+        application_type: code.application_type || 'all',
+        product_id: code.product_id || '',
+        category_name: code.category_name || '',
         minimum_amount: code.minimum_amount?.toString() || '',
         maximum_discount: code.maximum_discount?.toString() || '',
         usage_limit: code.usage_limit?.toString() || '',
@@ -109,7 +179,6 @@ const PromoCodesPage = () => {
     setIsDialogOpen(true);
   };
 
-  // Sauvegarder un code promo
   const savePromoCode = async () => {
     if (!formData.code.trim()) {
       toast({
@@ -129,42 +198,80 @@ const PromoCodesPage = () => {
       return;
     }
 
+    if (formData.application_type === 'specific_product' && !formData.product_id) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un produit spécifique",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (formData.application_type === 'category' && !formData.category_name) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une catégorie",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
     try {
-      const newCode: PromoCode = {
-        id: editingCode?.id || Date.now().toString(),
+      let productTitle = '';
+      if (formData.application_type === 'specific_product' && formData.product_id) {
+        const product = availableProducts.find(p => p.id === formData.product_id);
+        productTitle = product?.title || '';
+      }
+
+      const promoData = {
         code: formData.code.toUpperCase().trim(),
         description: formData.description.trim(),
         type: formData.type,
         value: formData.value,
-        minimum_amount: formData.minimum_amount ? parseFloat(formData.minimum_amount) : undefined,
-        maximum_discount: formData.maximum_discount ? parseFloat(formData.maximum_discount) : undefined,
-        usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : undefined,
-        used_count: editingCode?.used_count || 0,
-        expires_at: formData.expires_at ? new Date(formData.expires_at + 'T23:59:59').toISOString() : undefined,
-        is_active: formData.is_active,
-        created_at: editingCode?.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        application_type: formData.application_type,
+        product_id: formData.application_type === 'specific_product' ? formData.product_id : null,
+        product_title: formData.application_type === 'specific_product' ? productTitle : null,
+        category_name: formData.application_type === 'category' ? formData.category_name : null,
+        minimum_amount: formData.minimum_amount ? parseFloat(formData.minimum_amount) : null,
+        maximum_discount: formData.maximum_discount ? parseFloat(formData.maximum_discount) : null,
+        usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
+        expires_at: formData.expires_at ? new Date(formData.expires_at + 'T23:59:59').toISOString() : null,
+        is_active: formData.is_active
       };
 
-      let updatedCodes;
       if (editingCode) {
-        updatedCodes = promoCodes.map(code => code.id === editingCode.id ? newCode : code);
-      } else {
-        // Vérifier que le code n'existe pas déjà
-        if (promoCodes.some(code => code.code === newCode.code)) {
-          toast({
-            title: "Erreur",
-            description: "Ce code promo existe déjà",
-            variant: "destructive",
-          });
-          return;
-        }
-        updatedCodes = [...promoCodes, newCode];
-      }
+        const { data, error } = await supabase
+          .from('promo_codes')
+          .update(promoData)
+          .eq('id', editingCode.id)
+          .select()
+          .single();
 
-      localStorage.setItem('promo_codes', JSON.stringify(updatedCodes));
-      setPromoCodes(updatedCodes);
+        if (error) throw error;
+
+        setPromoCodes(promoCodes.map(code => code.id === editingCode.id ? data : code));
+      } else {
+        const { data, error } = await supabase
+          .from('promo_codes')
+          .insert(promoData)
+          .select()
+          .single();
+
+        if (error) {
+          if (error.code === '23505') {
+            toast({
+              title: "Erreur",
+              description: "Ce code promo existe déjà",
+              variant: "destructive",
+            });
+            return;
+          }
+          throw error;
+        }
+
+        setPromoCodes([data, ...promoCodes]);
+      }
 
       toast({
         title: "Succès",
@@ -185,40 +292,62 @@ const PromoCodesPage = () => {
     }
   };
 
-  // Supprimer un code promo
   const deletePromoCode = async (id: string, code: string) => {
     if (!confirm(`Êtes-vous sûr de vouloir supprimer le code "${code}" ?`)) {
       return;
     }
 
-    const updatedCodes = promoCodes.filter(c => c.id !== id);
-    localStorage.setItem('promo_codes', JSON.stringify(updatedCodes));
-    setPromoCodes(updatedCodes);
+    try {
+      const { error } = await supabase
+        .from('promo_codes')
+        .delete()
+        .eq('id', id);
 
-    toast({
-      title: "Succès",
-      description: "Code promo supprimé",
-    });
+      if (error) throw error;
+
+      setPromoCodes(promoCodes.filter(c => c.id !== id));
+
+      toast({
+        title: "Succès",
+        description: "Code promo supprimé",
+      });
+    } catch (error) {
+      console.error('Erreur lors de la suppression:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le code promo",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Activer/désactiver un code promo
   const togglePromoCode = async (id: string, isActive: boolean) => {
-    const updatedCodes = promoCodes.map(code => 
-      code.id === id 
-        ? { ...code, is_active: isActive, updated_at: new Date().toISOString() }
-        : code
-    );
-    
-    localStorage.setItem('promo_codes', JSON.stringify(updatedCodes));
-    setPromoCodes(updatedCodes);
+    try {
+      const { data, error } = await supabase
+        .from('promo_codes')
+        .update({ is_active: isActive })
+        .eq('id', id)
+        .select()
+        .single();
 
-    toast({
-      title: "Succès",
-      description: `Code promo ${isActive ? 'activé' : 'désactivé'}`,
-    });
+      if (error) throw error;
+
+      setPromoCodes(promoCodes.map(code => code.id === id ? data : code));
+
+      toast({
+        title: "Succès",
+        description: `Code promo ${isActive ? 'activé' : 'désactivé'}`,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le code promo",
+        variant: "destructive",
+      });
+    }
   };
 
-  // Copier un code
   const copyToClipboard = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -235,17 +364,14 @@ const PromoCodesPage = () => {
     }
   };
 
-  // Formater la valeur
   const formatValue = (type: string, value: number) => {
     return type === 'percentage' ? `${value}%` : `${value.toFixed(2)}€`;
   };
 
-  // Formater la date
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
-  // Calculer le statut
   const getCodeStatus = (code: PromoCode) => {
     if (!code.is_active) return { label: 'Inactif', color: 'secondary' };
     if (code.expires_at && new Date(code.expires_at) < new Date()) return { label: 'Expiré', color: 'destructive' };
@@ -326,6 +452,58 @@ const PromoCodesPage = () => {
                       onChange={(e) => setFormData({ ...formData, value: parseFloat(e.target.value) || 0 })}
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="application_type">Type d'application *</Label>
+                    <Select value={formData.application_type} onValueChange={(value: 'all' | 'specific_product' | 'category') => setFormData({ ...formData, application_type: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les produits</SelectItem>
+                        <SelectItem value="specific_product">Produit spécifique</SelectItem>
+                        <SelectItem value="category">Catégorie</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {formData.application_type === 'specific_product' && (
+                    <div>
+                      <Label htmlFor="product_id">Produit</Label>
+                      <Select value={formData.product_id} onValueChange={(value: string) => setFormData({ ...formData, product_id: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProducts.map((product) => (
+                            <SelectItem key={product.id} value={product.id}>
+                              {product.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {formData.application_type === 'category' && (
+                    <div>
+                      <Label htmlFor="category_name">Catégorie</Label>
+                      <Select value={formData.category_name} onValueChange={(value: string) => setFormData({ ...formData, category_name: value })}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableCategories.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -411,7 +589,67 @@ const PromoCodesPage = () => {
           </Dialog>
         </div>
 
-        {/* Liste des codes promo */}
+        {/* Statistiques par type d'application */}
+        {promoCodes.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-blue-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Tous produits</p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {promoCodes.filter(code => code.application_type === 'all' || !code.application_type).length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-green-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Produits spécifiques</p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {promoCodes.filter(code => code.application_type === 'specific_product').length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Tags className="h-5 w-5 text-purple-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Par catégorie</p>
+                    <p className="text-2xl font-bold text-purple-600">
+                      {promoCodes.filter(code => code.application_type === 'category').length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Percent className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <p className="text-sm text-gray-600">Actifs</p>
+                    <p className="text-2xl font-bold text-orange-600">
+                      {promoCodes.filter(code => code.is_active).length}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -437,6 +675,7 @@ const PromoCodesPage = () => {
                   <TableRow>
                     <TableHead>Code</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Application</TableHead>
                     <TableHead>Réduction</TableHead>
                     <TableHead>Utilisation</TableHead>
                     <TableHead>Expiration</TableHead>
@@ -465,6 +704,36 @@ const PromoCodesPage = () => {
                         <TableCell>
                           <div className="max-w-xs">
                             <p className="text-sm truncate">{code.description || 'Aucune description'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            {code.application_type === 'all' && (
+                              <>
+                                <Package className="h-3 w-3 text-blue-500" />
+                                <span className="text-sm text-blue-600">Tous les produits</span>
+                              </>
+                            )}
+                            {code.application_type === 'specific_product' && (
+                              <>
+                                <Package className="h-3 w-3 text-green-500" />
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-green-600">Produit spécifique</span>
+                                  <span className="text-xs text-gray-500 truncate max-w-[120px]">
+                                    {code.product_title || `ID: ${code.product_id}`}
+                                  </span>
+                                </div>
+                              </>
+                            )}
+                            {code.application_type === 'category' && (
+                              <>
+                                <Tags className="h-3 w-3 text-purple-500" />
+                                <div className="flex flex-col">
+                                  <span className="text-sm text-purple-600">Catégorie</span>
+                                  <span className="text-xs text-gray-500">{code.category_name}</span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell>
