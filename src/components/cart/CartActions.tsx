@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useCartStore } from "@/stores/useCartStore";
+import { X } from "lucide-react";
 
 interface CartActionsProps {
   total: number;
@@ -15,9 +16,19 @@ interface CartActionsProps {
 
 const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActionsProps) => {
   const { toast } = useToast();
-  const [discountCode, setDiscountCode] = useState("");
+  const [promoCode, setPromoCode] = useState("");
   const navigate = useNavigate();
-  const { items: cartItems } = useCartStore();
+  
+  // 🎫 NOUVEAU : Utilisation du store pour les codes promo
+  const { 
+    items: cartItems, 
+    appliedPromoCode, 
+    isApplyingPromo, 
+    applyPromoCode, 
+    removePromoCode, 
+    getTotalWithPromo 
+  } = useCartStore();
+  
   const now = new Date();
 
   // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
@@ -50,7 +61,10 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
     fetchThreshold();
   }, []);
 
-  // Calculer les économies totales
+  // 🎫 NOUVEAU : Utiliser les totaux avec promo
+  const { subtotal, discount, total: finalTotal } = getTotalWithPromo();
+
+  // Calculer les économies totales des réductions produits (différent des codes promo)
   const totalSavings = items
     .filter(item => !item.is_gift && !item.threshold_gift && item.has_discount && item.original_price)
     .reduce((acc, item) => {
@@ -59,34 +73,55 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
       return acc + (originalTotal - discountedTotal);
     }, 0);
 
-  const handleApplyDiscount = () => {
-    if (!discountCode) {
+  // 🎫 NOUVELLE FONCTION : Appliquer le code promo
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
       toast({
         title: "Erreur",
-        description: "Veuillez entrer un code de réduction",
+        description: "Veuillez entrer un code promo",
         variant: "destructive",
       });
       return;
     }
+
+    const result = await applyPromoCode(promoCode.trim());
     
+    if (result.success) {
+      setPromoCode(""); // Réinitialiser le champ
+      toast({
+        title: "✅ Code promo appliqué !",
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: "❌ Code promo invalide",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  // 🎫 NOUVELLE FONCTION : Supprimer le code promo
+  const handleRemovePromoCode = () => {
+    removePromoCode();
     toast({
-      title: "Information",
-      description: "Cette fonctionnalité n'est pas encore disponible",
+      title: "Code promo retiré",
+      description: "Le code promo a été supprimé de votre panier",
     });
   };
 
-  // Logique d'affichage livraison
+  // Logique d'affichage livraison (utiliser finalTotal au lieu de total)
   let shippingLabel = "À déterminer";
   let infoMessage = "";
   let showInfo = false;
   if (freeShippingThreshold !== null) {
-    if (total >= freeShippingThreshold) {
+    if (finalTotal >= freeShippingThreshold) {
       shippingLabel = "Gratuit";
       infoMessage = `Livraison gratuite à partir de ${freeShippingThreshold}€ d'achat !`;
       showInfo = false;
     } else {
       shippingLabel = "À déterminer";
-      const diff = (freeShippingThreshold - total).toFixed(2);
+      const diff = (freeShippingThreshold - finalTotal).toFixed(2);
       infoMessage = `Plus que ${diff}€ pour profiter de la livraison gratuite !`;
       showInfo = true;
     }
@@ -98,9 +133,7 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
       toast({
         title: "⏰ Cadeaux expirés",
         description: "Certains cadeaux de votre panier ont expiré. Veuillez les retirer avant de continuer.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
+        variant: "destructive",
       });
       return;
     }
@@ -131,24 +164,71 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
         </div>
       )}
 
-      <div className="flex gap-2">
-        <Input
-          placeholder="Code de réduction"
-          value={discountCode}
-          onChange={(e) => setDiscountCode(e.target.value)}
-        />
-        <Button onClick={handleApplyDiscount}>Appliquer</Button>
-      </div>
+      {/* 🎫 NOUVELLE SECTION : Gestion des codes promo */}
+      {appliedPromoCode ? (
+        // Code promo appliqué
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">%</span>
+              </div>
+              <div>
+                <p className="font-medium text-green-800">Code promo appliqué</p>
+                <p className="text-sm text-green-600">
+                  {appliedPromoCode.code} - {appliedPromoCode.type === 'percentage' ? `${appliedPromoCode.value}%` : `${appliedPromoCode.value}€`} de réduction
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemovePromoCode}
+              className="text-green-600 hover:text-green-800"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        // Saisie du code promo
+        <div className="flex gap-2">
+          <Input
+            placeholder="Code promo"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleApplyPromoCode();
+              }
+            }}
+            disabled={isApplyingPromo}
+          />
+          <Button 
+            onClick={handleApplyPromoCode}
+            disabled={isApplyingPromo || !promoCode.trim()}
+          >
+            {isApplyingPromo ? "..." : "Appliquer"}
+          </Button>
+        </div>
+      )}
 
       <div className="border-t pt-4">
         <div className="flex justify-between mb-2">
           <span className="text-gray-600">Sous-total</span>
-          <span>{total.toFixed(2)}€</span>
+          <span>{subtotal.toFixed(2)}€</span>
         </div>
         {totalSavings > 0 && (
           <div className="flex justify-between mb-2">
-            <span className="text-green-600">Économies</span>
+            <span className="text-green-600">Économies produits</span>
             <span className="text-green-600 font-medium">-{totalSavings.toFixed(2)}€</span>
+          </div>
+        )}
+        {/* 🎫 NOUVEAU : Affichage de la réduction du code promo */}
+        {discount > 0 && (
+          <div className="flex justify-between mb-2">
+            <span className="text-blue-600">Code promo ({appliedPromoCode?.code})</span>
+            <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
           </div>
         )}
         <div className="flex justify-between mb-4">
@@ -162,7 +242,7 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
         )}
             <div className="flex justify-between pt-3 border-t border-slate-200">
               <span className="text-base font-medium">Total</span>
-              <span className="text-base font-bold">{total.toFixed(2)} €</span>
+              <span className="text-base font-bold">{finalTotal.toFixed(2)} €</span>
             </div>
         
         {/* 🎁 Message informatif si seulement des cadeaux */}

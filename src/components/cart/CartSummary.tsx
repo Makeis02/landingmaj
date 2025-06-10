@@ -22,8 +22,12 @@ const getApiBaseUrl = () => {
 
 const CartSummary = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const { items, getTotal } = useCartStore();
+  // 🎫 NOUVEAU : Utiliser les fonctions de codes promo
+  const { items, getTotal, getTotalWithPromo, appliedPromoCode } = useCartStore();
   const total = getTotal();
+  
+  // 🎫 NOUVEAU : Obtenir les totaux avec codes promo
+  const { subtotal, discount, total: finalTotal } = getTotalWithPromo();
   
   // 🎁 NOUVEAU : Calcul des produits payants vs cadeaux
   const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
@@ -50,15 +54,16 @@ const CartSummary = () => {
     fetchThreshold();
   }, []);
 
+  // 🎫 MODIFIÉ : Utiliser finalTotal au lieu de total pour la livraison gratuite
   let shippingLabel = "À déterminer";
   let infoMessage = "";
   if (freeShippingThreshold !== null) {
-    if (total >= freeShippingThreshold) {
+    if (finalTotal >= freeShippingThreshold) {
       shippingLabel = "Gratuit";
       infoMessage = `Livraison gratuite à partir de ${freeShippingThreshold}€ d'achat !`;
     } else {
       shippingLabel = shippingPrice !== null ? `${shippingPrice.toFixed(2)}€` : "À déterminer";
-      const diff = (freeShippingThreshold - total).toFixed(2);
+      const diff = (freeShippingThreshold - finalTotal).toFixed(2);
       infoMessage = `Plus que ${diff}€ pour profiter de la livraison gratuite !`;
     }
   }
@@ -84,6 +89,19 @@ const CartSummary = () => {
           price: item.price // ✅ on ajoute le prix unitaire ici
         }));
       
+      // 🎫 NOUVEAU : Ajouter les informations du code promo à la session
+      const checkoutData = { 
+        items: lineItems,
+        success_url: `${window.location.origin}/commande/confirmation`,
+        cancel_url: `${window.location.origin}/panier`,
+        // Informations du code promo appliqué
+        promo_code: appliedPromoCode ? {
+          id: appliedPromoCode.id,
+          code: appliedPromoCode.code,
+          discount_amount: appliedPromoCode.discount
+        } : null
+      };
+      
       // Appeler l'API pour créer une session de paiement Stripe
       const apiBaseUrl = getApiBaseUrl();
       const response = await fetch(`${apiBaseUrl}/api/stripe/create-checkout`, {
@@ -91,11 +109,7 @@ const CartSummary = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          items: lineItems,
-          success_url: `${window.location.origin}/commande/confirmation`,
-          cancel_url: `${window.location.origin}/panier`
-        }),
+        body: JSON.stringify(checkoutData),
       });
 
       if (!response.ok) {
@@ -136,8 +150,16 @@ const CartSummary = () => {
         <div className="border-t pt-4 mt-4 space-y-2">
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Sous-total</span>
-            <span>{total.toFixed(2)}€</span>
+            <span>{subtotal.toFixed(2)}€</span>
           </div>
+          
+          {/* 🎫 NOUVEAU : Affichage de la réduction du code promo */}
+          {discount > 0 && appliedPromoCode && (
+            <div className="flex justify-between text-sm">
+              <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
+              <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
+            </div>
+          )}
           
           <div className="flex justify-between text-sm">
             <span className="text-gray-600">Frais de livraison</span>
@@ -146,7 +168,8 @@ const CartSummary = () => {
           
           <div className="flex justify-between font-medium text-lg mt-4">
             <span>Total</span>
-            <span>{(total + (shippingLabel === "Gratuit" ? 0 : shippingPrice || 0)).toFixed(2)}€</span>
+            {/* 🎫 MODIFIÉ : Utiliser finalTotal + livraison */}
+            <span>{(finalTotal + (shippingLabel === "Gratuit" ? 0 : shippingPrice || 0)).toFixed(2)}€</span>
           </div>
         </div>
 

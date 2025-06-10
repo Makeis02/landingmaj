@@ -21,6 +21,8 @@ interface CartItem {
   type?: 'wheel_gift' | 'regular';
   won_at?: string; // Date ISO de quand le cadeau a été gagné
   expires_at?: string; // Date ISO d'expiration
+  // 🎫 Propriétés pour les catégories (codes promo)
+  category?: string;
 }
 
 interface GiftSettings {
@@ -29,11 +31,28 @@ interface GiftSettings {
   shopify_variant_id: string;
 }
 
+// 🎫 NOUVELLE INTERFACE : Gestion des codes promo
+interface AppliedPromoCode {
+  id: string;
+  code: string;
+  type: 'percentage' | 'fixed';
+  value: number;
+  discount: number;
+  appliedItems: string[]; // IDs des produits concernés
+  application_type: 'all' | 'specific_product' | 'category';
+  product_id?: string;
+  category_name?: string;
+}
+
 interface CartStore {
   items: CartItem[];
   isLoading: boolean;
   giftSettings: GiftSettings | null;
   isOpen: boolean;
+  // 🎫 NOUVEAUX ÉTATS : Codes promo
+  appliedPromoCode: AppliedPromoCode | null;
+  isApplyingPromo: boolean;
+  
   openDrawer: () => void;
   closeDrawer: () => void;
   addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => Promise<void>;
@@ -51,6 +70,11 @@ interface CartStore {
   updateWheelGiftExpiration: (giftId: string, newExpirationHours: number) => Promise<void>;
   cleanupExpiredGifts: () => void;
   clearWheelGifts: () => number;
+  
+  // 🎫 NOUVELLES FONCTIONS : Codes promo
+  applyPromoCode: (code: string) => Promise<{ success: boolean; message: string }>;
+  removePromoCode: () => void;
+  getTotalWithPromo: () => { subtotal: number; discount: number; total: number };
 }
 
 export const useCartStore = create<CartStore>()(
@@ -60,6 +84,8 @@ export const useCartStore = create<CartStore>()(
   isLoading: false,
   giftSettings: null,
   isOpen: false,
+  appliedPromoCode: null,
+  isApplyingPromo: false,
   openDrawer: () => set({ isOpen: true }),
   closeDrawer: () => set({ isOpen: false }),
 
@@ -667,6 +693,87 @@ export const useCartStore = create<CartStore>()(
     set({ items: remainingItems });
     
     return wheelGifts.length;
+  },
+
+  applyPromoCode: async (code: string) => {
+    set({ isApplyingPromo: true });
+    try {
+      const { items } = get();
+      const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+      
+      if (payableItems.length === 0) {
+        return { success: false, message: "Aucun produit éligible dans le panier" };
+      }
+
+      const cartTotal = payableItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      
+      // Préparer les données pour l'API
+      const cartItemsForAPI = payableItems.map(item => ({
+        id: item.id,
+        title: item.title,
+        price: item.price,
+        quantity: item.quantity,
+        category: item.category || 'Aquariums' // Catégorie par défaut
+      }));
+
+      // Appeler la fonction edge pour valider le code promo
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/apply-promo-code`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        },
+        body: JSON.stringify({
+          code,
+          cartItems: cartItemsForAPI,
+          cartTotal,
+          userId: null, // Sera rempli côté serveur si l'utilisateur est connecté
+          userEmail: null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.valid && result.promoCode) {
+        // Appliquer le code promo
+        const appliedPromo: AppliedPromoCode = {
+          id: result.promoCode.id,
+          code: result.promoCode.code,
+          type: result.promoCode.type,
+          value: result.promoCode.value,
+          discount: result.discount,
+          appliedItems: result.appliedItems.map((item: any) => item.id),
+          application_type: result.promoCode.application_type,
+          product_id: result.promoCode.product_id,
+          category_name: result.promoCode.category_name
+        };
+
+        set({ appliedPromoCode: appliedPromo });
+        
+        return { success: true, message: result.message };
+      } else {
+        return { success: false, message: result.message };
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'application du code promo:', error);
+      return { success: false, message: 'Erreur lors de la validation du code promo' };
+    } finally {
+      set({ isApplyingPromo: false });
+    }
+  },
+
+  removePromoCode: () => {
+    set({ appliedPromoCode: null });
+  },
+
+  getTotalWithPromo: () => {
+    const { items, appliedPromoCode } = get();
+    const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+    const subtotal = payableItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const discount = appliedPromoCode?.discount || 0;
+    const total = Math.max(0, subtotal - discount);
+    
+    return { subtotal, discount, total };
   }
 }),
 {
