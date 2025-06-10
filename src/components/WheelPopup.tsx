@@ -33,6 +33,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     floating_button_text: 'Tentez votre chance !',
     floating_button_position: 'bottom_right',
     popup_seen_cooldown: 1,
+    auto_show_popup: true,
+    scroll_trigger_enabled: false,
+    scroll_trigger_percentage: 50,
     updated_at: null as string | null
   });
   
@@ -113,21 +116,24 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             if (latestTimestamp !== currentTimestamp) {
               console.log('⭐ 🔄 PARAMÈTRES MODIFIÉS - Rechargement...');
               
-              setWheelSettings({
-                title: latestSettings.title || 'Roue Aquatique',
-                description: latestSettings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
-                is_enabled: latestSettings.is_enabled || true,
-                auto_show_delay: latestSettings.auto_show_delay || 5,
-                show_on_pages: latestSettings.show_on_pages || '/',
-                show_when_cart: latestSettings.show_when_cart || 'any',
-                show_to: latestSettings.show_to || 'all',
-                participation_delay: latestSettings.participation_delay || 72,
-                participation_frequency: latestSettings.participation_frequency || 'per_3days',
-                floating_button_text: latestSettings.floating_button_text || 'Tentez votre chance !',
-                floating_button_position: latestSettings.floating_button_position || 'bottom_right',
-                popup_seen_cooldown: latestSettings.popup_seen_cooldown || 1,
-                updated_at: latestSettings.updated_at
-              });
+                             setWheelSettings({
+                 title: latestSettings.title || 'Roue Aquatique',
+                 description: latestSettings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
+                 is_enabled: latestSettings.is_enabled || true,
+                 auto_show_delay: latestSettings.auto_show_delay || 5,
+                 show_on_pages: latestSettings.show_on_pages || '/',
+                 show_when_cart: latestSettings.show_when_cart || 'any',
+                 show_to: latestSettings.show_to || 'all',
+                 participation_delay: latestSettings.participation_delay || 72,
+                 participation_frequency: latestSettings.participation_frequency || 'per_3days',
+                 floating_button_text: latestSettings.floating_button_text || 'Tentez votre chance !',
+                 floating_button_position: latestSettings.floating_button_position || 'bottom_right',
+                 popup_seen_cooldown: latestSettings.popup_seen_cooldown || 1,
+                 auto_show_popup: latestSettings.auto_show_popup !== false,
+                 scroll_trigger_enabled: latestSettings.scroll_trigger_enabled || false,
+                 scroll_trigger_percentage: latestSettings.scroll_trigger_percentage || 50,
+                 updated_at: latestSettings.updated_at
+               });
 
               // 🔄 Recalculer le timer avec les nouveaux paramètres si email validé
               if (email && emailValidated) {
@@ -228,6 +234,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           floating_button_text: settings.floating_button_text || 'Tentez votre chance !',
           floating_button_position: settings.floating_button_position || 'bottom_right',
           popup_seen_cooldown: settings.popup_seen_cooldown || 1,
+          auto_show_popup: settings.auto_show_popup !== false, // true par défaut
+          scroll_trigger_enabled: settings.scroll_trigger_enabled || false,
+          scroll_trigger_percentage: settings.scroll_trigger_percentage || 50,
           updated_at: settings.updated_at || null
         });
       }
@@ -1574,9 +1583,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             )}
           </Button>
 
-                <p className="text-xs text-blue-500 mt-4">
-            🐟 Une tentative toutes les {wheelSettings.participation_delay || 72}h • Système anti-contournement actif
-          </p>
+                <div className="text-xs text-blue-500 mt-4 space-y-1">
+            <p>🐟 Une tentative toutes les {wheelSettings.participation_delay || 72}h • Système anti-contournement actif</p>
+            {isEditMode && (
+              <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                <p className="font-semibold text-blue-700 mb-1">⚙️ Configuration actuelle :</p>
+                <p>• Popup auto : {wheelSettings.auto_show_popup ? `✅ Oui (${wheelSettings.auto_show_delay}s)` : '❌ Non'}</p>
+                <p>• Scroll trigger : {wheelSettings.scroll_trigger_enabled ? `✅ Oui (${wheelSettings.scroll_trigger_percentage}%)` : '❌ Non'}</p>
+                <p>• Délai participation : {wheelSettings.participation_delay}h</p>
+              </div>
+            )}
+          </div>
               </>
             )}
           </div>
@@ -1628,17 +1645,74 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </button>
               </div>
 
-              {/* Délai avant affichage */}
-              <div className="mb-2">
-                <label className="text-xs text-gray-600">Délai avant affichage (secondes)</label>
-                <input
-                  type="number"
-                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={wheelSettings.auto_show_delay}
-                  onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
-                  min={0}
-                />
+              {/* Affichage automatique du popup */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-gray-600">Affichage automatique</label>
+                <button
+                  onClick={() => saveWheelSettings({ ...wheelSettings, auto_show_popup: !wheelSettings.auto_show_popup })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    wheelSettings.auto_show_popup ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      wheelSettings.auto_show_popup ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
               </div>
+
+              {/* Délai avant affichage - uniquement si auto_show_popup est activé */}
+              {wheelSettings.auto_show_popup && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-600">Délai avant affichage (secondes)</label>
+                  <input
+                    type="number"
+                    className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    value={wheelSettings.auto_show_delay}
+                    onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
+                    min={0}
+                  />
+                </div>
+              )}
+
+              {/* Déclenchement par scroll */}
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-gray-600">Déclenchement au scroll</label>
+                <button
+                  onClick={() => saveWheelSettings({ ...wheelSettings, scroll_trigger_enabled: !wheelSettings.scroll_trigger_enabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                    wheelSettings.scroll_trigger_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      wheelSettings.scroll_trigger_enabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Pourcentage de scroll - uniquement si scroll_trigger_enabled est activé */}
+              {wheelSettings.scroll_trigger_enabled && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-600">Déclenchement à {wheelSettings.scroll_trigger_percentage}% du scroll</label>
+                  <input
+                    type="range"
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    min="10"
+                    max="90"
+                    step="5"
+                    value={wheelSettings.scroll_trigger_percentage}
+                    onChange={e => saveWheelSettings({ ...wheelSettings, scroll_trigger_percentage: parseInt(e.target.value) })}
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>10%</span>
+                    <span className="font-semibold text-blue-600">{wheelSettings.scroll_trigger_percentage}%</span>
+                    <span>90%</span>
+                  </div>
+                </div>
+              )}
 
               {/* Pages où afficher */}
               <div className="mb-2">

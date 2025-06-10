@@ -133,9 +133,21 @@ const App = () => {
     setShowWheel(true);
   };
 
-  // Vérifier si la roue est activée
+  // 🆕 États pour les nouveaux déclencheurs
+  const [wheelSettings, setWheelSettings] = useState(null);
+  const [scrollTriggerSet, setScrollTriggerSet] = useState(false);
+
+  // 🆕 Fonction pour afficher la roue (centralisée)
+  const showWheelPopup = () => {
+    if (!showWheel) {
+      console.log('🎡 Affichage de la roue !');
+      setShowWheel(true);
+    }
+  };
+
+  // Vérifier si la roue est activée et configurer les déclencheurs
   useEffect(() => {
-    const checkWheelStatus = async () => {
+    const loadWheelSettings = async () => {
       console.log('🔍 [DEBUG] Démarrage de la vérification de la roue...');
       try {
         const { data, error } = await supabase
@@ -152,7 +164,10 @@ const App = () => {
           is_enabled: true,
           popup_seen_cooldown: 1,
           show_on_pages: '/',
-          auto_show_delay: 5
+          auto_show_delay: 5,
+          auto_show_popup: true,
+          scroll_trigger_enabled: false,
+          scroll_trigger_percentage: 50
         };
 
         if (error && error.code !== 'PGRST116') {
@@ -161,6 +176,7 @@ const App = () => {
         }
         
         console.log('🔍 [DEBUG] Paramètres finaux de la roue:', settings);
+        setWheelSettings(settings);
         
         // Vérifie si la roue est activée
         if (!settings.is_enabled) {
@@ -172,7 +188,7 @@ const App = () => {
         setIsWheelEnabled(true);
         console.log('✅ Roue activée, vérification des conditions...');
         
-        // 🆕 Logique anti-spam moins restrictive : on vérifie seulement si l'utilisateur a fermé explicitement
+        // 🆕 Logique anti-spam
         const userDismissed = localStorage.getItem('wheel_popup_dismissed');
         const lastSeen = localStorage.getItem('wheel_popup_last_seen');
         const cooldownDays = settings.popup_seen_cooldown || 1;
@@ -187,7 +203,6 @@ const App = () => {
           console.log('🔍 [DEBUG] Calcul cooldown:', {
             lastDate: lastDate.toISOString(),
             now: now.toISOString(),
-            diffMs: now.getTime() - lastDate.getTime(),
             diffDays: diffDays.toFixed(2),
             cooldownDays,
             shouldBlock: diffDays < cooldownDays
@@ -204,14 +219,14 @@ const App = () => {
           }
         }
         
-        // Vérifie si on est sur la bonne page (logique plus permissive)
+        // Vérifie si on est sur la bonne page
         const currentPath = window.location.pathname;
         const allowedPagesStr = settings.show_on_pages || '/';
         const allowedPages = allowedPagesStr.split(',').map(p => p.trim());
         
         const pageMatches = allowedPages.some(page => {
           if (page === '/' && currentPath === '/') return true;
-          if (page === '*') return true; // Toutes les pages
+          if (page === '*') return true;
           if (page.endsWith('*')) {
             const basePath = page.slice(0, -1);
             return currentPath.startsWith(basePath);
@@ -226,25 +241,20 @@ const App = () => {
         
         console.log(`📍 Page autorisée: ${currentPath}`);
         
-        // TODO: Ajouter logique panier si nécessaire (show_when_cart)
-        // TODO: Ajouter logique ciblage utilisateurs si nécessaire (show_to)
-        
-        // Affiche la roue après le délai configuré
-        const delay = Math.max((settings.auto_show_delay || 5) * 1000, 1000); // Minimum 1 seconde
-        console.log(`⏱️ Affichage de la roue dans ${delay/1000} secondes...`);
-        
-        setTimeout(() => {
-          console.log('🎡 Affichage de la roue !');
-          setShowWheel(true);
-        }, delay);
+        // 🆕 NOUVEAU : Logique d'affichage automatique
+        if (settings.auto_show_popup) {
+          const delay = Math.max((settings.auto_show_delay || 5) * 1000, 1000);
+          console.log(`⏱️ [AUTO] Affichage automatique dans ${delay/1000} secondes...`);
+          
+          setTimeout(() => {
+            showWheelPopup();
+          }, delay);
+        } else {
+          console.log('🚫 [AUTO] Affichage automatique désactivé');
+        }
         
       } catch (err) {
         console.error('❌ Erreur lors de la vérification de la roue:', err);
-        // En cas d'erreur, afficher quand même la roue avec des paramètres par défaut
-        console.log('🔄 Affichage de la roue avec paramètres par défaut');
-        setTimeout(() => {
-          setShowWheel(true);
-        }, 5000);
       }
     };
 
@@ -252,11 +262,41 @@ const App = () => {
     console.log('🔍 [DEBUG] Chemin actuel:', window.location.pathname);
     if (!window.location.pathname.includes('/admin')) {
       console.log('🔍 [DEBUG] Pas en mode admin, démarrage vérification roue...');
-      checkWheelStatus();
+      loadWheelSettings();
     } else {
       console.log('🔍 [DEBUG] Mode admin détecté, pas de vérification roue');
     }
   }, []);
+
+  // 🆕 Gestionnaire de scroll pour le déclenchement
+  useEffect(() => {
+    if (!wheelSettings?.scroll_trigger_enabled || scrollTriggerSet || showWheel) {
+      return;
+    }
+
+    console.log(`📜 [SCROLL] Configuration du déclenchement à ${wheelSettings.scroll_trigger_percentage}%`);
+
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const documentHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = (scrollTop / documentHeight) * 100;
+      
+      console.log(`📜 [SCROLL] Position actuelle: ${scrollPercent.toFixed(1)}% (trigger: ${wheelSettings.scroll_trigger_percentage}%)`);
+      
+      if (scrollPercent >= wheelSettings.scroll_trigger_percentage) {
+        console.log(`📜 [SCROLL] Déclenchement atteint ! Affichage de la roue`);
+        showWheelPopup();
+        setScrollTriggerSet(true); // Éviter de déclencher plusieurs fois
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [wheelSettings, scrollTriggerSet, showWheel]);
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -391,15 +431,27 @@ const App = () => {
           >
             🔄 Debug Reset
           </button>
+          
+          {/* 🆕 Indicateur des paramètres actifs */}
+          {wheelSettings && isWheelEnabled && (
+            <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs max-w-xs">
+              <div className="font-semibold mb-1">🎛️ Paramètres Roue:</div>
+              <div>• Auto: {wheelSettings.auto_show_popup ? `✅ ${wheelSettings.auto_show_delay}s` : '❌'}</div>
+              <div>• Scroll: {wheelSettings.scroll_trigger_enabled ? `✅ ${wheelSettings.scroll_trigger_percentage}%` : '❌'}</div>
+              <div>• Déjà déclenché: {showWheel ? '✅' : (scrollTriggerSet ? '⏰' : '❌')}</div>
+            </div>
+          )}
         </div>
         <LuckyWheelPopup 
           isOpen={showWheel} 
           onClose={() => {
             setShowWheel(false);
+            // 🆕 Reset du trigger de scroll pour permettre un nouveau déclenchement
+            setScrollTriggerSet(false);
             // Enregistrer que l'utilisateur a fermé explicitement le popup
             localStorage.setItem('wheel_popup_dismissed', 'true');
             localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-            console.log('❌ Popup fermé par l\'utilisateur, anti-spam activé');
+            console.log('❌ Popup fermé par l\'utilisateur, anti-spam activé, scroll trigger réinitialisé');
           }} 
           isEditMode={editWheel} 
         />

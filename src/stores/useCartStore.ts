@@ -17,6 +17,10 @@ interface CartItem {
   original_price?: number; // Prix original avant réduction
   discount_percentage?: number; // Pourcentage de réduction appliqué
   has_discount?: boolean; // Indique si une réduction est active
+  // 🎁 Propriétés pour les cadeaux de la roue
+  type?: 'wheel_gift' | 'regular';
+  won_at?: string; // Date ISO de quand le cadeau a été gagné
+  expires_at?: string; // Date ISO d'expiration
 }
 
 interface GiftSettings {
@@ -35,6 +39,7 @@ interface CartStore {
   addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
+  updateItem: (id: string, updates: Partial<CartItem>) => Promise<void>;
   clearCart: () => Promise<void>;
   getTotal: () => number;
   syncWithSupabase: () => Promise<void>;
@@ -42,6 +47,9 @@ interface CartStore {
   manageGiftItem: () => Promise<void>;
   getApplicableGiftRule: (total: number) => Promise<any>;
   getDiscountedPrice: (productId: string, variant?: string) => Promise<{ price: number; original_price?: number; discount_percentage?: number; stripe_discount_price_id?: string } | null>;
+  // 🎁 Gestion des cadeaux de la roue
+  updateWheelGiftExpiration: (giftId: string, newExpirationHours: number) => Promise<void>;
+  cleanupExpiredGifts: () => void;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -580,6 +588,51 @@ export const useCartStore = create<CartStore>()(
     } catch (error) {
       console.error("Error syncing with Supabase:", error);
     }
+  },
+
+  // 🎁 Nouvelle méthode pour mettre à jour un item existant
+  updateItem: async (id: string, updates: Partial<CartItem>) => {
+    const updatedItems = get().items.map(item => 
+      item.id === id ? { ...item, ...updates } : item
+    );
+    set({ items: updatedItems });
+    
+    // Pas de sync Supabase nécessaire pour les cadeaux de la roue
+  },
+
+  // 🎁 Méthode pour recalculer l'expiration d'un cadeau de la roue
+  updateWheelGiftExpiration: async (giftId: string, newExpirationHours: number) => {
+    const item = get().items.find(i => i.id === giftId && i.type === 'wheel_gift');
+    if (!item || !item.won_at) return;
+
+    const wonAt = new Date(item.won_at);
+    const newExpiresAt = new Date(wonAt.getTime() + newExpirationHours * 60 * 60 * 1000);
+    
+    await get().updateItem(giftId, {
+      expires_at: newExpiresAt.toISOString()
+    });
+    
+    console.log(`🎁 Timer recalculé pour cadeau ${giftId}: expire maintenant le ${newExpiresAt.toISOString()}`);
+  },
+
+  // 🎁 Méthode pour nettoyer les cadeaux expirés
+  cleanupExpiredGifts: () => {
+    const now = new Date();
+    const validItems = get().items.filter(item => {
+      if (item.type !== 'wheel_gift') return true;
+      if (!item.expires_at) return true;
+      
+      const expiresAt = new Date(item.expires_at);
+      const isExpired = now > expiresAt;
+      
+      if (isExpired) {
+        console.log(`🎁 Suppression automatique du cadeau expiré: ${item.title}`);
+      }
+      
+      return !isExpired;
+    });
+    
+    set({ items: validItems });
   }
 }),
 {
