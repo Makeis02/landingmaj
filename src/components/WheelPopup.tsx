@@ -643,18 +643,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           .eq('email', userEmail.toLowerCase().trim())
           .gte('created_at', hoursAgo.toISOString())
           .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+          .limit(1);
         
-        existingEntry = data;
+        // Prendre le premier résultat s'il existe
+        existingEntry = data && data.length > 0 ? data[0] : null;
         error = entriesError;
-        console.log('⭐ 📊 Résultat wheel_email_entries:', { data, error: entriesError?.message });
+        console.log('⭐ 📊 Résultat wheel_email_entries:', { data, entriesCount: data?.length, error: entriesError?.message });
       }
 
       if (error && error.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification:', error);
+        console.error('⭐ ❌ Erreur lors de la vérification:', error);
         return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours };
       }
+      
+      console.log('⭐ 📊 Vérification éligibilité résultat:', { existingEntry, error: error?.message });
 
       if (existingEntry) {
         console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationHours}h`);
@@ -705,11 +707,30 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     try {
       // 1. Vérifier si l'email correspond à un compte utilisateur existant
       console.log('⭐ 🔍 Recherche du compte pour email:', email.toLowerCase().trim());
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id, email')
-        .eq('email', email.toLowerCase().trim())
-        .single();
+      
+      // Méthode simple : chercher dans wheel_spins si cet email a déjà un user_id
+      let userData = null;
+      let userError = null;
+      
+      try {
+        console.log('⭐ 🔍 Recherche dans wheel_spins par email...');
+        const { data: spinsData, error: spinsError } = await supabase
+          .from('wheel_spins')
+          .select('user_id, user_email')
+          .eq('user_email', email.toLowerCase().trim())
+          .limit(1);
+        
+        if (!spinsError && spinsData && spinsData.length > 0) {
+          userData = { id: spinsData[0].user_id, email: spinsData[0].user_email };
+          console.log('⭐ ✅ Utilisateur trouvé via wheel_spins:', spinsData[0].user_id);
+        } else {
+          userError = { message: 'Aucun compte trouvé pour cet email' };
+          console.log('⭐ 👤 Aucun compte trouvé dans wheel_spins pour cet email');
+        }
+      } catch (err) {
+        console.log('⭐ ❌ Erreur lors de la recherche utilisateur:', err);
+        userError = { message: 'Erreur recherche utilisateur' };
+      }
 
       console.log('⭐ 📊 Résultat recherche compte:', { userData, userError: userError?.message });
 
