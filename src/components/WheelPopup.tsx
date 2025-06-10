@@ -12,7 +12,7 @@ interface LuckyWheelPopupProps {
   wheelSettings?: any;
 }
 
-const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, wheelSettings: externalWheelSettings }) => {
+const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, wheelSettings: propWheelSettings }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -21,7 +21,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [wheelSettings, setWheelSettings] = useState({ 
+  const [wheelSettings, setWheelSettings] = useState(propWheelSettings || { 
     title: 'Roue Aquatique', 
     description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
     is_enabled: true,
@@ -420,28 +420,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   };
 
   const handleSpin = async () => {
-    if (isSpinning || !canSpin || !email) return;
-    
+    if (isSpinning || !canSpin) return;
     setIsSpinning(true);
     setShowResult(false);
     
     try {
+      const participationDelayHours = wheelSettings.participation_delay || 72;
+      
       const { data: { user } } = await supabase.auth.getUser();
       const browserFingerprint = generateBrowserFingerprint();
       const clientIP = await getClientIP();
       
-      // Utiliser les paramètres configurables
-      const participationFrequency = wheelSettings?.participation_frequency || 'per_3days';
-      
-      // 🆕 Enregistrer la tentative selon la fréquence
-      if (participationFrequency === 'per_session') {
-        try {
-          sessionStorage.setItem('wheel_played_this_session', 'true');
-        } catch (storageError) {
-          console.warn('⚠️ Erreur sessionStorage lors du spin:', storageError);
-        }
-      }
-      
+      // Enregistrer la tentative pour invités (anti-contournement)
       if (!user) {
         await supabase
           .from('wheel_guest_attempts')
@@ -489,21 +479,24 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 user_email: user.email
               });
           }
+          
+          // Enregistrer dans wheel_email_entries pour le tracking
+          await supabase
+            .from('wheel_email_entries')
+            .insert({
+              email: email.toLowerCase().trim(),
+              created_at: new Date().toISOString()
+            });
         } catch (error) {
           console.error('Erreur lors de l\'enregistrement du tirage:', error);
         }
         
-        // 🆕 Mettre à jour l'éligibilité avec les paramètres configurables
+        // Mettre à jour l'éligibilité après le spin avec le délai configuré
         setCanSpin(false);
-        const participationDelay = wheelSettings?.participation_delay || 72;
-        setTimeUntilNextSpin(participationDelay);
-        
+        setTimeUntilNextSpin(participationDelayHours);
         // Définir le timestamp exact pour la prochaine tentative
-        const nextAllowedTime = new Date(Date.now() + participationDelay * 60 * 60 * 1000);
+        const nextAllowedTime = new Date(Date.now() + participationDelayHours * 60 * 60 * 1000);
         setNextSpinTimestamp(nextAllowedTime);
-        
-        // Marquer que l'utilisateur a joué (pour le ciblage "nouveaux visiteurs")
-        localStorage.setItem('wheel_has_played', 'true');
         
         // Ajout automatique si image_url
         if (winningSegmentData?.image_url) {
@@ -512,6 +505,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             won_at: new Date().toISOString()
           });
         } else {
+          // Si c'est du texte avec un code promo
           const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
           if (hasPromoCode) {
             setTimeout(() => {
@@ -643,40 +637,32 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // 🆕 FONCTION pour générer une empreinte du navigateur (anti-contournement)
   const generateBrowserFingerprint = () => {
-    try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      if (ctx) {
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillText('Browser fingerprint', 2, 2);
-      }
-      
-      const fingerprint = {
-        userAgent: navigator?.userAgent || 'unknown',
-        language: navigator?.language || 'unknown',
-        platform: navigator?.platform || 'unknown',
-        screen: `${screen?.width || 0}x${screen?.height || 0}`,
-        timezone: Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone || 'unknown',
-        canvas: canvas.toDataURL(),
-        memory: (navigator as any)?.deviceMemory || 'unknown',
-        cores: navigator?.hardwareConcurrency || 'unknown'
-      };
-      
-      // Créer un hash simple
-      const fingerprintString = JSON.stringify(fingerprint);
-      let hash = 0;
-      for (let i = 0; i < fingerprintString.length; i++) {
-        const char = fingerprintString.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32bit integer
-      }
-      return hash.toString();
-    } catch (error) {
-      console.error('❌ Erreur génération fingerprint:', error);
-      return 'fallback-' + Date.now().toString();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.textBaseline = 'top';
+    ctx.font = '14px Arial';
+    ctx.fillText('Browser fingerprint', 2, 2);
+    
+    const fingerprint = {
+      userAgent: navigator.userAgent,
+      language: navigator.language,
+      platform: navigator.platform,
+      screen: `${screen.width}x${screen.height}`,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      canvas: canvas.toDataURL(),
+      memory: (navigator as any).deviceMemory || 'unknown',
+      cores: navigator.hardwareConcurrency || 'unknown'
+    };
+    
+    // Créer un hash simple
+    const fingerprintString = JSON.stringify(fingerprint);
+    let hash = 0;
+    for (let i = 0; i < fingerprintString.length; i++) {
+      const char = fingerprintString.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
     }
+    return hash.toString();
   };
 
   // 🆕 FONCTION pour obtenir l'IP approximative (côté client)
@@ -690,81 +676,39 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (avec délais configurables)
+  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
     try {
-      // Validation des paramètres d'entrée
-      if (!userEmail || typeof userEmail !== 'string') {
-        console.error('❌ Email invalide pour la vérification d\'éligibilité');
-        return false;
-      }
-
-      // Utiliser les paramètres configurables ou valeurs par défaut
-      const participationDelay = Math.max(1, wheelSettings?.participation_delay || 72); // heures, minimum 1h
-      const participationFrequency = wheelSettings?.participation_frequency || 'per_3days';
+      const participationDelayHours = wheelSettings.participation_delay || 72;
+      const hoursAgo = new Date(Date.now() - participationDelayHours * 60 * 60 * 1000);
       
-      let timeThreshold;
-      const now = new Date();
-      
-      // Calculer le seuil de temps selon la fréquence configurée
-      switch (participationFrequency) {
-        case 'per_session':
-          // Pas de vérification base de données pour les sessions
-          try {
-            const sessionPlayed = sessionStorage.getItem('wheel_played_this_session');
-            return !sessionPlayed;
-          } catch (storageError) {
-            console.warn('⚠️ Erreur sessionStorage:', storageError);
-            return true; // En cas d'erreur, autoriser
-          }
-        case 'per_day':
-          const dayStart = new Date(now);
-          dayStart.setHours(0, 0, 0, 0);
-          timeThreshold = dayStart.toISOString();
-          break;
-        case 'per_week':
-          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          timeThreshold = weekAgo.toISOString();
-          break;
-        case 'per_3days':
-        default:
-          // Utiliser participation_delay (en heures) au lieu de 72h en dur
-          const hoursAgo = new Date(now.getTime() - participationDelay * 60 * 60 * 1000);
-          timeThreshold = hoursAgo.toISOString();
-          break;
-      }
-
-      // Pour les sessions, on a déjà retourné le résultat
-      if (participationFrequency === 'per_session') {
-        return true;
-      }
-
-      // Vérifier si l'utilisateur a déjà joué dans la période
+      // Vérifier si l'utilisateur a déjà joué dans la période définie
       const { data: existingEntry, error } = await supabase
         .from('wheel_email_entries')
         .select('created_at')
         .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', timeThreshold)
-        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
+        .gte('created_at', hoursAgo.toISOString())
+        .single();
 
-      if (error) {
+      if (error && error.code !== 'PGRST116') {
         console.error('❌ Erreur lors de la vérification:', error);
         return false;
       }
 
       if (existingEntry) {
-        console.log('⚠️ Utilisateur a déjà joué dans la période configurée');
-        // Calculer le temps restant avec les paramètres configurables
-        try {
-          const lastPlayDate = new Date(existingEntry.created_at);
-          if (!isNaN(lastPlayDate.getTime())) {
-            const nextAllowedTime = new Date(lastPlayDate.getTime() + participationDelay * 60 * 60 * 1000);
-            setNextSpinTimestamp(nextAllowedTime);
-          }
-        } catch (dateError) {
-          console.error('❌ Erreur de traitement de date:', dateError);
+        console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationDelayHours}h`);
+        // Calculer le temps restant et mettre à jour les états
+        const lastPlayTime = new Date(existingEntry.created_at);
+        const nextAllowedTime = new Date(lastPlayTime.getTime() + participationDelayHours * 60 * 60 * 1000);
+        const now = new Date();
+        
+        if (now < nextAllowedTime) {
+          setCanSpin(false);
+          setNextSpinTimestamp(nextAllowedTime);
+          const hoursLeft = Math.ceil((nextAllowedTime.getTime() - now.getTime()) / (1000 * 60 * 60));
+          setTimeUntilNextSpin(hoursLeft);
+          return false;
         }
-        return false;
       }
 
       return true;
@@ -845,15 +789,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  // Initialiser les paramètres depuis les props si disponibles
+  // Synchroniser avec les props quand elles changent
   useEffect(() => {
-    if (externalWheelSettings && typeof externalWheelSettings === 'object') {
-      setWheelSettings(prev => ({
-        ...prev,
-        ...externalWheelSettings
-      }));
+    if (propWheelSettings) {
+      setWheelSettings(propWheelSettings);
     }
-  }, [externalWheelSettings]);
+  }, [propWheelSettings]);
 
   if (!isOpen) return null;
 
@@ -1095,7 +1036,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </div>
                 
                 <p className="text-sm text-orange-600">
-                  🐠 Un tirage toutes les {wheelSettings?.participation_delay || 72}h pour garder la magie !
+                  🐠 Un tirage toutes les 72h pour garder la magie !
                 </p>
               </div>
             </div>
@@ -1127,7 +1068,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           </Button>
 
                 <p className="text-xs text-blue-500 mt-4">
-            🐟 Une tentative toutes les {wheelSettings?.participation_delay || 72}h • Système anti-contournement actif
+            🐟 Une tentative toutes les 72h • Système anti-contournement actif
           </p>
               </>
             )}
