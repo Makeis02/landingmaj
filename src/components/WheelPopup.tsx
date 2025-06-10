@@ -420,9 +420,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   };
 
   const handleSpin = async () => {
-    if (isSpinning || !canSpin) return;
+    if (isSpinning || !canSpin || !email) return;
+    
     setIsSpinning(true);
     setShowResult(false);
+    
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const browserFingerprint = generateBrowserFingerprint();
@@ -433,7 +435,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       
       // 🆕 Enregistrer la tentative selon la fréquence
       if (participationFrequency === 'per_session') {
-        sessionStorage.setItem('wheel_played_this_session', 'true');
+        try {
+          sessionStorage.setItem('wheel_played_this_session', 'true');
+        } catch (storageError) {
+          console.warn('⚠️ Erreur sessionStorage lors du spin:', storageError);
+        }
       }
       
       if (!user) {
@@ -637,32 +643,40 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // 🆕 FONCTION pour générer une empreinte du navigateur (anti-contournement)
   const generateBrowserFingerprint = () => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.textBaseline = 'top';
-    ctx.font = '14px Arial';
-    ctx.fillText('Browser fingerprint', 2, 2);
-    
-    const fingerprint = {
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      platform: navigator.platform,
-      screen: `${screen.width}x${screen.height}`,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      canvas: canvas.toDataURL(),
-      memory: (navigator as any).deviceMemory || 'unknown',
-      cores: navigator.hardwareConcurrency || 'unknown'
-    };
-    
-    // Créer un hash simple
-    const fingerprintString = JSON.stringify(fingerprint);
-    let hash = 0;
-    for (let i = 0; i < fingerprintString.length; i++) {
-      const char = fingerprintString.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (ctx) {
+        ctx.textBaseline = 'top';
+        ctx.font = '14px Arial';
+        ctx.fillText('Browser fingerprint', 2, 2);
+      }
+      
+      const fingerprint = {
+        userAgent: navigator?.userAgent || 'unknown',
+        language: navigator?.language || 'unknown',
+        platform: navigator?.platform || 'unknown',
+        screen: `${screen?.width || 0}x${screen?.height || 0}`,
+        timezone: Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone || 'unknown',
+        canvas: canvas.toDataURL(),
+        memory: (navigator as any)?.deviceMemory || 'unknown',
+        cores: navigator?.hardwareConcurrency || 'unknown'
+      };
+      
+      // Créer un hash simple
+      const fingerprintString = JSON.stringify(fingerprint);
+      let hash = 0;
+      for (let i = 0; i < fingerprintString.length; i++) {
+        const char = fingerprintString.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32bit integer
+      }
+      return hash.toString();
+    } catch (error) {
+      console.error('❌ Erreur génération fingerprint:', error);
+      return 'fallback-' + Date.now().toString();
     }
-    return hash.toString();
   };
 
   // 🆕 FONCTION pour obtenir l'IP approximative (côté client)
@@ -679,8 +693,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // 🆕 FONCTION pour vérifier l'éligibilité à jouer (avec délais configurables)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
     try {
+      // Validation des paramètres d'entrée
+      if (!userEmail || typeof userEmail !== 'string') {
+        console.error('❌ Email invalide pour la vérification d\'éligibilité');
+        return false;
+      }
+
       // Utiliser les paramètres configurables ou valeurs par défaut
-      const participationDelay = wheelSettings?.participation_delay || 72; // heures
+      const participationDelay = Math.max(1, wheelSettings?.participation_delay || 72); // heures, minimum 1h
       const participationFrequency = wheelSettings?.participation_frequency || 'per_3days';
       
       let timeThreshold;
@@ -690,10 +710,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       switch (participationFrequency) {
         case 'per_session':
           // Pas de vérification base de données pour les sessions
-          const sessionPlayed = sessionStorage.getItem('wheel_played_this_session');
-          return !sessionPlayed;
+          try {
+            const sessionPlayed = sessionStorage.getItem('wheel_played_this_session');
+            return !sessionPlayed;
+          } catch (storageError) {
+            console.warn('⚠️ Erreur sessionStorage:', storageError);
+            return true; // En cas d'erreur, autoriser
+          }
         case 'per_day':
-          timeThreshold = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+          const dayStart = new Date(now);
+          dayStart.setHours(0, 0, 0, 0);
+          timeThreshold = dayStart.toISOString();
           break;
         case 'per_week':
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -707,15 +734,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           break;
       }
 
+      // Pour les sessions, on a déjà retourné le résultat
+      if (participationFrequency === 'per_session') {
+        return true;
+      }
+
       // Vérifier si l'utilisateur a déjà joué dans la période
       const { data: existingEntry, error } = await supabase
         .from('wheel_email_entries')
         .select('created_at')
         .eq('email', userEmail.toLowerCase().trim())
         .gte('created_at', timeThreshold)
-        .single();
+        .maybeSingle(); // Utiliser maybeSingle au lieu de single pour éviter les erreurs
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('❌ Erreur lors de la vérification:', error);
         return false;
       }
@@ -723,9 +755,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       if (existingEntry) {
         console.log('⚠️ Utilisateur a déjà joué dans la période configurée');
         // Calculer le temps restant avec les paramètres configurables
-        const lastPlayDate = new Date(existingEntry.created_at);
-        const nextAllowedTime = new Date(lastPlayDate.getTime() + participationDelay * 60 * 60 * 1000);
-        setNextSpinTimestamp(nextAllowedTime);
+        try {
+          const lastPlayDate = new Date(existingEntry.created_at);
+          if (!isNaN(lastPlayDate.getTime())) {
+            const nextAllowedTime = new Date(lastPlayDate.getTime() + participationDelay * 60 * 60 * 1000);
+            setNextSpinTimestamp(nextAllowedTime);
+          }
+        } catch (dateError) {
+          console.error('❌ Erreur de traitement de date:', dateError);
+        }
         return false;
       }
 
@@ -806,6 +844,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       toast.error('Erreur de sauvegarde');
     }
   };
+
+  // Initialiser les paramètres depuis les props si disponibles
+  useEffect(() => {
+    if (externalWheelSettings && typeof externalWheelSettings === 'object') {
+      setWheelSettings(prev => ({
+        ...prev,
+        ...externalWheelSettings
+      }));
+    }
+  }, [externalWheelSettings]);
 
   if (!isOpen) return null;
 

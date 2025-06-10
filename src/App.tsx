@@ -115,33 +115,48 @@ const WheelManager = () => {
   // Vérifier si la roue est activée et récupérer tous les paramètres
   useEffect(() => {
     const checkWheelStatus = async () => {
-      const { data, error } = await supabase
-        .from('wheel_settings')
-        .select('*')
-        .order('updated_at', { ascending: false })
-        .limit(1);
+      try {
+        const { data, error } = await supabase
+          .from('wheel_settings')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(1);
 
-      if (!error && data && data.length > 0) {
-        const settings = data[0];
-        setWheelSettings(settings);
-        setIsWheelEnabled(settings.is_enabled);
-        
-        if (settings.is_enabled) {
-          // Vérifier toutes les conditions d'affichage
-          if (await shouldShowWheel(settings)) {
-            // Utiliser le délai configurable au lieu de 5 secondes en dur
-            setTimeout(() => setShowWheel(true), (settings.auto_show_delay || 5) * 1000);
+        if (!error && data && data.length > 0) {
+          const settings = data[0];
+          setWheelSettings(settings);
+          setIsWheelEnabled(settings.is_enabled || false);
+          
+          if (settings.is_enabled) {
+            // Vérifier toutes les conditions d'affichage
+            const shouldShow = await shouldShowWheel(settings);
+            if (shouldShow) {
+              // Utiliser le délai configurable au lieu de 5 secondes en dur
+              const delay = Math.max(0, (settings.auto_show_delay || 5)) * 1000;
+              setTimeout(() => setShowWheel(true), delay);
+            }
           }
         }
+      } catch (error) {
+        console.error('Erreur lors de la vérification du statut de la roue:', error);
+        setIsWheelEnabled(false);
       }
     };
 
-    checkWheelStatus();
-  }, [location.pathname]);
+    // Only check wheel status if we have a location
+    if (location?.pathname) {
+      checkWheelStatus();
+    }
+  }, [location?.pathname]);
 
   // Fonction pour vérifier si la roue doit être affichée
   const shouldShowWheel = async (settings) => {
     try {
+      // Validation des paramètres
+      if (!settings || !location?.pathname) {
+        return false;
+      }
+
       // 1. Vérifier si on est sur une page autorisée
       if (!isPageAllowed(settings.show_on_pages, location.pathname)) {
         console.log('Page non autorisée pour la roue');
@@ -149,7 +164,7 @@ const WheelManager = () => {
       }
 
       // 2. Vérifier la condition du panier
-      if (!isCartConditionMet(settings.show_when_cart, cartItems)) {
+      if (!isCartConditionMet(settings.show_when_cart, cartItems || [])) {
         console.log('Condition panier non remplie');
         return false;
       }
@@ -161,7 +176,8 @@ const WheelManager = () => {
       }
 
       // 4. Vérifier le ciblage utilisateur
-      if (!(await isUserTargetMet(settings.show_to))) {
+      const userTargetMet = await isUserTargetMet(settings.show_to);
+      if (!userTargetMet) {
         console.log('Ciblage utilisateur non rempli');
         return false;
       }
@@ -175,83 +191,127 @@ const WheelManager = () => {
 
   // Vérifier si la page actuelle est autorisée
   const isPageAllowed = (allowedPages, currentPath) => {
-    if (!allowedPages) return true;
-    const pages = allowedPages.split(',').map(p => p.trim());
-    return pages.some(page => {
-      if (page.endsWith('*')) {
-        return currentPath.startsWith(page.slice(0, -1));
-      }
-      return currentPath === page;
-    });
+    try {
+      if (!allowedPages || !currentPath) return true;
+      const pages = allowedPages.split(',').map(p => p.trim()).filter(p => p.length > 0);
+      if (pages.length === 0) return true;
+      
+      return pages.some(page => {
+        if (page.endsWith('*')) {
+          return currentPath.startsWith(page.slice(0, -1));
+        }
+        return currentPath === page;
+      });
+    } catch (error) {
+      console.error('Erreur dans isPageAllowed:', error);
+      return true; // En cas d'erreur, autoriser par défaut
+    }
   };
 
   // Vérifier la condition du panier
   const isCartConditionMet = (condition, items) => {
-    switch (condition) {
-      case 'empty':
-        return items.length === 0;
-      case 'full':
-        return items.length > 0;
-      case 'any':
-      default:
-        return true;
+    try {
+      if (!condition) return true;
+      if (!Array.isArray(items)) items = [];
+      
+      switch (condition) {
+        case 'empty':
+          return items.length === 0;
+        case 'full':
+          return items.length > 0;
+        case 'any':
+        default:
+          return true;
+      }
+    } catch (error) {
+      console.error('Erreur dans isCartConditionMet:', error);
+      return true;
     }
   };
 
   // Vérifier le cooldown anti-spam
   const isAntiSpamRespected = (cooldownDays) => {
-    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-    if (!lastSeen) return true;
-    
-    const lastDate = new Date(lastSeen);
-    const now = new Date();
-    const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-    
-    return diffDays >= (cooldownDays || 1);
+    try {
+      if (!cooldownDays || cooldownDays <= 0) return true;
+      
+      const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+      if (!lastSeen) return true;
+      
+      const lastDate = new Date(lastSeen);
+      const now = new Date();
+      
+      // Vérifier que les dates sont valides
+      if (isNaN(lastDate.getTime()) || isNaN(now.getTime())) {
+        return true;
+      }
+      
+      const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+      return diffDays >= cooldownDays;
+    } catch (error) {
+      console.error('Erreur dans isAntiSpamRespected:', error);
+      return true;
+    }
   };
 
   // Vérifier le ciblage utilisateur
   const isUserTargetMet = async (targetType) => {
-    switch (targetType) {
-      case 'new':
-        // Vérifier si l'utilisateur n'a jamais joué
-        const hasPlayed = localStorage.getItem('wheel_has_played');
-        return !hasPlayed;
-      case 'not_subscribed':
-        // Vérifier si l'utilisateur n'est pas abonné à la newsletter
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return true; // Non connecté = potentiellement non abonné
-        
-        const { data } = await supabase
-          .from('newsletter_subscribers')
-          .select('email')
-          .eq('email', user.email)
-          .single();
-        
-        return !data; // Pas dans la newsletter
-      case 'all':
-      default:
-        return true;
+    try {
+      if (!targetType) return true;
+      
+      switch (targetType) {
+        case 'new':
+          // Vérifier si l'utilisateur n'a jamais joué
+          const hasPlayed = localStorage.getItem('wheel_has_played');
+          return !hasPlayed;
+        case 'not_subscribed':
+          // Vérifier si l'utilisateur n'est pas abonné à la newsletter
+          try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !user.email) return true; // Non connecté = potentiellement non abonné
+            
+            const { data } = await supabase
+              .from('newsletter_subscribers')
+              .select('email')
+              .eq('email', user.email)
+              .single();
+            
+            return !data; // Pas dans la newsletter
+          } catch (authError) {
+            console.error('Erreur auth dans isUserTargetMet:', authError);
+            return true; // En cas d'erreur, autoriser
+          }
+        case 'all':
+        default:
+          return true;
+      }
+    } catch (error) {
+      console.error('Erreur dans isUserTargetMet:', error);
+      return true;
     }
   };
 
   // Gérer la fermeture de la roue
   const handleCloseWheel = () => {
-    setShowWheel(false);
-    // Enregistrer la date de vue pour le cooldown anti-spam
-    localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+    try {
+      setShowWheel(false);
+      // Enregistrer la date de vue pour le cooldown anti-spam
+      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+    } catch (error) {
+      console.error('Erreur lors de la fermeture de la roue:', error);
+    }
   };
 
+  // Ne rien rendre si les conditions ne sont pas remplies
+  if (!isWheelEnabled || !wheelSettings) {
+    return null;
+  }
+
   return (
-    <>
-      {isWheelEnabled && wheelSettings && (
-        <LuckyWheelPopup 
-          isOpen={showWheel} 
-          onClose={handleCloseWheel}
-          wheelSettings={wheelSettings}
-        />
-      )}
-    </>
+    <LuckyWheelPopup 
+      isOpen={showWheel} 
+      onClose={handleCloseWheel}
+      wheelSettings={wheelSettings}
+    />
   );
 };
 
@@ -260,28 +320,6 @@ const App = () => {
   const { isEditMode } = useEditStore();
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
-  const [isWheelEnabled, setIsWheelEnabled] = useState(true);
-
-  // Vérifier si la roue est activée
-  useEffect(() => {
-    const checkWheelStatus = async () => {
-      const { data, error } = await supabase
-        .from('wheel_settings')
-        .select('is_enabled')
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (!error && data && data.length > 0) {
-        setIsWheelEnabled(data[0].is_enabled);
-        // Affiche la roue après 5 secondes si activée
-        if (data[0].is_enabled) {
-          setTimeout(() => setShowWheel(true), 5000);
-        }
-      }
-    };
-
-    checkWheelStatus();
-  }, []);
 
   useEffect(() => {
     const checkEditMode = () => {
