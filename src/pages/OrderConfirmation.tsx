@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle, MapPin, Truck, Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FloatingHeader from "@/components/admin/FloatingHeader";
@@ -13,6 +14,7 @@ const OrderConfirmation = () => {
   const [searchParams] = useSearchParams();
   const [order, setOrder] = useState<any>(null);
   const [orderItems, setOrderItems] = useState<any[]>([]);
+  const [wheelGifts, setWheelGifts] = useState<any[]>([]);
   const [productImages, setProductImages] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const orderId = searchParams.get("order_id");
@@ -32,6 +34,7 @@ const OrderConfirmation = () => {
         .single();
       if (!error && data) {
         setOrder(data);
+        
         // Récupérer les order_items
         const { data: items, error: itemsError } = await supabase
           .from("order_items")
@@ -39,6 +42,7 @@ const OrderConfirmation = () => {
           .eq("order_id", orderId);
         if (!itemsError && items) {
           setOrderItems(items);
+          
           // Récupérer les images produits
           const ids = [...new Set(items.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id))];
           if (ids.length > 0) {
@@ -54,6 +58,16 @@ const OrderConfirmation = () => {
             });
             setProductImages(imgMap);
           }
+        }
+        
+        // 🎁 NOUVEAU : Récupérer les cadeaux de la roue
+        const { data: gifts, error: giftsError } = await supabase
+          .from("order_wheel_gifts")
+          .select("*")
+          .eq("order_id", orderId);
+        if (!giftsError && gifts) {
+          setWheelGifts(gifts);
+          console.log("🎁 [ORDER-CONFIRMATION] Cadeaux de la roue récupérés:", gifts);
         }
       }
       setLoading(false);
@@ -71,7 +85,7 @@ const OrderConfirmation = () => {
       <FloatingHeader />
       <Header />
       <main className="flex-1 container mx-auto px-4 py-12 flex flex-col items-center justify-center text-center">
-        <Card className="max-w-2xl w-full">
+        <Card className="max-w-3xl w-full">
           <CardHeader>
             <CardTitle className="flex items-center justify-center gap-3 text-green-700">
               <CheckCircle className="h-6 w-6" />
@@ -122,44 +136,117 @@ const OrderConfirmation = () => {
                     <span>{order.address1} {order.address2 && <span className="text-gray-400">({order.address2})</span>} {order.postal_code} {order.city} {order.country && <span>({order.country})</span>}</span>
                   </div>
                 )}
-                {/* Liste des produits */}
-                <div className="border-t pt-4 space-y-2">
-                  <h4 className="font-semibold text-gray-800 mb-2 flex items-center gap-2"><Package className="h-5 w-5 text-blue-700" /> Produits commandés :</h4>
-                  <table className="min-w-full text-sm border">
-                    <thead>
-                      <tr className="bg-gray-100">
-                        <th className="p-2 border">Produit</th>
-                        <th className="p-2 border">Qté</th>
-                        <th className="p-2 border">Prix</th>
-                        <th className="p-2 border">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {orderItems.filter(i => !i.product_id.startsWith('shipping_')).map((item, idx) => (
-                        <tr key={item.id || idx}>
-                          <td className="p-2 border flex items-center gap-2">
-                            {productImages[item.product_id] && (
-                              <img src={productImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded border mr-2" />
-                            )}
-                            {item.product_title || item.title || item.product_id}
-                            {item.variant && (
-                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
-                            )}
-                          </td>
-                          <td className="p-2 border text-center">{item.quantity}</td>
-                          <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
-                          <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
-                        </tr>
+                
+                {/* 🎁 Section des cadeaux de la roue */}
+                {wheelGifts.length > 0 && (
+                  <div className="border-t pt-4 space-y-3 mb-6">
+                    <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
+                      <span className="text-2xl">🎁</span>
+                      <h4 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h4>
+                      <Badge className="bg-blue-100 text-blue-800">{wheelGifts.length}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {wheelGifts.map((gift, idx) => (
+                        <div key={gift.id || idx} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
+                          {/* Effet scintillant pour les cadeaux */}
+                          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                          
+                          {gift.image_url && (
+                            <div className="relative">
+                              <img
+                                src={gift.image_url}
+                                alt={gift.title}
+                                className="w-12 h-12 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
+                              />
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                <span className="text-white text-xs">🎁</span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          <div className="flex-1 min-w-0 relative z-10">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h5 className="font-medium text-sm leading-tight text-blue-900">{gift.title}</h5>
+                              <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
+                            </div>
+                            
+                            <div className="text-xs text-blue-600 mb-1">
+                              🎉 Gagné le {new Date(gift.won_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit', 
+                                year: 'numeric'
+                              })}
+                            </div>
+                            
+                            <div className="text-sm font-bold text-green-600">
+                              OFFERT 🎉
+                            </div>
+                          </div>
+                          
+                          <div className="text-right relative z-10">
+                            <p className="text-sm font-bold text-green-600">
+                              GRATUIT
+                            </p>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Liste des produits payants */}
+                {orderItems.filter(i => !i.product_id.startsWith('shipping_')).length > 0 && (
+                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Package className="h-5 w-5 text-gray-700" />
+                      <h4 className="font-semibold text-gray-800">Produits commandés</h4>
+                      <Badge className="bg-gray-100 text-gray-800">
+                        {orderItems.filter(i => !i.product_id.startsWith('shipping_')).length}
+                      </Badge>
+                    </div>
+                    <table className="min-w-full text-sm border">
+                      <thead>
+                        <tr className="bg-gray-100">
+                          <th className="p-2 border">Produit</th>
+                          <th className="p-2 border">Qté</th>
+                          <th className="p-2 border">Prix</th>
+                          <th className="p-2 border">Total</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orderItems.filter(i => !i.product_id.startsWith('shipping_')).map((item, idx) => (
+                          <tr key={item.id || idx}>
+                            <td className="p-2 border flex items-center gap-2">
+                              {productImages[item.product_id] && (
+                                <img src={productImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded border mr-2" />
+                              )}
+                              {item.product_title || item.title || item.product_id}
+                              {item.variant && (
+                                <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                              )}
+                            </td>
+                            <td className="p-2 border text-center">{item.quantity}</td>
+                            <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
+                            <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                
                 {/* Récapitulatif total */}
                 <div className="mt-4 p-3 bg-gray-50 rounded border flex flex-col gap-1">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Sous-total produits</span>
                     <span>{sousTotal.toFixed(2)} €</span>
                   </div>
+                  {wheelGifts.length > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-600">Cadeaux de la roue</span>
+                      <span className="text-green-600 font-bold">GRATUIT</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-600">Livraison</span>
                     {(!livraison || livraison.price === 0) ? (
