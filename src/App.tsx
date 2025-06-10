@@ -109,62 +109,69 @@ const App = () => {
   useRestoreSession();
   const { isEditMode } = useEditStore();
   const [showWheel, setShowWheel] = useState(false);
-  const [editWheel, setEditWheel] = useState(false);
-  const [isWheelEnabled, setIsWheelEnabled] = useState(true);
-  const { items } = useCartStore();
+  const [wheelSettings, setWheelSettings] = useState(null);
+  const { items: cartItems } = useCartStore();
 
-  // Vérifier si la roue est activée
   useEffect(() => {
-    const checkWheelStatus = async () => {
+    const fetchWheelSettings = async () => {
       const { data, error } = await supabase
         .from('wheel_settings')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(1);
-
       if (!error && data && data.length > 0) {
-        const settings = data[0];
-        setIsWheelEnabled(settings.is_enabled);
-
-        // --- LOGIQUE D'AFFICHAGE AVANCÉE ---
-        // 1. Pages où afficher
-        const currentPath = window.location.pathname;
-        const allowedPages = (settings.show_on_pages || '/').split(',').map(p => p.trim());
-        const pageMatch = allowedPages.some(pattern => {
-          if (pattern.endsWith('/*')) {
-            return currentPath.startsWith(pattern.replace('/*', ''));
-          }
-          return currentPath === pattern;
-        });
-        if (!pageMatch) return;
-
-        // 2. Affichage selon le contenu du panier
-        const nonGiftItems = items.filter(item => !item.is_gift && !item.threshold_gift);
-        if (settings.show_when_cart === 'empty' && nonGiftItems.length > 0) return;
-        if (settings.show_when_cart === 'full' && nonGiftItems.length === 0) return;
-        // 'any' => on affiche toujours
-
-        // 3. Anti-spam : cooldown avant réaffichage
-        const cooldownDays = settings.popup_seen_cooldown || 1;
-        const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-        if (lastSeen) {
-          const lastDate = new Date(lastSeen);
-          const now = new Date();
-          const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-          if (diff < cooldownDays) return;
-        }
-
-        // 4. Délai avant affichage (en secondes)
-        const delay = (settings.auto_show_delay || 5) * 1000;
-        setTimeout(() => {
-          setShowWheel(true);
-          localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-        }, delay);
+        setWheelSettings(data[0]);
       }
     };
+    fetchWheelSettings();
+  }, []);
 
-    checkWheelStatus();
-  }, [items]);
+  useEffect(() => {
+    if (!wheelSettings || !wheelSettings.is_enabled) return;
+
+    // 1. Vérifier la page courante
+    const currentPath = window.location.pathname;
+    const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
+    const isAllowedPage = allowedPages.some(pattern => {
+      if (pattern.endsWith('*')) {
+        return currentPath.startsWith(pattern.replace('*', ''));
+      }
+      return currentPath === pattern;
+    });
+    if (!isAllowedPage) return;
+
+    // 2. Vérifier le panier
+    if (wheelSettings.show_when_cart === 'empty' && cartItems.length > 0) return;
+    if (wheelSettings.show_when_cart === 'full' && cartItems.length === 0) return;
+
+    // 3. Vérifier le cooldown anti-spam
+    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+    if (lastSeen) {
+      const lastDate = new Date(lastSeen);
+      const now = new Date();
+      const diff = (now - lastDate) / (1000 * 60 * 60 * 24);
+      if (diff < (wheelSettings.popup_seen_cooldown || 1)) return;
+    }
+
+    // 4. Affichage automatique après le délai paramétré
+    setTimeout(() => {
+      setShowWheel(true);
+      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+    }, (wheelSettings.auto_show_delay || 5) * 1000);
+  }, [wheelSettings, cartItems]);
+
+  // Affichage du bouton flottant si activé (exemple: si auto_show_delay = 0, on affiche le bouton)
+  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text && wheelSettings.auto_show_delay === 0;
+
+  // Position du bouton flottant
+  const floatingButtonStyle = {
+    position: 'fixed',
+    zIndex: 1000,
+    ...(wheelSettings?.floating_button_position === 'bottom_right' && { bottom: 32, right: 32 }),
+    ...(wheelSettings?.floating_button_position === 'bottom_left' && { bottom: 32, left: 32 }),
+    ...(wheelSettings?.floating_button_position === 'top_right' && { top: 32, right: 32 }),
+    ...(wheelSettings?.floating_button_position === 'top_left' && { top: 32, left: 32 }),
+  };
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -250,8 +257,12 @@ const App = () => {
 
           <Route path="/lucky-wheel" element={
             <div className="flex flex-col items-center justify-center min-h-screen">
-              <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
-              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+              <Button onClick={() => { setShowWheel(true); }} className="mb-6">Tester la roue aquatique</Button>
+              <LuckyWheelPopup
+                isOpen={showWheel}
+                onClose={() => setShowWheel(false)}
+                wheelSettings={wheelSettings}
+              />
             </div>
           } />
 
@@ -260,13 +271,18 @@ const App = () => {
         {/* Bouton flottant pour ouvrir la roue en mode édition */}
         {isEditMode && (
           <button
-            onClick={() => { setShowWheel(true); setEditWheel(true); }}
-            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+            style={floatingButtonStyle}
+            className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+            onClick={() => setShowWheel(true)}
           >
             🎡 Tester la roue
           </button>
         )}
-        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+        <LuckyWheelPopup
+          isOpen={showWheel}
+          onClose={() => setShowWheel(false)}
+          wheelSettings={wheelSettings}
+        />
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
