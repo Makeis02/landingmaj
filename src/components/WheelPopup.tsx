@@ -557,7 +557,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         console.log('Utilisateur connecté détecté:', user.email);
         
         // 🆕 Vérifier l'éligibilité pour jouer APRÈS avoir chargé les paramètres
-        await checkSpinEligibilityWithSettings(user.id, user.email);
+        const eligibilityResult = await checkSpinEligibilityWithSettings(user.id, user.email);
+        setCanSpin(eligibilityResult.canSpin);
+        setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
+        setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
       } else {
         // Utilisateur non connecté : formulaire de saisie requis
         setEmail('');
@@ -575,7 +578,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   };
 
   // 🆕 FONCTION pour vérifier l'éligibilité avec les paramètres actuels
-  const checkSpinEligibilityWithSettings = async (userId: string | null, userEmail: string): Promise<boolean> => {
+  const checkSpinEligibilityWithSettings = async (userId: string | null, userEmail: string): Promise<{
+    canSpin: boolean;
+    nextSpinTimestamp: Date | null;
+    timeUntilNextSpin: number;
+    participationHours: number;
+  }> => {
     try {
       // Récupérer les paramètres les plus récents
       const { data: settings, error: settingsError } = await supabase
@@ -587,7 +595,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       if (settingsError || !settings) {
         console.error('❌ Erreur récupération paramètres:', settingsError);
-        return false;
+        return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours: 72 };
       }
 
       const participationHours = settings.participation_delay || 72;
@@ -603,7 +611,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       if (error && error.code !== 'PGRST116') {
         console.error('❌ Erreur lors de la vérification:', error);
-        return false;
+        return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours };
       }
 
       if (existingEntry) {
@@ -615,21 +623,32 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         const timeLeft = nextAllowedTime.getTime() - Date.now();
         
         if (timeLeft > 0) {
-          setNextSpinTimestamp(nextAllowedTime);
-          setTimeUntilNextSpin(Math.ceil(timeLeft / (1000 * 60 * 60))); // heures restantes
-          setCanSpin(false);
+          const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+          return {
+            canSpin: false,
+            nextSpinTimestamp: nextAllowedTime,
+            timeUntilNextSpin: hoursLeft,
+            participationHours
+          };
         } else {
-          setCanSpin(true);
+          return {
+            canSpin: true,
+            nextSpinTimestamp: null,
+            timeUntilNextSpin: 0,
+            participationHours
+          };
         }
-        
-        return timeLeft <= 0;
       }
 
-      setCanSpin(true);
-      return true;
+      return {
+        canSpin: true,
+        nextSpinTimestamp: null,
+        timeUntilNextSpin: 0,
+        participationHours
+      };
     } catch (error) {
       console.error('❌ Erreur lors de la vérification d\'éligibilité:', error);
-      return false;
+      return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours: 72 };
     }
   };
 
@@ -643,21 +662,21 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     setIsLoading(true);
     try {
       // 1. Vérifier l'éligibilité au spin avec les paramètres actuels
-      const isEligible = await checkSpinEligibilityWithSettings(null, email);
-      if (!isEligible) {
-        toast.error("Vous avez déjà joué récemment. Veuillez attendre avant de rejouer !");
-        setIsLoading(false);
-        return;
-      }
+      const eligibilityResult = await checkSpinEligibilityWithSettings(null, email);
+      
+      // 2. Mettre à jour les états avec les résultats de la vérification
+      setCanSpin(eligibilityResult.canSpin);
+      setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
+      setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
 
-      // 2. S'abonner à la newsletter via Omisend
+      // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
       const newsletterResult = await subscribeToNewsletter(email);
       if (!newsletterResult.success) {
         console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
         // On continue quand même, ce n'est pas bloquant
       }
 
-      // 3. Sauvegarder l'email localement comme fallback
+      // 4. Sauvegarder l'email localement comme fallback
       const { error: saveError } = await supabase
         .from('newsletter_subscribers')
         .upsert([{ 
@@ -673,10 +692,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
       }
 
-      // 4. Continuer avec le spin
+      // 5. Passer à l'étape suivante dans tous les cas
       setShowEmailForm(false);
       setEmailValidated(true);
-      toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
+      
+      if (eligibilityResult.canSpin) {
+        toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
+      } else {
+        toast.info(`Email enregistré ! Vous pourrez rejouer dans ${eligibilityResult.timeUntilNextSpin}h`);
+      }
     } catch (error) {
       console.error('❌ Erreur lors de la soumission:', error);
       toast.error("Une erreur est survenue. Veuillez réessayer.");
@@ -794,7 +818,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       
       // Re-vérifier l'éligibilité avec les nouveaux paramètres si un email est présent
       if (email && emailValidated) {
-        await checkSpinEligibilityWithSettings(null, email);
+        const eligibilityResult = await checkSpinEligibilityWithSettings(null, email);
+        setCanSpin(eligibilityResult.canSpin);
+        setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
+        setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
       }
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);
