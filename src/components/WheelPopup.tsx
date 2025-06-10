@@ -615,68 +615,55 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       const participationHours = settings.participation_delay || 72;
       const hoursAgo = new Date(Date.now() - participationHours * 60 * 60 * 1000);
       
-      console.log(`🔍 Vérification pour l'email: ${userEmail}`);
-      
-      // 1. Vérifier d'abord si cet email correspond à un compte actif (wheel_spins)
-      const { data: userSpinEntry, error: spinError } = await supabase
-        .from('wheel_spins')
-        .select('created_at')
-        .eq('user_email', userEmail.toLowerCase().trim())
-        .gte('created_at', hoursAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+      let existingEntry = null;
+      let error = null;
 
-      // 2. Vérifier aussi dans wheel_email_entries (pour les invités)
-      const { data: emailEntry, error: emailError } = await supabase
-        .from('wheel_email_entries')
-        .select('created_at')
-        .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', hoursAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (spinError && spinError.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification wheel_spins:', spinError);
+      // Vérifier selon le type d'utilisateur
+      if (userId) {
+        // Utilisateur avec compte : vérifier dans wheel_spins
+        console.log('🔍 Vérification pour utilisateur connecté dans wheel_spins');
+        const { data, error: spinsError } = await supabase
+          .from('wheel_spins')
+          .select('created_at')
+          .eq('user_id', userId)
+          .gte('created_at', hoursAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        existingEntry = data;
+        error = spinsError;
+      } else {
+        // Utilisateur invité : vérifier dans wheel_email_entries
+        console.log('🔍 Vérification pour utilisateur invité dans wheel_email_entries');
+        const { data, error: entriesError } = await supabase
+          .from('wheel_email_entries')
+          .select('created_at')
+          .eq('email', userEmail.toLowerCase().trim())
+          .gte('created_at', hoursAgo.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        existingEntry = data;
+        error = entriesError;
       }
 
-      if (emailError && emailError.code !== 'PGRST116') {
-        console.error('❌ Erreur lors de la vérification wheel_email_entries:', emailError);
+      if (error && error.code !== 'PGRST116') {
+        console.error('❌ Erreur lors de la vérification:', error);
+        return { canSpin: false, nextSpinTimestamp: null, timeUntilNextSpin: 0, participationHours };
       }
 
-      // 3. Prendre la date la plus récente entre les deux tables
-      let lastPlayTime = null;
-      let source = '';
-
-      if (userSpinEntry && emailEntry) {
-        const spinDate = new Date(userSpinEntry.created_at);
-        const emailDate = new Date(emailEntry.created_at);
-        if (spinDate > emailDate) {
-          lastPlayTime = spinDate;
-          source = 'wheel_spins (compte actif)';
-        } else {
-          lastPlayTime = emailDate;
-          source = 'wheel_email_entries (invité)';
-        }
-      } else if (userSpinEntry) {
-        lastPlayTime = new Date(userSpinEntry.created_at);
-        source = 'wheel_spins (compte actif)';
-      } else if (emailEntry) {
-        lastPlayTime = new Date(emailEntry.created_at);
-        source = 'wheel_email_entries (invité)';
-      }
-
-      if (lastPlayTime) {
-        console.log(`⚠️ Email trouvé dans ${source}, dernière participation: ${lastPlayTime.toISOString()}`);
+      if (existingEntry) {
+        console.log(`⚠️ Utilisateur a déjà joué dans les dernières ${participationHours}h`);
         
         // Calculer le temps restant avant de pouvoir rejouer
+        const lastPlayTime = new Date(existingEntry.created_at);
         const nextAllowedTime = new Date(lastPlayTime.getTime() + participationHours * 60 * 60 * 1000);
         const timeLeft = nextAllowedTime.getTime() - Date.now();
         
         if (timeLeft > 0) {
           const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
-          console.log(`⏰ Timer actif: ${hoursLeft}h restantes`);
           return {
             canSpin: false,
             nextSpinTimestamp: nextAllowedTime,
@@ -684,7 +671,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             participationHours
           };
         } else {
-          console.log('✅ Cooldown expiré, peut jouer');
           return {
             canSpin: true,
             nextSpinTimestamp: null,
@@ -694,7 +680,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         }
       }
 
-      console.log('✅ Aucune participation récente trouvée, peut jouer');
       return {
         canSpin: true,
         nextSpinTimestamp: null,
@@ -716,8 +701,30 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     setIsLoading(true);
     try {
-      // 1. Vérifier l'éligibilité au spin avec les paramètres actuels
-      const eligibilityResult = await checkSpinEligibilityWithSettings(null, email);
+      // 1. Vérifier si l'email correspond à un compte utilisateur existant
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('email', email.toLowerCase().trim())
+        .single();
+
+      let userId = null;
+      let isExistingUser = false;
+
+      if (!userError && userData) {
+        // Email correspond à un compte existant
+        userId = userData.id;
+        isExistingUser = true;
+        setIsUserConnected(true);
+        console.log('✅ Email correspond au compte utilisateur:', userData.id);
+      } else {
+        // Email ne correspond à aucun compte (utilisateur invité)
+        setIsUserConnected(false);
+        console.log('👤 Email invité (pas de compte)');
+      }
+
+      // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
+      const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
       
       // 2. Mettre à jour les états avec les résultats de la vérification
       setCanSpin(eligibilityResult.canSpin);
