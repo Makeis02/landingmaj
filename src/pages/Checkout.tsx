@@ -462,8 +462,8 @@ const Checkout = () => {
         ? [...enrichedItems, shippingItem]
         : enrichedItems;
 
-      // 💰 NOUVELLE VALIDATION : Vérifier le minimum Stripe
-      const totalAmount = finalItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      // 💰 NOUVELLE VALIDATION : Vérifier le minimum Stripe (avec code promo appliqué)
+      const totalAmount = finalTotal; // Utiliser le total avec la réduction du code promo
       const STRIPE_MINIMUM_EUR = 0.50;
       
       if (totalAmount < STRIPE_MINIMUM_EUR) {
