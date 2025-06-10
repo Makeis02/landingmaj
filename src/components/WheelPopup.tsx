@@ -753,107 +753,141 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     setIsLoading(true);
     try {
-      // 1. Approche simplifiée : vérifier directement dans wheel_spins par email
-      console.log('⭐ 🔍 Recherche de participations existantes pour email:', email.toLowerCase().trim());
+      // 1. 🎯 NOUVELLE LOGIQUE : Chercher l'email dans TOUTES les tables pour mode invité
+      console.log('⭐ 🔍 [INVITÉ] Recherche de participations pour email:', email.toLowerCase().trim());
       
-      // Chercher d'abord dans wheel_spins (utilisateurs avec compte)
-      console.log('⭐ 🔍 REQUÊTE wheel_spins avec:', {
-        table: 'wheel_spins',
-        email: email.toLowerCase().trim(),
-        emailOriginal: email
-      });
-      
+      // 🎯 ÉTAPE 1: Chercher dans wheel_spins par email (même si pas connecté)
+      console.log('⭐ 🔍 [INVITÉ] REQUÊTE wheel_spins par email...');
       const { data: spinsForEmail, error: spinsEmailError } = await supabase
         .from('wheel_spins')
-        .select('user_id, created_at, user_email')  // Ajout user_email pour debug
+        .select('user_id, created_at, user_email')
         .eq('user_email', email.toLowerCase().trim())
         .order('created_at', { ascending: false })
         .limit(1);
 
-      console.log('⭐ 📊 Résultat wheel_spins par email:', { 
+      console.log('⭐ 📊 [INVITÉ] Résultat wheel_spins:', { 
         spinsForEmail, 
         error: spinsEmailError?.message,
         found: spinsForEmail?.length || 0
       });
-      
-      // 🔍 DEBUG : Test d'une requête plus large pour voir si on trouve quelque chose
-      const { data: allSpinsForDebug, error: debugError } = await supabase
-        .from('wheel_spins')
-        .select('user_id, created_at, user_email')
-        .ilike('user_email', `%${email.split('@')[0]}%`)  // Recherche partielle
+
+      // 🎯 ÉTAPE 2: Chercher dans wheel_email_entries par email
+      console.log('⭐ 🔍 [INVITÉ] REQUÊTE wheel_email_entries par email...');
+      const { data: entriesForEmail, error: entriesEmailError } = await supabase
+        .from('wheel_email_entries')
+        .select('created_at, email')
+        .eq('email', email.toLowerCase().trim())
         .order('created_at', { ascending: false })
-        .limit(5);
-      
-      console.log('⭐ 🔍 DEBUG - Recherche large wheel_spins:', { 
-        allSpinsForDebug, 
-        debugError: debugError?.message,
-        searchPattern: `%${email.split('@')[0]}%`
+        .limit(1);
+
+      console.log('⭐ 📊 [INVITÉ] Résultat wheel_email_entries:', { 
+        entriesForEmail, 
+        error: entriesEmailError?.message,
+        found: entriesForEmail?.length || 0
       });
 
+      // 🎯 DÉCISION: Prendre la participation la plus récente des DEUX tables
       let userId = null;
       let isExistingUser = false;
+      let lastParticipation = null;
+      let useWheelSpins = false;
 
-      if (!spinsEmailError && spinsForEmail && spinsForEmail.length > 0) {
-        // Email trouvé dans wheel_spins = utilisateur avec compte
+      const hasSpins = !spinsEmailError && spinsForEmail && spinsForEmail.length > 0;
+      const hasEntries = !entriesEmailError && entriesForEmail && entriesForEmail.length > 0;
+
+      if (hasSpins && hasEntries) {
+        // Les deux tables ont des données - prendre la plus récente
+        const spinsDate = new Date(spinsForEmail[0].created_at);
+        const entriesDate = new Date(entriesForEmail[0].created_at);
+        
+        if (spinsDate > entriesDate) {
+          lastParticipation = spinsForEmail[0];
+          userId = spinsForEmail[0].user_id;
+          useWheelSpins = true;
+          isExistingUser = true;
+          console.log('⭐ ✅ [INVITÉ] Participation la plus récente: wheel_spins');
+        } else {
+          lastParticipation = entriesForEmail[0];
+          useWheelSpins = false;
+          isExistingUser = false;
+          console.log('⭐ ✅ [INVITÉ] Participation la plus récente: wheel_email_entries');
+        }
+      } else if (hasSpins) {
+        // Seulement wheel_spins a des données
+        lastParticipation = spinsForEmail[0];
         userId = spinsForEmail[0].user_id;
+        useWheelSpins = true;
         isExistingUser = true;
-        setIsUserConnected(true);
-        console.log('⭐ ✅ Email correspond à un utilisateur avec compte:', userId);
-        console.log('⭐ ➡️ Utilisation de wheel_spins pour cet utilisateur');
+        console.log('⭐ ✅ [INVITÉ] Participation trouvée dans wheel_spins uniquement');
+      } else if (hasEntries) {
+        // Seulement wheel_email_entries a des données
+        lastParticipation = entriesForEmail[0];
+        useWheelSpins = false;
+        isExistingUser = false;
+        console.log('⭐ ✅ [INVITÉ] Participation trouvée dans wheel_email_entries uniquement');
       } else {
-        // Email pas trouvé dans wheel_spins = utilisateur invité
-        setIsUserConnected(false);
-        console.log('⭐ 👤 Email invité (pas de compte dans wheel_spins)');
-        console.log('⭐ ➡️ Utilisation de wheel_email_entries pour cet email');
+        // Aucune participation trouvée
+        console.log('⭐ 🆕 [INVITÉ] Aucune participation trouvée - nouveau joueur');
+        isExistingUser = false;
+        useWheelSpins = false;
       }
 
-      // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
-      console.log('⭐ 🔍 AVANT vérification éligibilité avec:', { userId, email: email.toLowerCase().trim() });
+      setIsUserConnected(isExistingUser);
       
-      // 🔍 NOUVEAU : Vérifier d'abord s'il y a un timer localStorage actif
-      const lastSpinKey = `last_wheel_spin_${email.toLowerCase().trim()}`;
-      const lastSpinTime = localStorage.getItem(lastSpinKey);
-      console.log('⭐ 🔍 Vérification localStorage timer pour:', lastSpinKey, '=', lastSpinTime);
+      console.log('⭐ 🎯 [INVITÉ] DÉCISION FINALE:', {
+        hasSpins,
+        hasEntries,
+        lastParticipation: lastParticipation?.created_at,
+        useWheelSpins,
+        isExistingUser,
+        userId
+      });
+
+            // 2. 🎯 VÉRIFIER L'ÉLIGIBILITÉ selon la participation trouvée
+      console.log('⭐ 🔍 [INVITÉ] Vérification éligibilité...');
       
-      if (lastSpinTime) {
-        const lastSpinDate = new Date(lastSpinTime);
+      if (lastParticipation) {
+        // On a trouvé une participation - calculer le timer à partir de celle-ci
+        const lastSpinDate = new Date(lastParticipation.created_at);
         const now = new Date();
-        const participationHours = 72; // Force 72h comme affiché
+        const participationHours = 72; // Force 72h comme dans l'interface
         const nextAllowedTime = new Date(lastSpinDate.getTime() + participationHours * 60 * 60 * 1000);
         const timeLeft = nextAllowedTime.getTime() - now.getTime();
         
-        console.log('⭐ 🔍 Calcul timer localStorage:', {
+        console.log('⭐ 🔍 [INVITÉ] Calcul timer depuis participation trouvée:', {
           lastSpinDate: lastSpinDate.toISOString(),
           now: now.toISOString(),
           nextAllowedTime: nextAllowedTime.toISOString(),
           timeLeft,
-          canSpin: timeLeft <= 0
+          canSpin: timeLeft <= 0,
+          participationSource: useWheelSpins ? 'wheel_spins' : 'wheel_email_entries'
         });
         
         if (timeLeft > 0) {
-          // Timer localStorage actif - utiliser ces données
+          // Timer actif basé sur la vraie participation
           const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
           setCanSpin(false);
           setTimeUntilNextSpin(hoursLeft);
           setNextSpinTimestamp(nextAllowedTime);
-          console.log('⭐ ✅ Timer localStorage trouvé et appliqué');
+          console.log('⭐ ✅ [INVITÉ] Timer trouvé et appliqué:', hoursLeft, 'heures restantes');
+          
+          // Sauvegarder aussi dans localStorage pour cohérence
+          const lastSpinKey = `last_wheel_spin_${email.toLowerCase().trim()}`;
+          localStorage.setItem(lastSpinKey, lastSpinDate.toISOString());
         } else {
-          // Timer localStorage expiré
-          localStorage.removeItem(lastSpinKey);
+          // Timer expiré - peut jouer
           setCanSpin(true);
           setTimeUntilNextSpin(0);
           setNextSpinTimestamp(null);
-          console.log('⭐ ✅ Timer localStorage expiré et supprimé');
+          console.log('⭐ ✅ [INVITÉ] Timer expiré - peut jouer');
         }
-             } else {
-         // Pas de timer localStorage - vérifier base de données
-         const eligibilityResult = await checkSpinEligibilityWithSettings(userId, email);
-         console.log('⭐ 📊 RÉSULTAT vérification éligibilité:', eligibilityResult);
-         
-         setCanSpin(eligibilityResult.canSpin);
-         setTimeUntilNextSpin(eligibilityResult.timeUntilNextSpin);
-         setNextSpinTimestamp(eligibilityResult.nextSpinTimestamp);
-       }
+      } else {
+        // Aucune participation trouvée - nouveau joueur
+        setCanSpin(true);
+        setTimeUntilNextSpin(0);
+        setNextSpinTimestamp(null);
+        console.log('⭐ ✅ [INVITÉ] Nouveau joueur - peut jouer');
+      }
 
       // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
       const newsletterResult = await subscribeToNewsletter(email);
