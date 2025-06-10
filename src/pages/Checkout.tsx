@@ -98,7 +98,16 @@ interface ShippingSettings {
 }
 
 const Checkout = () => {
-  const { items, updateQuantity, removeItem, getTotal } = useCartStore();
+  // 🎫 MODIFIÉ : Ajouter les fonctions de codes promo
+  const { 
+    items, 
+    updateQuantity, 
+    removeItem, 
+    getTotal, 
+    getTotalWithPromo, 
+    appliedPromoCode 
+  } = useCartStore();
+  
   const user = useUserStore((s) => s.user);
   const setUser = useUserStore((s) => s.setUser);
   const [loading, setLoading] = useState(false);
@@ -124,6 +133,10 @@ const Checkout = () => {
   const giftItems = items.filter(item => item.is_gift || item.threshold_gift);
   const hasOnlyGifts = items.length > 0 && payableItems.length === 0;
   const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
+
+  // 🎫 NOUVEAU : Utiliser les totaux avec codes promo
+  const { subtotal, discount, total: finalTotal } = getTotalWithPromo();
+  const total = getTotal(); // Garder pour compatibilité avec le code existant
 
   // Formulaire d'adresse
   const [shippingForm, setShippingForm] = useState({
@@ -234,8 +247,6 @@ const Checkout = () => {
     }
   }, [location.search, clearCart]);
 
-  const total = getTotal();
-
   const shippingStripePriceId = shippingSettings?.[selectedShipping]?.stripe_price_id;
 
   // Calcul du tarif de livraison
@@ -245,7 +256,7 @@ const Checkout = () => {
   if (shippingSettings) {
     const settings = shippingSettings[selectedShipping];
     shippingLogo = settings.logo_url;
-    if (total >= settings.free_shipping_threshold) {
+    if (finalTotal >= settings.free_shipping_threshold) {
       shippingFree = true;
       shippingPrice = 0;
     } else {
@@ -515,6 +526,11 @@ const Checkout = () => {
           city: String(shippingForm.city || ""),
           country: String(shippingForm.country || ""),
           shipping_method: String(selectedShipping || ""),
+          promo_code: appliedPromoCode ? {
+            id: appliedPromoCode.id,
+            code: appliedPromoCode.code,
+            discount_amount: appliedPromoCode.discount
+          } : null,
           ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
         }
       }));
@@ -538,6 +554,11 @@ const Checkout = () => {
           city: String(shippingForm.city || ""),
           country: String(shippingForm.country || ""),
           shipping_method: String(selectedShipping || ""),
+          promo_code: appliedPromoCode ? {
+            id: appliedPromoCode.id,
+            code: appliedPromoCode.code,
+            discount_amount: appliedPromoCode.discount
+          } : null,
           ...(selectedShipping === 'mondial_relay' && selectedRelais ? { mondial_relay: JSON.stringify(selectedRelais) } : {})
         }
       };
@@ -833,7 +854,7 @@ const Checkout = () => {
                                 {mode === 'colissimo' ? 'Colissimo' : 'Mondial Relay'}
                               </div>
                               <div className="text-sm text-gray-600 mb-1">
-                                {total >= s.free_shipping_threshold ? (
+                                {finalTotal >= s.free_shipping_threshold ? (
                                   <span className="text-green-600 font-bold">Offert</span>
                                 ) : (
                                   <span>{s.base_price.toFixed(2)} €</span>
@@ -1033,8 +1054,17 @@ const Checkout = () => {
                     <div className="border-t pt-4 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Sous-total</span>
-                        <span>{total.toFixed(2)}€</span>
+                        <span>{subtotal.toFixed(2)}€</span>
                       </div>
+                      
+                      {/* 🎫 NOUVEAU : Affichage du code promo appliqué */}
+                      {discount > 0 && appliedPromoCode && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
+                          <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between text-sm">
                         <span>Livraison</span>
                         {shippingSettings ? (
@@ -1049,7 +1079,8 @@ const Checkout = () => {
                       </div>
                       <div className="flex justify-between text-lg font-bold pt-2 border-t">
                         <span>Total TTC</span>
-                        <span>{(total + (shippingFree ? 0 : shippingPrice)).toFixed(2)}€</span>
+                        {/* 🎫 MODIFIÉ : Utiliser finalTotal au lieu de total */}
+                        <span>{(finalTotal + (shippingFree ? 0 : shippingPrice)).toFixed(2)}€</span>
                       </div>
                     </div>
                   </CardContent>
