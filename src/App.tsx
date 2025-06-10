@@ -263,7 +263,7 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
           </Routes>
         {/* Bouton flottant pour ouvrir la roue */}
-        {showFloatingButton && !showWheel && (
+        {showFloatingButton && !showWheel && !editWheel && (
           isMobile ? (
             <button
               style={floatingButtonStyle}
