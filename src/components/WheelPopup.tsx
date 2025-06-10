@@ -621,7 +621,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       if (userId) {
         // ✅ Utilisateur avec compte : utiliser wheel_spins (logique qui marche déjà)
-        console.log('🔍 Vérification wheel_spins pour user_id:', userId);
+        console.log('⭐ 🔍 Vérification wheel_spins pour user_id:', userId);
         const { data, error: spinsError } = await supabase
           .from('wheel_spins')
           .select('created_at')
@@ -633,10 +633,10 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         existingEntry = data;
         error = spinsError;
-        console.log('📊 Résultat wheel_spins:', { data, error: spinsError?.message });
+        console.log('⭐ 📊 Résultat wheel_spins:', { data, error: spinsError?.message });
       } else {
         // ✅ Utilisateur invité : utiliser wheel_email_entries (même logique exacte)
-        console.log('🔍 Vérification wheel_email_entries pour email:', userEmail);
+        console.log('⭐ 🔍 Vérification wheel_email_entries pour email:', userEmail);
         const { data, error: entriesError } = await supabase
           .from('wheel_email_entries')
           .select('created_at')
@@ -648,7 +648,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         existingEntry = data;
         error = entriesError;
-        console.log('📊 Résultat wheel_email_entries:', { data, error: entriesError?.message });
+        console.log('⭐ 📊 Résultat wheel_email_entries:', { data, error: entriesError?.message });
       }
 
       if (error && error.code !== 'PGRST116') {
@@ -704,11 +704,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     setIsLoading(true);
     try {
       // 1. Vérifier si l'email correspond à un compte utilisateur existant
+      console.log('⭐ 🔍 Recherche du compte pour email:', email.toLowerCase().trim());
       const { data: userData, error: userError } = await supabase
         .from('users')
         .select('id, email')
         .eq('email', email.toLowerCase().trim())
         .single();
+
+      console.log('⭐ 📊 Résultat recherche compte:', { userData, userError: userError?.message });
 
       let userId = null;
       let isExistingUser = false;
@@ -718,11 +721,13 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         userId = userData.id;
         isExistingUser = true;
         setIsUserConnected(true);
-        console.log('✅ Email correspond au compte utilisateur:', userData.id);
+        console.log('⭐ ✅ Email correspond au compte utilisateur:', userData.id);
+        console.log('⭐ ➡️ Utilisation de wheel_spins pour cet utilisateur');
       } else {
         // Email ne correspond à aucun compte (utilisateur invité)
         setIsUserConnected(false);
-        console.log('👤 Email invité (pas de compte)');
+        console.log('⭐ 👤 Email invité (pas de compte), erreur:', userError?.message);
+        console.log('⭐ ➡️ Utilisation de wheel_email_entries pour cet email');
       }
 
       // 2. Vérifier l'éligibilité au spin avec les paramètres actuels (avec userId si trouvé)
@@ -761,7 +766,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setEmailValidated(true);
       
       // 6. Debug - affichage des valeurs
-      console.log('🔍 Debug après validation email:', {
+      console.log('⭐ 🔍 Debug après validation email:', {
         canSpin: eligibilityResult.canSpin,
         timeUntilNextSpin: eligibilityResult.timeUntilNextSpin,
         nextSpinTimestamp: eligibilityResult.nextSpinTimestamp,
