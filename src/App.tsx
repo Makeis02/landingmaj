@@ -9,6 +9,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Admin from "./pages/Admin";
 import CategoriesPage from "./pages/admin/CategoriesPage";
 import ProduitsPage from "./pages/admin/ProduitsPage";
+import PromoCodesPage from "./pages/admin/PromoCodesPage";
 import BrandsPage from "./pages/admin/BrandsPage";
 import LandingPage from "./pages/Landing/index";
 import DecorationPage from "@/pages/categories/DecorationPage";
@@ -309,6 +310,7 @@ const App = () => {
           <Route path="/admin" element={<Admin />} />
           <Route path="/admin/categories" element={<CategoriesPage />} />
           <Route path="/admin/produits" element={<ProduitsPage />} />
+          <Route path="/admin/promo-codes" element={<PromoCodesPage />} />
           <Route path="/admin/brands" element={<BrandsPage />} />
           <Route path="/landing" element={<LandingPage />} />
           

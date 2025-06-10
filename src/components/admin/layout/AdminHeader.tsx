@@ -1,4 +1,4 @@
-import { LogOut, Home, Settings, FolderTree, Package } from "lucide-react";
+import { LogOut, Home, Settings, FolderTree, Package, Percent } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,6 +40,13 @@ export const AdminHeader = () => {
             >
               <Package className="w-4 h-4 mr-2" />
               Produits
+            </Link>
+            <Link
+              to="/admin/promo-codes"
+              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Percent className="w-4 h-4 mr-2" />
+              Codes Promo
             </Link>
             <Link
               to="/admin/checkout-settings"

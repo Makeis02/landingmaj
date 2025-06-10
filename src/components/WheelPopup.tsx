@@ -472,7 +472,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
     // Créer un ID unique basé sur la position et le texte/image
     const uniqueId = segment.id || `wheel_segment_${segment.position}_${segment.text || 'image'}`;
-    
+
     // Vérifier si le cadeau est déjà dans le panier
     const existingGift = cartItems.find((item: any) => 
       item.id === uniqueId && 
