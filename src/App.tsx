@@ -123,6 +123,7 @@ const App = () => {
   // Vérifier si la roue est activée
   useEffect(() => {
     const checkWheelStatus = async () => {
+      console.log('🔍 [DEBUG] Démarrage de la vérification de la roue...');
       try {
         const { data, error } = await supabase
           .from('wheel_settings')
@@ -130,6 +131,8 @@ const App = () => {
           .order('updated_at', { ascending: false })
           .limit(1)
           .single();
+        
+        console.log('🔍 [DEBUG] Données de la roue récupérées:', { data, error });
 
         // Si pas de paramètres ou erreur, utiliser des valeurs par défaut
         const settings = data || {
@@ -143,6 +146,8 @@ const App = () => {
           console.warn('⚠️ Erreur lors de la récupération des paramètres de la roue:', error);
           console.log('🔄 Utilisation des paramètres par défaut');
         }
+        
+        console.log('🔍 [DEBUG] Paramètres finaux de la roue:', settings);
         
         // Vérifie si la roue est activée
         if (!settings.is_enabled) {
@@ -158,6 +163,8 @@ const App = () => {
         const userDismissed = localStorage.getItem('wheel_popup_dismissed');
         const lastSeen = localStorage.getItem('wheel_popup_last_seen');
         const cooldownDays = settings.popup_seen_cooldown || 1;
+        
+        console.log('🔍 [DEBUG] Anti-spam check:', { userDismissed, lastSeen, cooldownDays });
         
         if (userDismissed && lastSeen) {
           const lastDate = new Date(lastSeen);
@@ -219,8 +226,12 @@ const App = () => {
     };
 
     // Ne pas vérifier en mode admin
+    console.log('🔍 [DEBUG] Chemin actuel:', window.location.pathname);
     if (!window.location.pathname.includes('/admin')) {
+      console.log('🔍 [DEBUG] Pas en mode admin, démarrage vérification roue...');
       checkWheelStatus();
+    } else {
+      console.log('🔍 [DEBUG] Mode admin détecté, pas de vérification roue');
     }
   }, []);
 
@@ -332,6 +343,32 @@ const App = () => {
             </button>
           </div>
         )}
+        
+        {/* 🔧 Bouton de debug temporaire - visible même hors mode édition */}
+        <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
+          <button
+            onClick={() => { 
+              console.log('🔧 [DEBUG] Ouverture forcée du popup');
+              setShowWheel(true); 
+              setEditWheel(false); 
+            }}
+            className="bg-green-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-green-700 transition text-sm"
+          >
+            🎡 Debug Roue
+          </button>
+          <button
+            onClick={() => {
+              console.log('🔧 [DEBUG] État localStorage avant reset:', {
+                dismissed: localStorage.getItem('wheel_popup_dismissed'),
+                lastSeen: localStorage.getItem('wheel_popup_last_seen')
+              });
+              resetWheelState();
+            }}
+            className="bg-orange-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-orange-700 transition text-sm"
+          >
+            🔄 Debug Reset
+          </button>
+        </div>
         <LuckyWheelPopup 
           isOpen={showWheel} 
           onClose={() => {
