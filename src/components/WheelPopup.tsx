@@ -12,7 +12,7 @@ interface LuckyWheelPopupProps {
   wheelSettings?: any;
 }
 
-const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, wheelSettings: ws }) => {
+const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, wheelSettings: externalWheelSettings }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -21,7 +21,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [animatingImage, setAnimatingImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const effectiveSettings = ws || { 
+  const [wheelSettings, setWheelSettings] = useState({ 
     title: 'Roue Aquatique', 
     description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
     is_enabled: true,
@@ -34,7 +34,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     floating_button_text: 'Tentez votre chance !',
     floating_button_position: 'bottom_right',
     popup_seen_cooldown: 1
-  };
+  });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
   const [email, setEmail] = useState('');
@@ -137,6 +137,23 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         .single();
 
       if (!settingsError && settings) {
+        setWheelSettings({
+          title: settings.title || 'Roue Aquatique',
+          description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
+          is_enabled: settings.is_enabled || true,
+          auto_show_delay: settings.auto_show_delay || 5,
+          show_on_pages: settings.show_on_pages || '/',
+          show_when_cart: settings.show_when_cart || 'any',
+          show_to: settings.show_to || 'all',
+          participation_delay: settings.participation_delay || 72,
+          participation_frequency: settings.participation_frequency || 'per_3days',
+          floating_button_text: settings.floating_button_text || 'Tentez votre chance !',
+          floating_button_position: settings.floating_button_position || 'bottom_right',
+          popup_seen_cooldown: settings.popup_seen_cooldown || 1
+        });
+      }
+
+      if (segments && segments.length > 0) {
         setSegmentsData(segments);
       }
     } catch (error) {
@@ -405,13 +422,20 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const handleSpin = async () => {
     if (isSpinning || !canSpin) return;
     setIsSpinning(true);
-    setShowResult(false); // Cache le résultat précédent
+    setShowResult(false);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       const browserFingerprint = generateBrowserFingerprint();
       const clientIP = await getClientIP();
       
-      // 🆕 Enregistrer la tentative pour invités (anti-contournement)
+      // Utiliser les paramètres configurables
+      const participationFrequency = wheelSettings?.participation_frequency || 'per_3days';
+      
+      // 🆕 Enregistrer la tentative selon la fréquence
+      if (participationFrequency === 'per_session') {
+        sessionStorage.setItem('wheel_played_this_session', 'true');
+      }
+      
       if (!user) {
         await supabase
           .from('wheel_guest_attempts')
@@ -431,7 +455,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       const targetAngle = 360 - (winningIndex * segmentAngle);
       
       // Ajout de rotations supplémentaires pour l'effet visuel
-      const spins = 4 + Math.random() * 2; // 4-6 tours complets
+      const spins = 4 + Math.random() * 2;
       const finalRotation = (spins * 360) + targetAngle;
       
       const newRotation = rotation + finalRotation;
@@ -440,8 +464,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       setTimeout(async () => {
         setIsSpinning(false);
         
-        const indexUnderArrow = getSegmentFromRotation(newRotation); // ✅ le vrai
-        const winningSegmentData = segments[indexUnderArrow];         // ✅ visuel
+        const indexUnderArrow = getSegmentFromRotation(newRotation);
+        const winningSegmentData = segments[indexUnderArrow];
         setWinningSegment(winningSegmentData);
         setShowResult(true);
         
@@ -463,12 +487,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           console.error('Erreur lors de l\'enregistrement du tirage:', error);
         }
         
-        // 🆕 Mettre à jour l'éligibilité après le spin
+        // 🆕 Mettre à jour l'éligibilité avec les paramètres configurables
         setCanSpin(false);
-        setTimeUntilNextSpin(72); // 72 heures d'attente
-        // 🆕 Définir le timestamp exact pour la prochaine tentative
-        const nextAllowedTime = new Date(Date.now() + 72 * 60 * 60 * 1000);
+        const participationDelay = wheelSettings?.participation_delay || 72;
+        setTimeUntilNextSpin(participationDelay);
+        
+        // Définir le timestamp exact pour la prochaine tentative
+        const nextAllowedTime = new Date(Date.now() + participationDelay * 60 * 60 * 1000);
         setNextSpinTimestamp(nextAllowedTime);
+        
+        // Marquer que l'utilisateur a joué (pour le ciblage "nouveaux visiteurs")
+        localStorage.setItem('wheel_has_played', 'true');
         
         // Ajout automatique si image_url
         if (winningSegmentData?.image_url) {
@@ -477,11 +506,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             won_at: new Date().toISOString()
           });
         } else {
-          // Si c'est du texte avec un code promo, laisser plus de temps pour le lire et copier
           const hasPromoCode = winningSegmentData?.promo_code && winningSegmentData.promo_code.trim() !== '';
           if (hasPromoCode) {
-            // Toast d'information pour le code promo
-    setTimeout(() => {
+            setTimeout(() => {
               toast.info('🎫 Code promo disponible !', {
                 description: 'N\'oubliez pas de copier votre code promo avant de fermer',
                 duration: 4000,
@@ -649,15 +676,43 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   };
 
-  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (72h rule)
+  // 🆕 FONCTION pour vérifier l'éligibilité à jouer (avec délais configurables)
   const checkSpinEligibility = async (userId: string | null, userEmail: string): Promise<boolean> => {
     try {
-      // Vérifier si l'utilisateur a déjà joué aujourd'hui
+      // Utiliser les paramètres configurables ou valeurs par défaut
+      const participationDelay = wheelSettings?.participation_delay || 72; // heures
+      const participationFrequency = wheelSettings?.participation_frequency || 'per_3days';
+      
+      let timeThreshold;
+      const now = new Date();
+      
+      // Calculer le seuil de temps selon la fréquence configurée
+      switch (participationFrequency) {
+        case 'per_session':
+          // Pas de vérification base de données pour les sessions
+          const sessionPlayed = sessionStorage.getItem('wheel_played_this_session');
+          return !sessionPlayed;
+        case 'per_day':
+          timeThreshold = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+          break;
+        case 'per_week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          timeThreshold = weekAgo.toISOString();
+          break;
+        case 'per_3days':
+        default:
+          // Utiliser participation_delay (en heures) au lieu de 72h en dur
+          const hoursAgo = new Date(now.getTime() - participationDelay * 60 * 60 * 1000);
+          timeThreshold = hoursAgo.toISOString();
+          break;
+      }
+
+      // Vérifier si l'utilisateur a déjà joué dans la période
       const { data: existingEntry, error } = await supabase
         .from('wheel_email_entries')
         .select('created_at')
         .eq('email', userEmail.toLowerCase().trim())
-        .gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+        .gte('created_at', timeThreshold)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -666,7 +721,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       }
 
       if (existingEntry) {
-        console.log('⚠️ Utilisateur a déjà joué aujourd\'hui');
+        console.log('⚠️ Utilisateur a déjà joué dans la période configurée');
+        // Calculer le temps restant avec les paramètres configurables
+        const lastPlayDate = new Date(existingEntry.created_at);
+        const nextAllowedTime = new Date(lastPlayDate.getTime() + participationDelay * 60 * 60 * 1000);
+        setNextSpinTimestamp(nextAllowedTime);
         return false;
       }
 
@@ -740,7 +799,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       if (error) throw error;
       
-      setSegmentsData(segmentsData);
+      setWheelSettings(newSettings);
       toast.success('Paramètres sauvegardés !');
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);
@@ -757,7 +816,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         <div className={isEditMode ? "flex-shrink-0" : ""}>
         {/* Header avec bouton fermer */}
         <div className="flex justify-between items-center p-6 border-b border-cyan-100">
-            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {effectiveSettings.title}</h2>
+            <h2 className="text-2xl font-bold tracking-tight" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
           <Button
             variant="ghost"
             size="icon"
@@ -771,7 +830,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         {/* Contenu principal */}
           <div className="p-6 text-center">
             <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
-              🌊 {effectiveSettings.description} 🐟
+              🌊 {wheelSettings.description} 🐟
             </p>
 
             {isLoading ? (
@@ -988,7 +1047,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 </div>
                 
                 <p className="text-sm text-orange-600">
-                  🐠 Un tirage toutes les 72h pour garder la magie !
+                  🐠 Un tirage toutes les {wheelSettings?.participation_delay || 72}h pour garder la magie !
                 </p>
               </div>
             </div>
@@ -1020,7 +1079,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           </Button>
 
                 <p className="text-xs text-blue-500 mt-4">
-            🐟 Une tentative toutes les 72h • Système anti-contournement actif
+            🐟 Une tentative toutes les {wheelSettings?.participation_delay || 72}h • Système anti-contournement actif
           </p>
               </>
             )}
@@ -1040,8 +1099,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="text"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.title}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, title: e.target.value })}
+                  value={wheelSettings.title}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, title: e.target.value })}
                 />
               </div>
 
@@ -1050,8 +1109,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <label className="text-xs text-gray-600">Description</label>
                 <textarea
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.description}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, description: e.target.value })}
+                  value={wheelSettings.description}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, description: e.target.value })}
                   rows={2}
                 />
               </div>
@@ -1060,14 +1119,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
               <div className="flex items-center justify-between mt-2">
                 <label className="text-xs text-gray-600">Activer la roue</label>
                 <button
-                  onClick={() => saveWheelSettings({ ...effectiveSettings, is_enabled: !effectiveSettings.is_enabled })}
+                  onClick={() => saveWheelSettings({ ...wheelSettings, is_enabled: !wheelSettings.is_enabled })}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    effectiveSettings.is_enabled ? 'bg-blue-600' : 'bg-gray-200'
+                    wheelSettings.is_enabled ? 'bg-blue-600' : 'bg-gray-200'
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      effectiveSettings.is_enabled ? 'translate-x-6' : 'translate-x-1'
+                      wheelSettings.is_enabled ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -1079,8 +1138,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="number"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.auto_show_delay}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, auto_show_delay: parseInt(e.target.value) })}
+                  value={wheelSettings.auto_show_delay}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
                   min={0}
                 />
               </div>
@@ -1091,8 +1150,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="text"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.show_on_pages}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, show_on_pages: e.target.value })}
+                  value={wheelSettings.show_on_pages}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_on_pages: e.target.value })}
                 />
               </div>
 
@@ -1101,8 +1160,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <label className="text-xs text-gray-600">Afficher uniquement si</label>
                 <select
                   className="w-full border rounded px-2 py-1 text-xs"
-                  value={effectiveSettings.show_when_cart}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, show_when_cart: e.target.value })}
+                  value={wheelSettings.show_when_cart}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_when_cart: e.target.value })}
                 >
                   <option value="any">Peu importe le panier</option>
                   <option value="empty">Panier vide</option>
@@ -1115,8 +1174,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <label className="text-xs text-gray-600">Afficher uniquement aux</label>
                 <select
                   className="w-full border rounded px-2 py-1 text-xs"
-                  value={effectiveSettings.show_to}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, show_to: e.target.value })}
+                  value={wheelSettings.show_to}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_to: e.target.value })}
                 >
                   <option value="all">Tous</option>
                   <option value="new">Nouveaux visiteurs</option>
@@ -1130,8 +1189,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="number"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.participation_delay}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, participation_delay: parseInt(e.target.value) })}
+                  value={wheelSettings.participation_delay}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, participation_delay: parseInt(e.target.value) })}
                   min={1}
                 />
               </div>
@@ -1141,8 +1200,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <label className="text-xs text-gray-600">Fréquence de participation</label>
                 <select
                   className="w-full border rounded px-2 py-1 text-xs"
-                  value={effectiveSettings.participation_frequency}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, participation_frequency: e.target.value })}
+                  value={wheelSettings.participation_frequency}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, participation_frequency: e.target.value })}
                 >
                   <option value="per_3days">Toutes les 72h</option>
                   <option value="per_session">Par session</option>
@@ -1157,8 +1216,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="text"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.floating_button_text}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, floating_button_text: e.target.value })}
+                  value={wheelSettings.floating_button_text}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, floating_button_text: e.target.value })}
                 />
               </div>
 
@@ -1167,8 +1226,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <label className="text-xs text-gray-600">Position du bouton flottant</label>
                 <select
                   className="w-full border rounded px-2 py-1 text-xs"
-                  value={effectiveSettings.floating_button_position}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, floating_button_position: e.target.value })}
+                  value={wheelSettings.floating_button_position}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, floating_button_position: e.target.value })}
                 >
                   <option value="bottom_right">Bas droite</option>
                   <option value="bottom_left">Bas gauche</option>
@@ -1183,8 +1242,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <input
                   type="number"
                   className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  value={effectiveSettings.popup_seen_cooldown}
-                  onChange={e => saveWheelSettings({ ...effectiveSettings, popup_seen_cooldown: parseInt(e.target.value) })}
+                  value={wheelSettings.popup_seen_cooldown}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, popup_seen_cooldown: parseInt(e.target.value) })}
                   min={1}
                 />
               </div>

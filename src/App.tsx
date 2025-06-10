@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation, BrowserRouter } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
@@ -101,83 +101,205 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useCartStore } from '@/stores/useCartStore';
+import { useCartStore } from "@/stores/useCartStore";
 
 const queryClient = new QueryClient();
 
-const App = () => {
-  useRestoreSession();
-  const { isEditMode } = useEditStore();
+const WheelManager = () => {
+  const location = useLocation();
+  const { items: cartItems } = useCartStore();
+  const [isWheelEnabled, setIsWheelEnabled] = useState(false);
   const [showWheel, setShowWheel] = useState(false);
   const [wheelSettings, setWheelSettings] = useState(null);
-  const { items: cartItems } = useCartStore();
 
+  // Vérifier si la roue est activée et récupérer tous les paramètres
   useEffect(() => {
-    const fetchWheelSettings = async () => {
+    const checkWheelStatus = async () => {
       const { data, error } = await supabase
         .from('wheel_settings')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(1);
+
       if (!error && data && data.length > 0) {
-        setWheelSettings(data[0]);
+        const settings = data[0];
+        setWheelSettings(settings);
+        setIsWheelEnabled(settings.is_enabled);
+        
+        if (settings.is_enabled) {
+          // Vérifier toutes les conditions d'affichage
+          if (await shouldShowWheel(settings)) {
+            // Utiliser le délai configurable au lieu de 5 secondes en dur
+            setTimeout(() => setShowWheel(true), (settings.auto_show_delay || 5) * 1000);
+          }
+        }
       }
     };
-    fetchWheelSettings();
+
+    checkWheelStatus();
+  }, [location.pathname]);
+
+  // Fonction pour vérifier si la roue doit être affichée
+  const shouldShowWheel = async (settings) => {
+    try {
+      // 1. Vérifier si on est sur une page autorisée
+      if (!isPageAllowed(settings.show_on_pages, location.pathname)) {
+        console.log('Page non autorisée pour la roue');
+        return false;
+      }
+
+      // 2. Vérifier la condition du panier
+      if (!isCartConditionMet(settings.show_when_cart, cartItems)) {
+        console.log('Condition panier non remplie');
+        return false;
+      }
+
+      // 3. Vérifier le cooldown anti-spam (localStorage)
+      if (!isAntiSpamRespected(settings.popup_seen_cooldown)) {
+        console.log('Cooldown anti-spam actif');
+        return false;
+      }
+
+      // 4. Vérifier le ciblage utilisateur
+      if (!(await isUserTargetMet(settings.show_to))) {
+        console.log('Ciblage utilisateur non rempli');
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Erreur lors de la vérification des conditions:', error);
+      return false;
+    }
+  };
+
+  // Vérifier si la page actuelle est autorisée
+  const isPageAllowed = (allowedPages, currentPath) => {
+    if (!allowedPages) return true;
+    const pages = allowedPages.split(',').map(p => p.trim());
+    return pages.some(page => {
+      if (page.endsWith('*')) {
+        return currentPath.startsWith(page.slice(0, -1));
+      }
+      return currentPath === page;
+    });
+  };
+
+  // Vérifier la condition du panier
+  const isCartConditionMet = (condition, items) => {
+    switch (condition) {
+      case 'empty':
+        return items.length === 0;
+      case 'full':
+        return items.length > 0;
+      case 'any':
+      default:
+        return true;
+    }
+  };
+
+  // Vérifier le cooldown anti-spam
+  const isAntiSpamRespected = (cooldownDays) => {
+    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+    if (!lastSeen) return true;
+    
+    const lastDate = new Date(lastSeen);
+    const now = new Date();
+    const diffDays = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+    
+    return diffDays >= (cooldownDays || 1);
+  };
+
+  // Vérifier le ciblage utilisateur
+  const isUserTargetMet = async (targetType) => {
+    switch (targetType) {
+      case 'new':
+        // Vérifier si l'utilisateur n'a jamais joué
+        const hasPlayed = localStorage.getItem('wheel_has_played');
+        return !hasPlayed;
+      case 'not_subscribed':
+        // Vérifier si l'utilisateur n'est pas abonné à la newsletter
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return true; // Non connecté = potentiellement non abonné
+        
+        const { data } = await supabase
+          .from('newsletter_subscribers')
+          .select('email')
+          .eq('email', user.email)
+          .single();
+        
+        return !data; // Pas dans la newsletter
+      case 'all':
+      default:
+        return true;
+    }
+  };
+
+  // Gérer la fermeture de la roue
+  const handleCloseWheel = () => {
+    setShowWheel(false);
+    // Enregistrer la date de vue pour le cooldown anti-spam
+    localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+  };
+
+  return (
+    <>
+      {isWheelEnabled && wheelSettings && (
+        <LuckyWheelPopup 
+          isOpen={showWheel} 
+          onClose={handleCloseWheel}
+          wheelSettings={wheelSettings}
+        />
+      )}
+    </>
+  );
+};
+
+const App = () => {
+  useRestoreSession();
+  const { isEditMode } = useEditStore();
+  const [showWheel, setShowWheel] = useState(false);
+  const [editWheel, setEditWheel] = useState(false);
+  const [isWheelEnabled, setIsWheelEnabled] = useState(true);
+
+  // Vérifier si la roue est activée
+  useEffect(() => {
+    const checkWheelStatus = async () => {
+      const { data, error } = await supabase
+        .from('wheel_settings')
+        .select('is_enabled')
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (!error && data && data.length > 0) {
+        setIsWheelEnabled(data[0].is_enabled);
+        // Affiche la roue après 5 secondes si activée
+        if (data[0].is_enabled) {
+          setTimeout(() => setShowWheel(true), 5000);
+        }
+      }
+    };
+
+    checkWheelStatus();
   }, []);
 
   useEffect(() => {
-    if (!wheelSettings || !wheelSettings.is_enabled) return;
+    const checkEditMode = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      setEditWheel(urlParams.get('edit') === 'true');
+    };
 
-    // 1. Vérifier la page courante
-    const currentPath = window.location.pathname;
-    const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
-    const isAllowedPage = allowedPages.some(pattern => {
-      if (pattern.endsWith('*')) {
-        return currentPath.startsWith(pattern.replace('*', ''));
-      }
-      return currentPath === pattern;
-    });
-    if (!isAllowedPage) return;
-
-    // 2. Vérifier le panier
-    if (wheelSettings.show_when_cart === 'empty' && cartItems.length > 0) return;
-    if (wheelSettings.show_when_cart === 'full' && cartItems.length === 0) return;
-
-    // 3. Vérifier le cooldown anti-spam
-    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-    if (lastSeen) {
-      const lastDate = new Date(lastSeen);
-      const now = new Date();
-      const diff = (now - lastDate) / (1000 * 60 * 60 * 24);
-      if (diff < (wheelSettings.popup_seen_cooldown || 1)) return;
-    }
-
-    // 4. Affichage automatique après le délai paramétré
-    setTimeout(() => {
-      setShowWheel(true);
-      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-    }, (wheelSettings.auto_show_delay || 5) * 1000);
-  }, [wheelSettings, cartItems]);
-
-  // Affichage du bouton flottant si activé (exemple: si auto_show_delay = 0, on affiche le bouton)
-  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text && wheelSettings.auto_show_delay === 0;
-
-  // Position du bouton flottant
-  const floatingButtonStyle = {
-    position: 'fixed',
-    zIndex: 1000,
-    ...(wheelSettings?.floating_button_position === 'bottom_right' && { bottom: 32, right: 32 }),
-    ...(wheelSettings?.floating_button_position === 'bottom_left' && { bottom: 32, left: 32 }),
-    ...(wheelSettings?.floating_button_position === 'top_right' && { top: 32, right: 32 }),
-    ...(wheelSettings?.floating_button_position === 'top_left' && { top: 32, left: 32 }),
-  };
+    checkEditMode();
+    window.addEventListener('popstate', checkEditMode);
+    return () => window.removeEventListener('popstate', checkEditMode);
+  }, []);
 
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin-login" element={<AdminLogin />} />
@@ -257,32 +379,26 @@ const App = () => {
 
           <Route path="/lucky-wheel" element={
             <div className="flex flex-col items-center justify-center min-h-screen">
-              <Button onClick={() => { setShowWheel(true); }} className="mb-6">Tester la roue aquatique</Button>
-              <LuckyWheelPopup
-                isOpen={showWheel}
-                onClose={() => setShowWheel(false)}
-                wheelSettings={wheelSettings}
-              />
+              <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
+              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
             </div>
           } />
 
           <Route path="*" element={<NotFound />} />
-          </Routes>
+        </Routes>
+        {/* Gestionnaire de la roue automatique */}
+        <WheelManager />
         {/* Bouton flottant pour ouvrir la roue en mode édition */}
         {isEditMode && (
           <button
-            style={floatingButtonStyle}
-            className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-            onClick={() => setShowWheel(true)}
+            onClick={() => { setShowWheel(true); setEditWheel(true); }}
+            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
           >
             🎡 Tester la roue
           </button>
         )}
-        <LuckyWheelPopup
-          isOpen={showWheel}
-          onClose={() => setShowWheel(false)}
-          wheelSettings={wheelSettings}
-        />
+        <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+      </BrowserRouter>
       <CookieBanner />
     </TooltipProvider>
   </QueryClientProvider>
