@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
@@ -110,27 +110,75 @@ const App = () => {
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
+  const [wheelSettings, setWheelSettings] = useState(null);
+  const location = useLocation();
 
-  // Vérifier si la roue est activée
+  // Récupère les settings complets de la roue
   useEffect(() => {
-    const checkWheelStatus = async () => {
+    const fetchSettings = async () => {
       const { data, error } = await supabase
         .from('wheel_settings')
-        .select('is_enabled')
+        .select('*')
         .order('updated_at', { ascending: false })
         .limit(1);
-
       if (!error && data && data.length > 0) {
+        setWheelSettings(data[0]);
         setIsWheelEnabled(data[0].is_enabled);
-        // Affiche la roue après 5 secondes si activée
-        if (data[0].is_enabled) {
-          setTimeout(() => setShowWheel(true), 5000);
-        }
       }
     };
-
-    checkWheelStatus();
+    fetchSettings();
   }, []);
+
+  // Logique d'affichage avancée
+  useEffect(() => {
+    if (!wheelSettings || !isWheelEnabled) return;
+
+    // 1. Anti-spam localStorage (popup_seen_cooldown)
+    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+    const cooldownDays = wheelSettings.popup_seen_cooldown || 1;
+    if (lastSeen) {
+      const lastDate = new Date(lastSeen);
+      const now = new Date();
+      const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+      if (diff < cooldownDays) return; // Ne pas afficher le popup
+    }
+
+    // 2. Vérifie la page courante
+    const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
+    const currentPath = location.pathname;
+    const pageMatch = allowedPages.some(pattern => {
+      if (pattern.endsWith('/*')) {
+        return currentPath.startsWith(pattern.replace('/*', ''));
+      }
+      return currentPath === pattern;
+    });
+    if (!pageMatch) return;
+
+    // 3. Vérifie le panier (optionnel, à brancher sur le store cart si besoin)
+    // TODO: brancher useCartStore pour vérifier si panier vide/plein
+    // if (wheelSettings.show_when_cart === 'empty' && !isCartEmpty) return;
+    // if (wheelSettings.show_when_cart === 'full' && isCartEmpty) return;
+
+    // 4. Ciblage visiteurs (optionnel, à brancher selon logique user/newsletter)
+    // TODO: vérifier si user est nouveau ou non-abonné
+
+    // 5. Affichage automatique après délai paramétrable
+    setTimeout(() => {
+      setShowWheel(true);
+      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+    }, (wheelSettings.auto_show_delay || 5) * 1000);
+  }, [wheelSettings, isWheelEnabled, location.pathname]);
+
+  // Affichage du bouton flottant si activé (toujours visible si besoin)
+  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text;
+  const floatingButtonStyle: React.CSSProperties = {
+    position: 'fixed',
+    zIndex: 1000,
+    ...(wheelSettings?.floating_button_position === 'bottom_right' && { bottom: 32, right: 32 }),
+    ...(wheelSettings?.floating_button_position === 'bottom_left' && { bottom: 32, left: 32 }),
+    ...(wheelSettings?.floating_button_position === 'top_right' && { top: 32, right: 32 }),
+    ...(wheelSettings?.floating_button_position === 'top_left' && { top: 32, left: 32 }),
+  };
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -230,6 +278,15 @@ const App = () => {
             className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
           >
             🎡 Tester la roue
+          </button>
+        )}
+        {showFloatingButton && (
+          <button
+            style={floatingButtonStyle}
+            className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+            onClick={() => setShowWheel(true)}
+          >
+            {wheelSettings.floating_button_text}
           </button>
         )}
         <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />

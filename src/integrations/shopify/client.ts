@@ -294,7 +294,7 @@ const addToOmnisend = async (email: string): Promise<boolean> => {
         id: email,
         channels: {
           email: {
-            status: "subscribed",
+      status: "subscribed",
             statusDate: new Date().toISOString()
           }
         }

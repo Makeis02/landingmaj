@@ -88,7 +88,7 @@ serve(async (req) => {
       id: email,
       channels: {
         email: {
-          status: "subscribed",
+    status: "subscribed",
           statusDate: new Date().toISOString()
         }
       }

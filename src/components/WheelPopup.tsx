@@ -23,7 +23,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [wheelSettings, setWheelSettings] = useState({ 
     title: 'Roue Aquatique', 
     description: 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
-    is_enabled: true 
+    is_enabled: true,
+    auto_show_delay: 5,
+    show_on_pages: '/',
+    show_when_cart: 'any',
+    show_to: 'all',
+    participation_delay: 72,
+    participation_frequency: 'per_3days',
+    floating_button_text: 'Tentez votre chance !',
+    floating_button_position: 'bottom_right',
+    popup_seen_cooldown: 1
   });
   
   // 🆕 NOUVEAUX ÉTATS pour la saisie d'email
@@ -130,7 +139,16 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         setWheelSettings({
           title: settings.title || 'Roue Aquatique',
           description: settings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
-          is_enabled: settings.is_enabled || true
+          is_enabled: settings.is_enabled || true,
+          auto_show_delay: settings.auto_show_delay || 5,
+          show_on_pages: settings.show_on_pages || '/',
+          show_when_cart: settings.show_when_cart || 'any',
+          show_to: settings.show_to || 'all',
+          participation_delay: settings.participation_delay || 72,
+          participation_frequency: settings.participation_frequency || 'per_3days',
+          floating_button_text: settings.floating_button_text || 'Tentez votre chance !',
+          floating_button_position: settings.floating_button_position || 'bottom_right',
+          popup_seen_cooldown: settings.popup_seen_cooldown || 1
         });
       }
 
@@ -1069,6 +1087,122 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     }`}
                   />
                 </button>
+              </div>
+
+              {/* Délai avant affichage */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Délai avant affichage (secondes)</label>
+                <input
+                  type="number"
+                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={wheelSettings.auto_show_delay}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, auto_show_delay: parseInt(e.target.value) })}
+                  min={0}
+                />
+              </div>
+
+              {/* Pages où afficher */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Pages où afficher (séparées par ,)</label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={wheelSettings.show_on_pages}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_on_pages: e.target.value })}
+                />
+              </div>
+
+              {/* Afficher uniquement si panier ... */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Afficher uniquement si</label>
+                <select
+                  className="w-full border rounded px-2 py-1 text-xs"
+                  value={wheelSettings.show_when_cart}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_when_cart: e.target.value })}
+                >
+                  <option value="any">Peu importe le panier</option>
+                  <option value="empty">Panier vide</option>
+                  <option value="full">Panier plein</option>
+                </select>
+              </div>
+
+              {/* Ciblage visiteurs */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Afficher uniquement aux</label>
+                <select
+                  className="w-full border rounded px-2 py-1 text-xs"
+                  value={wheelSettings.show_to}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, show_to: e.target.value })}
+                >
+                  <option value="all">Tous</option>
+                  <option value="new">Nouveaux visiteurs</option>
+                  <option value="not_subscribed">Non-abonnés</option>
+                </select>
+              </div>
+
+              {/* Délai entre participations */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Délai entre deux participations (heures)</label>
+                <input
+                  type="number"
+                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={wheelSettings.participation_delay}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, participation_delay: parseInt(e.target.value) })}
+                  min={1}
+                />
+              </div>
+
+              {/* Fréquence de participation */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Fréquence de participation</label>
+                <select
+                  className="w-full border rounded px-2 py-1 text-xs"
+                  value={wheelSettings.participation_frequency}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, participation_frequency: e.target.value })}
+                >
+                  <option value="per_3days">Toutes les 72h</option>
+                  <option value="per_session">Par session</option>
+                  <option value="per_day">Par jour</option>
+                  <option value="per_week">Par semaine</option>
+                </select>
+              </div>
+
+              {/* Texte du bouton flottant */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Texte du bouton flottant</label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={wheelSettings.floating_button_text}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, floating_button_text: e.target.value })}
+                />
+              </div>
+
+              {/* Position du bouton flottant */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Position du bouton flottant</label>
+                <select
+                  className="w-full border rounded px-2 py-1 text-xs"
+                  value={wheelSettings.floating_button_position}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, floating_button_position: e.target.value })}
+                >
+                  <option value="bottom_right">Bas droite</option>
+                  <option value="bottom_left">Bas gauche</option>
+                  <option value="top_right">Haut droite</option>
+                  <option value="top_left">Haut gauche</option>
+                </select>
+              </div>
+
+              {/* Cooldown anti-spam */}
+              <div className="mb-2">
+                <label className="text-xs text-gray-600">Ne pas réafficher le popup avant (jours)</label>
+                <input
+                  type="number"
+                  className="w-full border rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={wheelSettings.popup_seen_cooldown}
+                  onChange={e => saveWheelSettings({ ...wheelSettings, popup_seen_cooldown: parseInt(e.target.value) })}
+                  min={1}
+                />
               </div>
             </div>
 
