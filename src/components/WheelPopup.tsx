@@ -87,13 +87,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
+    console.log('⭐ ⏰ useEffect Timer - Démarrage avec:', {
+      nextSpinTimestamp: nextSpinTimestamp?.toISOString(),
+      canSpin,
+      hasValidData: !!(nextSpinTimestamp && !canSpin)
+    });
+    
     if (nextSpinTimestamp && !canSpin) {
+      console.log('⭐ ⏰ Démarrage du timer temps réel pour:', nextSpinTimestamp.toISOString());
+      
       interval = setInterval(() => {
         const now = new Date();
         const timeDiff = nextSpinTimestamp.getTime() - now.getTime();
         
         if (timeDiff <= 0) {
           // Timer expiré - utilisateur peut maintenant jouer
+          console.log('⭐ ⏰ Timer expiré - déblocage automatique');
           setCanSpin(true);
           setTimeUntilNextSpin(0);
           setNextSpinTimestamp(null);
@@ -108,10 +117,15 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           setTimeUntilNextSpin(hours); // Pour compatibilité avec l'affichage existant
         }
       }, 1000);
+    } else {
+      console.log('⭐ ⏰ Pas de timer à démarrer (nextSpinTimestamp manquant ou canSpin=true)');
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (interval) {
+        console.log('⭐ ⏰ Nettoyage du timer');
+        clearInterval(interval);
+      }
     };
   }, [nextSpinTimestamp, canSpin]);
 
@@ -867,6 +881,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         if (timeLeft > 0) {
           // Timer actif basé sur la vraie participation
           const hoursLeft = Math.ceil(timeLeft / (1000 * 60 * 60));
+          
+          // 🔄 MISE À JOUR SYNCHRONE DES STATES
           setCanSpin(false);
           setTimeUntilNextSpin(hoursLeft);
           setNextSpinTimestamp(nextAllowedTime);
@@ -875,12 +891,76 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           // Sauvegarder aussi dans localStorage pour cohérence
           const lastSpinKey = `last_wheel_spin_${email.toLowerCase().trim()}`;
           localStorage.setItem(lastSpinKey, lastSpinDate.toISOString());
+          
+          // 🎯 AFFICHAGE IMMÉDIAT avec les vraies valeurs calculées
+          console.log('⭐ ✅ [INVITÉ] Valeurs appliquées:', {
+            canSpin: false,
+            timeUntilNextSpin: hoursLeft,
+            nextSpinTimestamp: nextAllowedTime.toISOString(),
+            participationSource: useWheelSpins ? 'wheel_spins' : 'wheel_email_entries'
+          });
+          
+          // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
+          const newsletterResult = await subscribeToNewsletter(email);
+          if (!newsletterResult.success) {
+            console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
+          }
+
+          // 4. Sauvegarder l'email localement comme fallback
+          const { error: saveError } = await supabase
+            .from('newsletter_subscribers')
+            .upsert([{ 
+              email, 
+              status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
+              source: 'wheel_popup',
+              updated_at: new Date().toISOString() 
+            }], {
+              onConflict: 'email'
+            });
+
+          if (saveError) {
+            console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
+          }
+
+          // 5. Passer à l'étape suivante dans tous les cas
+          setShowEmailForm(false);
+          setEmailValidated(true);
+          
+          toast.info(`Email enregistré ! Vous pourrez rejouer dans ${hoursLeft}h`);
         } else {
           // Timer expiré - peut jouer
           setCanSpin(true);
           setTimeUntilNextSpin(0);
           setNextSpinTimestamp(null);
           console.log('⭐ ✅ [INVITÉ] Timer expiré - peut jouer');
+          
+          // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
+          const newsletterResult = await subscribeToNewsletter(email);
+          if (!newsletterResult.success) {
+            console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
+          }
+
+          // 4. Sauvegarder l'email localement comme fallback
+          const { error: saveError } = await supabase
+            .from('newsletter_subscribers')
+            .upsert([{ 
+              email, 
+              status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
+              source: 'wheel_popup',
+              updated_at: new Date().toISOString() 
+            }], {
+              onConflict: 'email'
+            });
+
+          if (saveError) {
+            console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
+          }
+
+          // 5. Passer à l'étape suivante dans tous les cas
+          setShowEmailForm(false);
+          setEmailValidated(true);
+          
+          toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
         }
       } else {
         // Aucune participation trouvée - nouveau joueur
@@ -888,49 +968,34 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         setTimeUntilNextSpin(0);
         setNextSpinTimestamp(null);
         console.log('⭐ ✅ [INVITÉ] Nouveau joueur - peut jouer');
-      }
+        
+        // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
+        const newsletterResult = await subscribeToNewsletter(email);
+        if (!newsletterResult.success) {
+          console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
+        }
 
-      // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
-      const newsletterResult = await subscribeToNewsletter(email);
-      if (!newsletterResult.success) {
-        console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
-        // On continue quand même, ce n'est pas bloquant
-      }
+        // 4. Sauvegarder l'email localement comme fallback
+        const { error: saveError } = await supabase
+          .from('newsletter_subscribers')
+          .upsert([{ 
+            email, 
+            status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
+            source: 'wheel_popup',
+            updated_at: new Date().toISOString() 
+          }], {
+            onConflict: 'email'
+          });
 
-      // 4. Sauvegarder l'email localement comme fallback
-      const { error: saveError } = await supabase
-        .from('newsletter_subscribers')
-        .upsert([{ 
-          email, 
-          status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
-          source: 'wheel_popup',
-          updated_at: new Date().toISOString() 
-        }], {
-          onConflict: 'email'
-        });
+        if (saveError) {
+          console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
+        }
 
-      if (saveError) {
-        console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
-      }
-
-      // 5. Passer à l'étape suivante dans tous les cas
-      setShowEmailForm(false);
-      setEmailValidated(true);
-      
-      // 6. Debug - affichage des valeurs après délai pour assurer la synchronisation
-      setTimeout(() => {
-        console.log('⭐ 🔍 Debug FINAL après validation email:', {
-          canSpin,
-          timeUntilNextSpin,
-          nextSpinTimestamp: nextSpinTimestamp?.toISOString(),
-          emailValidated: true
-        });
-      }, 100);
-      
-      if (canSpin) {
+        // 5. Passer à l'étape suivante dans tous les cas
+        setShowEmailForm(false);
+        setEmailValidated(true);
+        
         toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
-      } else {
-        toast.info(`Email enregistré ! Vous pourrez rejouer dans ${timeUntilNextSpin}h`);
       }
     } catch (error) {
       console.error('❌ Erreur lors de la soumission:', error);
@@ -998,18 +1063,28 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   }, [segmentsData]);
 
-  // 🔍 Debug - surveillance des états
+  // 🔍 Debug - surveillance des états AVEC PROTECTION
   useEffect(() => {
     if (emailValidated) {
-      console.log('🔍 États actuels:', {
+      console.log('⭐ 🔍 États React mis à jour:', {
         emailValidated,
         canSpin,
         timeUntilNextSpin,
-        nextSpinTimestamp,
-        showTimer: emailValidated && !canSpin && timeUntilNextSpin > 0
+        nextSpinTimestamp: nextSpinTimestamp?.toISOString(),
+        showTimer: emailValidated && !canSpin && timeUntilNextSpin > 0,
+        isEditMode
       });
+      
+      // 🚨 VÉRIFICATION : si les valeurs sont incohérentes, alerter
+      if (!canSpin && timeUntilNextSpin === 0) {
+        console.warn('⚠️ INCOHÉRENCE DÉTECTÉE: canSpin=false mais timeUntilNextSpin=0');
+      }
+      
+      if (!canSpin && !nextSpinTimestamp) {
+        console.warn('⚠️ INCOHÉRENCE DÉTECTÉE: canSpin=false mais nextSpinTimestamp=null');
+      }
     }
-  }, [emailValidated, canSpin, timeUntilNextSpin, nextSpinTimestamp]);
+  }, [emailValidated, canSpin, timeUntilNextSpin, nextSpinTimestamp, isEditMode]);
 
   // 🆕 Formulaire de test en mode édition
   const handleTestEmailSubmit = async () => {
@@ -1076,6 +1151,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     try {
       console.log('⭐ 🔄 [ÉDITION] Recalcul en cours pour:', emailToCheck, 'avec', newParticipationHours, 'heures');
       
+      // ⚠️ NE RECALCULER QUE SI CE N'EST PAS LA VALIDATION INITIALE
+      if (!emailValidated) {
+        console.log('⭐ 🔄 [ÉDITION] Email pas encore validé, on skip le recalcul');
+        return;
+      }
+      
       // Rechercher la dernière participation (même logique que handleEmailSubmit)
       const { data: spinsForEmail } = await supabase
         .from('wheel_spins')
@@ -1124,7 +1205,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           setCanSpin(false);
           setTimeUntilNextSpin(hoursLeft);
           setNextSpinTimestamp(nextAllowedTime);
-          console.log('⭐ ✅ [ÉDITION] Timer recalculé:', hoursLeft, 'heures');
+          console.log('⭐ ✅ [ÉDITION] Timer recalculé SYNCHRONE:', hoursLeft, 'heures, nextSpinTimestamp:', nextAllowedTime.toISOString());
         } else {
           setCanSpin(true);
           setTimeUntilNextSpin(0);
