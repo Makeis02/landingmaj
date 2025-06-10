@@ -1551,15 +1551,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                   </div>
                 </div>
                 
-                <p className="text-sm text-orange-600">
-                  🐠 Fréquence configurée : {
-                    wheelSettings.participation_frequency === 'per_3days' ? `${wheelSettings.participation_delay || 72}h (personnalisé)` :
-                    wheelSettings.participation_frequency === 'per_session' ? 'Par session' :
-                    wheelSettings.participation_frequency === 'per_day' ? '24h (quotidien)' :
-                    wheelSettings.participation_frequency === 'per_week' ? '168h (hebdomadaire)' :
-                    `${wheelSettings.participation_delay || 72}h`
-                  } pour garder la magie !
-                </p>
+
               </div>
             </div>
           )}
@@ -1583,7 +1575,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             ) : !emailValidated ? (
               '📧 Saisissez votre email pour jouer'
             ) : !canSpin ? (
-              `⏰ Attendez ${timeUntilNextSpin}h`
+              realTimeCountdown.hours > 0 
+                ? `⏰ Attendez ${realTimeCountdown.hours}h ${realTimeCountdown.minutes}min`
+                : realTimeCountdown.minutes > 0
+                  ? `⏰ Attendez ${realTimeCountdown.minutes}min ${realTimeCountdown.seconds}s`
+                  : `⏰ Attendez ${realTimeCountdown.seconds}s`
             ) : (
               '🎣 Lancer la roue aquatique'
             )}
