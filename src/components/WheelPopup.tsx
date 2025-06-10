@@ -972,15 +972,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           )}
 
           {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
-          {!canSpin && timeUntilNextSpin > 0 && (
+          {!canSpin && (
             <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
               <div className="text-center">
                 <div className="text-3xl mb-2">⏰</div>
                 <h3 className="text-lg font-bold text-orange-800 mb-2">
                   Patience, aquariophile !
                 </h3>
-                
-                {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
+                {/* Timer toujours affiché si pas éligible */}
                 <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
                   <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
                   <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
@@ -1006,9 +1005,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     </div>
                   </div>
                 </div>
-                
                 <p className="text-sm text-orange-600">
-                  🐠 Un tirage toutes les 72h pour garder la magie !
+                  🐠 Un tirage toutes les {wheelSettings.participation_delay || 72}h pour garder la magie !
                 </p>
               </div>
             </div>
