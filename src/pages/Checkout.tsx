@@ -295,11 +295,20 @@ const Checkout = () => {
     }
 
     // Vérifier si le panier est valide
-    const validation = validateCart(items);
-    if (!validation.panier_valide) {
+    if (items.length === 0) {
       toast({
         title: "Erreur",
-        description: validation.error || "Une erreur est survenue",
+        description: "Votre panier est vide",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Vérifier qu'il y a au moins un produit payant
+    if (payableItems.length === 0) {
+      toast({
+        title: "Erreur", 
+        description: "Votre panier ne contient que des cadeaux. Ajoutez au moins un produit payant pour pouvoir commander.",
         variant: "destructive",
       });
       return;
