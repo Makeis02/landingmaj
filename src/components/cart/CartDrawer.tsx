@@ -11,8 +11,6 @@ import { useCartStore } from "@/stores/useCartStore";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useCartCleanup } from "@/hooks/useCartCleanup";
-import WheelGiftInfo from "./WheelGiftInfo";
 
 export type CartStep = "products" | "thresholds" | "summary" | "checkout";
 
@@ -21,9 +19,6 @@ export const CartDrawer = () => {
   const { items, isOpen, openDrawer, closeDrawer, syncWithSupabase, getTotal, fetchGiftSettings } = useCartStore();
   const [reachedThreshold, setReachedThreshold] = useState<number | null>(null);
   const prevItemsLength = useRef(items.length);
-  
-  // 🎁 Hook pour nettoyer automatiquement les cadeaux expirés
-  useCartCleanup();
 
   // Fetch thresholds data
   const { data: thresholds } = useQuery({
@@ -154,23 +149,6 @@ export const CartDrawer = () => {
               maxValue={maxValue}
             />
           )}
-
-          {/* 🎁 Informations détaillées sur les cadeaux de la roue */}
-          <WheelGiftInfo
-            wheelGiftsCount={items.filter((item: any) => item.type === 'wheel_gift').length}
-            hasExpiredGifts={items.some((item: any) => 
-              item.type === 'wheel_gift' && 
-              item.expires_at && 
-              new Date(item.expires_at) < new Date()
-            )}
-            hasUrgentGifts={items.some((item: any) => {
-              if (item.type !== 'wheel_gift' || !item.expires_at) return false;
-              const now = new Date();
-              const expires = new Date(item.expires_at);
-              const timeLeft = expires.getTime() - now.getTime();
-              return timeLeft > 0 && timeLeft <= 30 * 60 * 1000; // 30 minutes
-            })}
-          />
 
           <div className="mt-6">
             <CartProducts />

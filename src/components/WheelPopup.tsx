@@ -484,7 +484,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     // Mapping conforme à CartItem
     const giftItem = {
       id: segment.id,
-      type: 'wheel_gift' as const,
+      type: 'wheel_gift',
       title: segment.title || segment.text || 'Cadeau de la roue',
       image_url: segment.image_url,
       price: 0,
@@ -1315,40 +1315,38 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-2 sm:p-4">
-      <div className={`relative flex flex-col lg:flex-row bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full h-full max-h-screen overflow-hidden' : 'max-w-lg w-full max-h-[95vh] sm:max-h-none'}`}>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-auto">
+      <div className={`relative flex bg-white rounded-lg shadow-lg ${isEditMode ? 'max-w-5xl w-full p-4' : 'p-8'} max-h-[95vh] overflow-y-auto my-auto`}>
         {/* Roue à gauche */}
-        <div className={`${isEditMode ? "flex-shrink-0 overflow-y-auto" : "overflow-y-auto"}`}>
-        {/* Header avec titre seulement */}
-        <div className="flex justify-center items-center p-4 sm:p-6 border-b border-cyan-100">
-            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-center" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
+        <div className={isEditMode ? "flex-shrink-0" : ""}>
+        {/* Header avec bouton fermer */}
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b border-cyan-100">
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight pr-4" style={{ color: '#0074b3' }}>🐠 {wheelSettings.title}</h2>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onClose}
+              className="text-gray-400 hover:text-blue-700 flex-shrink-0 ml-2"
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Contenu principal */}
-          <div className="p-4 sm:p-6 text-center flex-1">
-            <p className="mb-6 sm:mb-8 text-sm sm:text-base font-medium" style={{ color: '#0074b3' }}>
+          <div className="p-4 sm:p-6 text-center">
+            <p className="mb-8 text-base font-medium" style={{ color: '#0074b3' }}>
               🌊 {wheelSettings.description} 🐟
             </p>
 
             {isLoading ? (
-              <div className="flex items-center justify-center h-60 sm:h-80">
+              <div className="flex items-center justify-center h-80">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
                 <span className="ml-4 text-cyan-700 font-medium">Chargement de la roue...</span>
               </div>
             ) : (
               <>
-          {/* Container de la roue avec poissons animés et bouton fermer */}
-          <div className="relative mx-auto mb-6 sm:mb-8 flex justify-center">
-            <div className="relative" style={{ width: '280px', height: '280px' }}>
-              {/* Bouton fermer repositionné */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="absolute -top-2 -right-2 z-20 bg-white shadow-lg rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 w-8 h-8 sm:w-10 sm:h-10"
-              >
-                <X className="h-4 w-4 sm:h-5 sm:w-5" />
-              </Button>
+          {/* Container de la roue avec poissons animés */}
+          <div className="relative mx-auto mb-8 w-[280px] h-[280px] sm:w-[320px] sm:h-[320px]">
             {/* Poissons qui nagent autour de la roue */}
             <div className="absolute inset-0">
               {/* Poisson 1 - tourne dans le sens horaire */}
@@ -1398,11 +1396,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
             {/* La roue */}
             <div 
-              className="relative w-full h-full rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden"
+              className="relative rounded-full shadow-xl border-4 border-cyan-200 overflow-hidden w-60 h-60 sm:w-70 sm:h-70 mx-auto my-5"
               style={{
-                width: '240px',
-                height: '240px',
-                margin: '20px auto',
                 transform: `rotate(${rotation}deg)`,
                 transition: isSpinning ? 'transform 3s cubic-bezier(0.25, 0.1, 0.25, 1)' : 'none'
               }}
@@ -1467,23 +1462,22 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                     <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 rounded-full border-4 border-white shadow-lg z-10 flex items-center justify-center">
                       <span className="text-white text-2xl">🐠</span>
               </div>
-              </div>
             </div>
           </div>
 
           {/* 🆕 FORMULAIRE D'EMAIL EN DESSOUS DE LA ROUE */}
           {!emailValidated ? (
-            <div className="mb-4 sm:mb-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-3 sm:p-4 border-2 border-cyan-200">
-              <h3 className="text-base sm:text-lg font-bold text-cyan-800 mb-2 sm:mb-3">
+            <div className="mb-6 bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border-2 border-cyan-200">
+              <h3 className="text-lg font-bold text-cyan-800 mb-3">
                 📧 Saisissez votre email pour participer
               </h3>
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="flex gap-3">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="votre.email@example.com"
-                  className="flex-1 px-3 sm:px-4 py-2 rounded-lg border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-gray-700 font-medium transition-colors text-sm sm:text-base"
+                  className="flex-1 px-4 py-2 rounded-lg border-2 border-cyan-200 focus:border-cyan-500 focus:outline-none text-gray-700 font-medium transition-colors"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleEmailSubmit();
@@ -1493,7 +1487,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 <Button
                   onClick={handleEmailSubmit}
                   disabled={isValidatingEmail || !email.trim() || isCheckingEligibility}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-[44px] h-10 sm:h-auto"
+                  className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-lg shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isValidatingEmail || isCheckingEligibility ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
@@ -1520,33 +1514,33 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
           {/* 🆕 AFFICHAGE DU TIMER SI PAS ÉLIGIBLE */}
           {emailValidated && !canSpin && timeUntilNextSpin > 0 && (
-            <div className="mb-4 sm:mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-3 sm:p-4 border-2 border-orange-200">
+            <div className="mb-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
               <div className="text-center">
-                  <div className="text-2xl sm:text-3xl mb-2">⏰</div>
-                  <h3 className="text-base sm:text-lg font-bold text-orange-800 mb-2">
+                <div className="text-3xl mb-2">⏰</div>
+                <h3 className="text-lg font-bold text-orange-800 mb-2">
                   Patience, aquariophile !
                 </h3>
                 
                 {/* 🆕 COMPTE À REBOURS EN TEMPS RÉEL */}
-                  <div className="bg-white rounded-lg p-2 sm:p-3 mb-2 sm:mb-3 border border-orange-300">
-                    <p className="text-xs sm:text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
-                    <div className="flex justify-center items-center gap-1 sm:gap-2 text-lg sm:text-2xl font-bold text-orange-800">
+                <div className="bg-white rounded-lg p-3 mb-3 border border-orange-300">
+                  <p className="text-sm text-orange-600 mb-1">Prochaine tentative dans :</p>
+                  <div className="flex justify-center items-center gap-2 text-2xl font-bold text-orange-800">
                     <div className="flex flex-col items-center">
-                      <span className="bg-orange-100 px-1 sm:px-2 py-1 rounded min-w-[40px] sm:min-w-[50px] text-sm sm:text-base">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
                         {String(realTimeCountdown.hours).padStart(2, '0')}
                       </span>
                       <span className="text-xs text-orange-600 mt-1">heures</span>
                     </div>
                     <span className="text-orange-400">:</span>
                     <div className="flex flex-col items-center">
-                      <span className="bg-orange-100 px-1 sm:px-2 py-1 rounded min-w-[40px] sm:min-w-[50px] text-sm sm:text-base">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
                         {String(realTimeCountdown.minutes).padStart(2, '0')}
                       </span>
                       <span className="text-xs text-orange-600 mt-1">min</span>
                     </div>
                     <span className="text-orange-400">:</span>
                     <div className="flex flex-col items-center">
-                      <span className="bg-orange-100 px-1 sm:px-2 py-1 rounded min-w-[40px] sm:min-w-[50px] text-sm sm:text-base">
+                      <span className="bg-orange-100 px-2 py-1 rounded min-w-[50px]">
                         {String(realTimeCountdown.seconds).padStart(2, '0')}
                       </span>
                       <span className="text-xs text-orange-600 mt-1">sec</span>
@@ -1565,7 +1559,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           <Button
             onClick={handleSpin}
             disabled={isSpinning || !emailValidated || !canSpin || isCheckingEligibility}
-            className="w-full h-12 sm:h-14 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-base sm:text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full h-12 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold text-lg rounded-xl shadow-lg transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
             {isSpinning ? (
               <>
@@ -1596,7 +1590,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
         {/* Panneau d'édition à droite si mode édition */}
         {isEditMode && (
-          <div className="lg:ml-4 w-full lg:w-56 bg-gray-50 border-t lg:border-t-0 lg:border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[400px] lg:max-h-[600px] overflow-y-auto">
+          <div className="ml-4 w-56 bg-gray-50 border-l border-gray-200 rounded-lg p-3 flex flex-col gap-2 max-h-[600px] overflow-y-auto">
             {/* Paramètres généraux */}
             <div className="mb-4 p-3 bg-white rounded border">
               <h3 className="font-bold text-sm mb-2" style={{ color: '#0074b3' }}>Paramètres généraux</h3>

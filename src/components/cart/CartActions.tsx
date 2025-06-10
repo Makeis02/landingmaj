@@ -31,9 +31,9 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
 
   // 🆕 Vérifier si des cadeaux sont expirés
   const hasExpiredGifts = items.some(item => {
-    if ((item as any).type !== 'wheel_gift') return false;
-    if (!(item as any).expires_at) return false;
-    return new Date((item as any).expires_at) < now;
+    if (item.type !== 'wheel_gift') return false;
+    if (!item.expires_at) return false;
+    return new Date(item.expires_at) < now;
   });
 
   useEffect(() => {
