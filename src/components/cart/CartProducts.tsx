@@ -36,18 +36,28 @@ const CartProducts = () => {
 
         if (!error && settings) {
           const previousParticipationDelay = wheelSettings?.participation_delay;
+          console.log('🎁 🔄 Surveillance paramètres roue:', {
+            previousDelay: previousParticipationDelay,
+            newDelay: settings.participation_delay,
+            hasWheelGifts: items.some(item => item.type === 'wheel_gift'),
+            isFirstLoad: wheelSettings === null
+          });
           setWheelSettings(settings);
 
           // 🔄 Si le délai de participation a changé ET qu'on a des cadeaux de la roue
-          if (previousParticipationDelay !== undefined && 
+          if (wheelSettings !== null && // S'assurer que ce n'est pas la première fois
+              previousParticipationDelay !== undefined && 
               settings.participation_delay !== previousParticipationDelay &&
               items.some(item => item.type === 'wheel_gift')) {
             
-            console.log('🎁 ⏰ Délai de participation changé:', previousParticipationDelay, '->', settings.participation_delay);
+            console.log('🎁 ⏰ RECALCUL DÉCLENCHÉ - Délai de participation changé:', previousParticipationDelay, '->', settings.participation_delay);
             
             // Recalculer l'expiration de tous les cadeaux de la roue
             const wheelGifts = items.filter(item => item.type === 'wheel_gift');
+            console.log('🎁 ⏰ Cadeaux à recalculer:', wheelGifts.map(g => ({ id: g.id, title: g.title, expires_at: g.expires_at })));
+            
             wheelGifts.forEach(giftItem => {
+              console.log(`🎁 ⏰ Recalcul pour cadeau ${giftItem.id} avec ${settings.participation_delay}h`);
               updateWheelGiftExpiration(giftItem.id, settings.participation_delay || 72);
             });
             
