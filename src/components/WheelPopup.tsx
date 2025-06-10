@@ -42,6 +42,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [isUserConnected, setIsUserConnected] = useState(false);
   
   // 🆕 NOUVEAUX ÉTATS pour le système de limitation 72h
+  const [canSpin, setCanSpin] = useState(false);
   const [timeUntilNextSpin, setTimeUntilNextSpin] = useState(0);
   const [isCheckingEligibility, setIsCheckingEligibility] = useState(false);
   const [lastSpinData, setLastSpinData] = useState(null);
@@ -64,10 +65,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
-
-  const [participationDelay, setParticipationDelay] = useState(72); // valeur par défaut
-  const [lastSpinDate, setLastSpinDate] = useState<string | null>(null);
-  const [timeLeft, setTimeLeft] = useState<{ hours: number, minutes: number }>({ hours: 0, minutes: 0 });
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
@@ -97,6 +94,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
         
         if (timeDiff <= 0) {
           // Timer expiré - utilisateur peut maintenant jouer
+          setCanSpin(true);
           setTimeUntilNextSpin(0);
           setNextSpinTimestamp(null);
           setRealTimeCountdown({ hours: 0, minutes: 0, seconds: 0 });
@@ -115,7 +113,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [nextSpinTimestamp, lastSpinDate, participationDelay]);
+  }, [nextSpinTimestamp, canSpin]);
 
   // Fonction pour charger les données de la roue depuis Supabase
   const loadWheelData = async () => {
@@ -481,6 +479,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           console.error('Erreur lors de l\'enregistrement du tirage:', error);
         }
         
+        // 🆕 Mettre à jour l'éligibilité après le spin
+        setCanSpin(false);
+        setTimeUntilNextSpin(72); // 72 heures d'attente
         // 🆕 Définir le timestamp exact pour la prochaine tentative
         const nextAllowedTime = new Date(Date.now() + 72 * 60 * 60 * 1000);
         setNextSpinTimestamp(nextAllowedTime);
@@ -584,6 +585,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       // 4. Continuer avec le spin
       setShowEmailForm(false);
+      setCanSpin(true);
       toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
     } catch (error) {
       console.error('❌ Erreur lors de la soumission:', error);
@@ -693,6 +695,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
   // Ajout d'une fonction pour débloquer la roue (reset timer)
   const handleForceUnlock = () => {
+    setCanSpin(true);
     setTimeUntilNextSpin(0);
     setNextSpinTimestamp(null);
     setRealTimeCountdown({ hours: 0, minutes: 0, seconds: 0 });
@@ -707,7 +710,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   }, [segmentsData]);
 
-  // 🆕 Formulaire de test en mode édition
+  // 🆕 Fonction pour tester l'inscription à la newsletter
   const handleTestEmailSubmit = async () => {
     if (!testEmail || !validateEmail(testEmail)) {
       setTestEmailResult({ success: false, message: "Veuillez entrer une adresse email valide" });
@@ -760,42 +763,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
       toast.error('Erreur de sauvegarde');
     }
   };
-
-  // Récupère la config de la roue (participation_delay)
-  useEffect(() => {
-    const fetchSettings = async () => {
-      const { data, error } = await supabase
-        .from('wheel_settings')
-        .select('participation_delay')
-        .order('updated_at', { ascending: false })
-        .limit(1);
-      if (!error && data && data.length > 0) {
-        setParticipationDelay(data[0].participation_delay || 72);
-      }
-    };
-    fetchSettings();
-  }, []);
-
-  // Récupère la date du dernier spin (à adapter selon ta logique)
-  useEffect(() => {
-    // Exemple : récupère depuis Supabase ou localStorage
-    const lastSpin = localStorage.getItem('wheel_last_spin');
-    if (lastSpin) setLastSpinDate(lastSpin);
-  }, []);
-
-  // Calcule dynamiquement le temps restant
-  useEffect(() => {
-    if (!lastSpinDate) return;
-    const now = new Date();
-    const nextAllowedDate = new Date(new Date(lastSpinDate).getTime() + participationDelay * 60 * 60 * 1000);
-    const diffMs = nextAllowedDate.getTime() - now.getTime();
-    const hours = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60)));
-    const minutes = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
-    setTimeLeft({ hours, minutes });
-  }, [lastSpinDate, participationDelay]);
-
-  // Logique pour bloquer le bouton
-  const canSpin = !lastSpinDate || (new Date().getTime() - new Date(lastSpinDate).getTime()) >= participationDelay * 60 * 60 * 1000;
 
   if (!isOpen) return null;
 
@@ -1062,7 +1029,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             ) : !emailValidated ? (
               '📧 Saisissez votre email pour jouer'
             ) : !canSpin ? (
-              `⏰ Attendez ${timeLeft.hours}h ${timeLeft.minutes}min`
+              `⏰ Attendez ${timeUntilNextSpin}h`
             ) : (
               '🎣 Lancer la roue aquatique'
             )}

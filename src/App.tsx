@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route, BrowserRouter, useLocation } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AdminLogin from "./pages/AdminLogin";
@@ -101,6 +101,7 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useCartStore } from '@/stores/useCartStore';
 
 const queryClient = new QueryClient();
 
@@ -110,85 +111,60 @@ const App = () => {
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
-  const [wheelSettings, setWheelSettings] = useState(null);
-  const location = useLocation();
+  const { items } = useCartStore();
 
-  // Récupère les settings complets de la roue
+  // Vérifier si la roue est activée
   useEffect(() => {
-    const fetchSettings = async () => {
+    const checkWheelStatus = async () => {
       const { data, error } = await supabase
         .from('wheel_settings')
         .select('*')
         .order('updated_at', { ascending: false })
         .limit(1);
+
       if (!error && data && data.length > 0) {
-        setWheelSettings(data[0]);
-        setIsWheelEnabled(data[0].is_enabled);
+        const settings = data[0];
+        setIsWheelEnabled(settings.is_enabled);
+
+        // --- LOGIQUE D'AFFICHAGE AVANCÉE ---
+        // 1. Pages où afficher
+        const currentPath = window.location.pathname;
+        const allowedPages = (settings.show_on_pages || '/').split(',').map(p => p.trim());
+        const pageMatch = allowedPages.some(pattern => {
+          if (pattern.endsWith('/*')) {
+            return currentPath.startsWith(pattern.replace('/*', ''));
+          }
+          return currentPath === pattern;
+        });
+        if (!pageMatch) return;
+
+        // 2. Affichage selon le contenu du panier
+        const nonGiftItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+        if (settings.show_when_cart === 'empty' && nonGiftItems.length > 0) return;
+        if (settings.show_when_cart === 'full' && nonGiftItems.length === 0) return;
+        // 'any' => on affiche toujours
+
+        // 3. Anti-spam : cooldown avant réaffichage
+        const cooldownDays = settings.popup_seen_cooldown || 1;
+        const lastSeen = localStorage.getItem('wheel_popup_last_seen');
+        if (lastSeen) {
+          const lastDate = new Date(lastSeen);
+          const now = new Date();
+          const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
+          if (diff < cooldownDays) return;
+        }
+
+        // 4. Délai avant affichage (en secondes)
+        const delay = (settings.auto_show_delay || 5) * 1000;
+        setTimeout(() => {
+          setShowWheel(true);
+          localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+        }, delay);
       }
     };
-    fetchSettings();
-  }, []);
 
-  // Logique d'affichage avancée
-  useEffect(() => {
-    if (!wheelSettings || !isWheelEnabled) return;
-
-    // 1. Anti-spam localStorage (popup_seen_cooldown)
-    const lastSeen = localStorage.getItem('wheel_popup_last_seen');
-    const cooldownDays = wheelSettings.popup_seen_cooldown || 1;
-    if (lastSeen) {
-      const lastDate = new Date(lastSeen);
-      const now = new Date();
-      const diff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24);
-      if (diff < cooldownDays) return; // Ne pas afficher le popup
-    }
-
-    // 2. Vérifie la page courante
-    const allowedPages = (wheelSettings.show_on_pages || '/').split(',').map(p => p.trim());
-    const currentPath = location.pathname;
-    const pageMatch = allowedPages.some(pattern => {
-      if (pattern.endsWith('/*')) {
-        return currentPath.startsWith(pattern.replace('/*', ''));
-      }
-      return currentPath === pattern;
-    });
-    if (!pageMatch) return;
-
-    // 3. Vérifie le panier (optionnel, à brancher sur le store cart si besoin)
-    // TODO: brancher useCartStore pour vérifier si panier vide/plein
-    // if (wheelSettings.show_when_cart === 'empty' && !isCartEmpty) return;
-    // if (wheelSettings.show_when_cart === 'full' && isCartEmpty) return;
-
-    // 4. Ciblage visiteurs (optionnel, à brancher selon logique user/newsletter)
-    // TODO: vérifier si user est nouveau ou non-abonné
-
-    // 5. Affichage automatique après délai paramétrable
-    setTimeout(() => {
-      setShowWheel(true);
-      localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-    }, (wheelSettings.auto_show_delay || 5) * 1000);
-  }, [wheelSettings, isWheelEnabled, location.pathname]);
-
-  // Affichage du bouton flottant si activé (toujours visible si besoin)
-  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text;
-  const floatingButtonStyle: React.CSSProperties = {
-    position: 'fixed',
-    zIndex: 1000,
-    width: 56,
-    height: 56,
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-    background: '#fff',
-    border: '2px solid #06b6d4',
-    cursor: 'pointer',
-    ...(wheelSettings?.floating_button_position === 'bottom_right' && { bottom: 32, right: 32 }),
-    ...(wheelSettings?.floating_button_position === 'bottom_left' && { bottom: 32, left: 32 }),
-    ...(wheelSettings?.floating_button_position === 'top_right' && { top: 32, right: 32 }),
-    ...(wheelSettings?.floating_button_position === 'top_left' && { top: 32, left: 32 }),
-  };
+    checkWheelStatus();
+  }, [items]);
 
   return (
   <QueryClientProvider client={queryClient}>
@@ -288,30 +264,6 @@ const App = () => {
             className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
           >
             🎡 Tester la roue
-          </button>
-        )}
-        {showFloatingButton && (
-          <button
-            style={floatingButtonStyle}
-            aria-label="Ouvrir la roue de la fortune"
-            onClick={() => setShowWheel(true)}
-            className="group focus:outline-none focus:ring-2 focus:ring-cyan-500"
-          >
-            {/* SVG roue stylisée */}
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="16" cy="16" r="15" stroke="#06b6d4" strokeWidth="2.5" fill="#e0f7fa" />
-              <g>
-                <path d="M16 16 L16 3" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L28.5 16" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L16 29" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L3 16" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L25.5 25.5" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L6.5 6.5" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L25.5 6.5" stroke="#0074b3" strokeWidth="2" />
-                <path d="M16 16 L6.5 25.5" stroke="#0074b3" strokeWidth="2" />
-              </g>
-              <circle cx="16" cy="16" r="4.5" fill="#06b6d4" stroke="#0074b3" strokeWidth="1.5" />
-            </svg>
           </button>
         )}
         <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
