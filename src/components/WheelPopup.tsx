@@ -9,10 +9,9 @@ interface LuckyWheelPopupProps {
   isOpen: boolean;
   onClose: () => void;
   isEditMode?: boolean;
-  isMobile?: boolean;
 }
 
-const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false, isMobile = false }) => {
+const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEditMode = false }) => {
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotation, setRotation] = useState(0);
   const [showResult, setShowResult] = useState(false);
@@ -779,10 +778,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className={`absolute top-4 right-4 z-10 ${isMobile ? 'text-4xl !top-2 !right-2 !text-[#0277b6] bg-white/90 rounded-full border border-[#0277b6] shadow-lg' : 'text-gray-400 hover:text-blue-700'}`}
-            style={isMobile ? { width: 48, height: 48, fontSize: 32 } : {}}
+              className="text-gray-400 hover:text-blue-700"
           >
-            <X className={isMobile ? 'w-10 h-10' : 'h-6 w-6'} />
+            <X className="h-5 w-5" />
           </Button>
         </div>
 

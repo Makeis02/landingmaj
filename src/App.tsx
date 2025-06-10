@@ -101,7 +101,6 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useMediaQuery } from 'react-responsive';
 
 const queryClient = new QueryClient();
 
@@ -113,7 +112,6 @@ const App = () => {
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
   const [wheelSettings, setWheelSettings] = useState(null);
   const location = useLocation();
-  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   // Récupère les settings complets de la roue
   useEffect(() => {
@@ -176,6 +174,16 @@ const App = () => {
   const floatingButtonStyle: React.CSSProperties = {
     position: 'fixed',
     zIndex: 1000,
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+    background: '#fff',
+    border: '2px solid #06b6d4',
+    cursor: 'pointer',
     ...(wheelSettings?.floating_button_position === 'bottom_right' && { bottom: 32, right: 32 }),
     ...(wheelSettings?.floating_button_position === 'bottom_left' && { bottom: 32, left: 32 }),
     ...(wheelSettings?.floating_button_position === 'top_right' && { top: 32, right: 32 }),
@@ -273,31 +281,38 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Bouton flottant pour ouvrir la roue (caché si popup ouvert) */}
-        {showFloatingButton && !showWheel && (
-          isMobile ? (
-            <button
-              style={floatingButtonStyle}
-              className="bg-white rounded-full shadow-lg flex items-center justify-center p-0 w-16 h-16 border-4 border-[#0277b6]"
-              onClick={() => setShowWheel(true)}
-            >
-              {/* Miniature de roue SVG couleur #0277b6 */}
-              <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="20" cy="20" r="18" fill="#fff" stroke="#0277b6" strokeWidth="4" />
-                <circle cx="20" cy="20" r="12" fill="#0277b6" />
-                <path d="M20 8V20L32 20" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
-                <circle cx="20" cy="20" r="3" fill="#fff" />
-              </svg>
-            </button>
-          ) : (
-            <button
-              style={floatingButtonStyle}
-              className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-              onClick={() => setShowWheel(true)}
-            >
-              {wheelSettings.floating_button_text}
-            </button>
-          )
+        {/* Bouton flottant pour ouvrir la roue en mode édition */}
+        {isEditMode && (
+          <button
+            onClick={() => { setShowWheel(true); setEditWheel(true); }}
+            className="fixed bottom-8 right-8 z-50 bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+          >
+            🎡 Tester la roue
+          </button>
+        )}
+        {showFloatingButton && (
+          <button
+            style={floatingButtonStyle}
+            aria-label="Ouvrir la roue de la fortune"
+            onClick={() => setShowWheel(true)}
+            className="group focus:outline-none focus:ring-2 focus:ring-cyan-500"
+          >
+            {/* SVG roue stylisée */}
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="16" cy="16" r="15" stroke="#06b6d4" strokeWidth="2.5" fill="#e0f7fa" />
+              <g>
+                <path d="M16 16 L16 3" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L28.5 16" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L16 29" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L3 16" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L25.5 25.5" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L6.5 6.5" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L25.5 6.5" stroke="#0074b3" strokeWidth="2" />
+                <path d="M16 16 L6.5 25.5" stroke="#0074b3" strokeWidth="2" />
+              </g>
+              <circle cx="16" cy="16" r="4.5" fill="#06b6d4" stroke="#0074b3" strokeWidth="1.5" />
+            </svg>
+          </button>
         )}
         <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
       <CookieBanner />
