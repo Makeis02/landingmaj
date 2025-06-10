@@ -866,6 +866,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
          const now = new Date();
          // 🔄 Utiliser les paramètres actuels (soit ceux de la base, soit ceux du mode édition)
          const participationHours = wheelSettings.participation_delay || 72;
+         console.log('⭐ 🔍 [INVITÉ] Utilisation des paramètres:', {
+           wheelSettingsParticipationDelay: wheelSettings.participation_delay,
+           participationHoursUsed: participationHours,
+           isEditMode
+         });
         const nextAllowedTime = new Date(lastSpinDate.getTime() + participationHours * 60 * 60 * 1000);
         const timeLeft = nextAllowedTime.getTime() - now.getTime();
         
@@ -901,35 +906,35 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           });
           
           // 3. S'abonner à la newsletter via Omisend (même si pas éligible pour jouer)
-          const newsletterResult = await subscribeToNewsletter(email);
-          if (!newsletterResult.success) {
-            console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
-          }
+      const newsletterResult = await subscribeToNewsletter(email);
+      if (!newsletterResult.success) {
+        console.warn('⚠️ Échec de l\'inscription à la newsletter:', newsletterResult.message);
+      }
 
           // 4. Sauvegarder l'email localement comme fallback
-          const { error: saveError } = await supabase
-            .from('newsletter_subscribers')
-            .upsert([{ 
-              email, 
-              status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
-              source: 'wheel_popup',
-              updated_at: new Date().toISOString() 
-            }], {
-              onConflict: 'email'
-            });
+      const { error: saveError } = await supabase
+        .from('newsletter_subscribers')
+        .upsert([{ 
+          email, 
+          status: newsletterResult.success ? 'success_from_wheel' : 'fallback_save',
+          source: 'wheel_popup',
+          updated_at: new Date().toISOString() 
+        }], {
+          onConflict: 'email'
+        });
 
-          if (saveError) {
-            console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
-          }
+      if (saveError) {
+        console.error('❌ Erreur lors de la sauvegarde locale:', saveError);
+      }
 
           // 5. Passer à l'étape suivante dans tous les cas
-          setShowEmailForm(false);
+      setShowEmailForm(false);
           setEmailValidated(true);
           
           toast.info(`Email enregistré ! Vous pourrez rejouer dans ${hoursLeft}h`);
         } else {
           // Timer expiré - peut jouer
-          setCanSpin(true);
+      setCanSpin(true);
           setTimeUntilNextSpin(0);
           setNextSpinTimestamp(null);
           console.log('⭐ ✅ [INVITÉ] Timer expiré - peut jouer');
@@ -958,8 +963,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
           // 5. Passer à l'étape suivante dans tous les cas
           setShowEmailForm(false);
-          setEmailValidated(true);
-          
+        setEmailValidated(true);
+        
           toast.success("Email enregistré ! Vous pouvez maintenant faire tourner la roue !");
         }
       } else {
@@ -1132,14 +1137,18 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
 
       if (error) throw error;
       
+      // 🔄 IMPORTANT : Mettre à jour les paramètres AVANT le recalcul
+      const oldParticipationDelay = wheelSettings.participation_delay;
       setWheelSettings(newSettings);
-      toast.success('Paramètres sauvegardés !');
       
-      // 🔄 Re-calculer le timer avec les nouveaux paramètres si un email est présent
-      if (email && emailValidated) {
-        console.log('⭐ 🔄 [ÉDITION] Recalcul timer avec nouveaux paramètres:', newSettings.participation_delay);
+      // 🔄 Re-calculer le timer avec les nouveaux paramètres si un email est présent ET si participation_delay a changé
+      if (email && emailValidated && newSettings.participation_delay !== oldParticipationDelay) {
+        console.log('⭐ 🔄 [ÉDITION] participation_delay changé de', oldParticipationDelay, 'à', newSettings.participation_delay);
+        console.log('⭐ 🔄 [ÉDITION] Recalcul IMMÉDIAT du timer pour:', email);
         await recalculateTimerWithNewSettings(email, newSettings.participation_delay || 72);
       }
+      
+      toast.success('Paramètres sauvegardés !');
     } catch (error) {
       console.error('Erreur lors de la sauvegarde des paramètres:', error);
       toast.error('Erreur de sauvegarde');
@@ -1205,7 +1214,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
           setCanSpin(false);
           setTimeUntilNextSpin(hoursLeft);
           setNextSpinTimestamp(nextAllowedTime);
-          console.log('⭐ ✅ [ÉDITION] Timer recalculé SYNCHRONE:', hoursLeft, 'heures, nextSpinTimestamp:', nextAllowedTime.toISOString());
+          console.log('⭐ ✅ [ÉDITION] Timer RECALCULÉ avec nouveaux paramètres:', {
+            ancienneValeur: '(dépend de la base)',
+            nouvelleValeur: hoursLeft + 'h',
+            nextSpinTimestamp: nextAllowedTime.toISOString(),
+            participationHours: newParticipationHours
+          });
         } else {
           setCanSpin(true);
           setTimeUntilNextSpin(0);
@@ -1798,7 +1812,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs"
                    >
                      🔍 Test
-                   </Button>
+              </Button>
                  </div>
                  <Button 
                    onClick={() => {
