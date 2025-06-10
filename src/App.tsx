@@ -161,7 +161,7 @@ const App = () => {
   }, [wheelSettings, isWheelEnabled, location.pathname]);
 
   // Affichage du bouton flottant si activé (toujours visible si besoin)
-  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text;
+  const showFloatingButton = wheelSettings && wheelSettings.floating_button_text && !editWheel;
   const floatingButtonStyle: React.CSSProperties = {
     position: 'fixed',
     zIndex: 1000,
@@ -263,7 +263,7 @@ const App = () => {
           <Route path="*" element={<NotFound />} />
           </Routes>
         {/* Bouton flottant pour ouvrir la roue */}
-        {showFloatingButton && !showWheel && !editWheel && (
+        {showFloatingButton && !showWheel && (
           isMobile ? (
             <button
               style={floatingButtonStyle}
