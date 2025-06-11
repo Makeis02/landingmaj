@@ -225,12 +225,9 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
           </div>
         )}
         {/* 🎫 NOUVEAU : Affichage de la réduction du code promo */}
-        {discount > 0 && appliedPromoCode && (
+        {discount > 0 && (
           <div className="flex justify-between mb-2">
-            <span className="text-blue-600">
-              Code promo ({appliedPromoCode.code})
-              {appliedPromoCode.type === 'percentage' && ` (${appliedPromoCode.value}%)`}
-            </span>
+            <span className="text-blue-600">Code promo ({appliedPromoCode?.code})</span>
             <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
           </div>
         )}
