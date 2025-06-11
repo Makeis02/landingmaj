@@ -45,13 +45,14 @@ export const POST = async ({ request }) => {
   
   try {
     const body = await request.json();
-    const { items, user_id, shipping_info } = body;
+    const { items, user_id, shipping_info, promo_code } = body;
     debug.user_id = user_id;
     debug.items = items;
 
     console.log("✅ [CHECKOUT] Début du traitement");
     console.log("👤 User ID:", user_id);
     console.log("🧾 Items reçus:", items);
+    console.log("🎫 Code promo reçu:", promo_code);
 
     // Validation du panier
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -135,7 +136,7 @@ export const POST = async ({ request }) => {
     }
 
     // Créer les line items Stripe (uniquement produits payants)
-    const lineItems = payableItems.map(item => {
+    const lineItems: any[] = payableItems.map(item => {
       const priceId = (item.has_discount && item.stripe_discount_price_id)
         ? item.stripe_discount_price_id
         : item.stripe_price_id;
@@ -144,6 +145,30 @@ export const POST = async ({ request }) => {
         quantity: item.quantity,
       };
     });
+
+    // 🎫 NOUVEAU : Ajouter le code promo comme réduction si présent
+    if (promo_code && promo_code.discount_amount > 0) {
+      console.log("🎫 Code promo détecté:", promo_code);
+      
+      // Créer un line item de réduction (montant négatif)
+      lineItems.push({
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: `Code promo: ${promo_code.code}`,
+            description: `Réduction appliquée avec le code ${promo_code.code}`,
+          },
+          unit_amount: Math.round(-promo_code.discount_amount * 100), // Montant négatif en centimes
+        },
+        quantity: 1,
+      });
+      
+      console.log("🎫 Line item de réduction ajouté:", {
+        code: promo_code.code,
+        discount: promo_code.discount_amount,
+        unit_amount: Math.round(-promo_code.discount_amount * 100)
+      });
+    }
 
     // Créer la session Stripe avec les métadonnées nécessaires
     let session;
