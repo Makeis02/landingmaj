@@ -171,15 +171,23 @@ const Footer = () => {
   const { data: footerLinks = [], isLoading: isLoadingLinks } = useQuery({
     queryKey: ['footer-links'],
     queryFn: async () => {
-      console.log("Fetching footer_links...");
+      console.log("🔄 [QUERY] Fetching footer_links...");
       const { data, error } = await supabase
         .from('footer_links')
         .select('*')
-        .order('display_order', { ascending: true });
+        .order('created_at', { ascending: false }) // 🔄 Plus récents en premier
+        .limit(50); // 🔄 Limite encore plus réduite pour debug
 
       if (error) throw error;
+      console.log(`📊 [QUERY] Récupéré ${data?.length || 0} footer_links`);
+      console.log(`📊 [QUERY] Première entrée:`, data?.[0]);
+      console.log(`📊 [QUERY] Mentions Légales dans les données:`, 
+        data?.filter(link => link.section?.includes('Mentions')).length || 0
+      );
       return data || [];
     },
+    staleTime: 0, // 🔄 Pas de cache
+    cacheTime: 0,  // 🔄 Pas de cache
   });
 
   // Debug: log complet des données brutes
