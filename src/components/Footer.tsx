@@ -117,18 +117,84 @@ const FooterDebugPanel = ({ footerLinks, footerSettings, legalLinks, usefulLinks
 
           {/* 🚨 Tests de normalisation */}
           <div className="border border-red-200 rounded p-3">
-            <h4 className="font-semibold text-red-700 mb-2">🧪 Test Normalisation</h4>
+            <h4 className="font-semibold text-red-700 mb-2">🧪 Test Normalisation & Filtrage</h4>
             <div className="space-y-1 text-xs">
               {footerLinks?.map((link, i) => {
                 const normalized = link.section?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
-                const isMatching = normalized.includes("mentions legales");
+                const isLegalMatch = normalized.includes("mentions legales");
+                const isUsefulMatch = normalized === "liens utiles";
+                const isSocialMatch = normalized === "reseaux sociaux";
+                
+                let category = "❓ INCONNU";
+                let bgColor = "bg-gray-100";
+                
+                if (isLegalMatch) {
+                  category = "⚖️ LEGAL";
+                  bgColor = "bg-blue-100";
+                } else if (isUsefulMatch) {
+                  category = "🔗 UTILE";
+                  bgColor = "bg-green-100";
+                } else if (isSocialMatch) {
+                  category = "📱 SOCIAL";
+                  bgColor = "bg-orange-100";
+                } else {
+                  bgColor = "bg-red-100";
+                }
+                
                 return (
-                  <div key={i} className={`p-1 rounded ${isMatching ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <strong>#{i}</strong> "{link.section}" → "{normalized}" 
-                    {isMatching ? ' ✅ MATCH' : ' ❌ NO MATCH'}
+                  <div key={i} className={`p-2 rounded ${bgColor} border`}>
+                    <div className="font-semibold">#{i} {category}</div>
+                    <div><strong>Label:</strong> {link.label}</div>
+                    <div><strong>URL:</strong> {link.url}</div>
+                    <div><strong>Section brute:</strong> "{link.section}"</div>
+                    <div><strong>Section normalisée:</strong> "{normalized}"</div>
+                    <div className="mt-1 text-xs">
+                      • Legal match: {isLegalMatch ? '✅' : '❌'}<br/>
+                      • Useful match: {isUsefulMatch ? '✅' : '❌'}<br/>
+                      • Social match: {isSocialMatch ? '✅' : '❌'}
+                    </div>
                   </div>
                 );
               })}
+              
+              {footerLinks?.length === 0 && (
+                <div className="text-red-500 p-2 bg-red-50 rounded">
+                  ⚠️ Aucune donnée dans footer_links ! Vérifie que tu ajoutes bien les liens.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 🔧 Actions de test */}
+          <div className="border border-purple-200 rounded p-3">
+            <h4 className="font-semibold text-purple-700 mb-2">🔧 Actions de Test</h4>
+            <div className="flex gap-2 flex-wrap">
+              <Button
+                size="sm"
+                onClick={() => {
+                  console.log("🧪 [TEST] Sections existantes:");
+                  footerLinks?.forEach((link, i) => {
+                    console.log(`${i}: "${link.section}" → normalized: "${link.section?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim()}"`);
+                  });
+                }}
+                className="bg-purple-500 hover:bg-purple-600 text-white text-xs"
+              >
+                📝 Log toutes les sections
+              </Button>
+              
+              <Button
+                size="sm"
+                onClick={() => {
+                  console.log("🧪 [TEST] Test normalisation 'Mentions Légales':");
+                  const testInput = "Mentions Légales";
+                  const normalized = testInput.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+                  console.log(`"${testInput}" → "${normalized}"`);
+                  console.log(`Includes "mentions legales": ${normalized.includes("mentions legales")}`);
+                }}
+                className="bg-blue-500 hover:bg-blue-600 text-white text-xs"
+              >
+                🧪 Test "Mentions Légales"
+              </Button>
             </div>
           </div>
         </div>
@@ -813,6 +879,13 @@ const Footer = () => {
                         }
                         console.log("🧪 Tentative ajout lien Mentions Légales :", draft.label, draft.url);
                         const maxOrder = Math.max(...legalLinks.map(l => l.display_order || 0), 0);
+                        console.log('🔍 [DEBUG] AVANT mutation mention légale:', {
+                          label: draft.label,
+                          url: draft.url,
+                          section: 'Mentions Légales',
+                          sectionNormalized: 'Mentions Légales'.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim()
+                        });
+                        
                         addLinkMutation.mutate({
                           label: draft.label,
                           url: draft.url,
