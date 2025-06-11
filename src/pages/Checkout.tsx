@@ -241,7 +241,7 @@ const Checkout = () => {
   const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
 
   // 🎫 NOUVEAU : Utiliser les totaux avec codes promo
-  const { subtotal, discount, total: finalTotal } = getTotalWithPromo();
+  const { subtotal, discount, total: finalTotal } = useCartStore(state => state.getTotalWithPromo());
   const total = getTotal(); // Garder pour compatibilité avec le code existant
 
   // Formulaire d'adresse
@@ -1159,6 +1159,14 @@ const Checkout = () => {
                     <span>Sous-total</span>
                     <span>{subtotal.toFixed(2)}€</span>
                   </div>
+                  
+                  {/* 🎫 NOUVEAU : Affichage du code promo appliqué */}
+                  {discount > 0 && appliedPromoCode && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
+                      <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
+                    </div>
+                  )}
                   
                   <div className="flex justify-between text-sm">
                     <span>Livraison</span>
