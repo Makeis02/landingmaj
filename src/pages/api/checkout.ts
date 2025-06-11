@@ -52,7 +52,6 @@ export const POST = async ({ request }) => {
     console.log("✅ [CHECKOUT] Début du traitement");
     console.log("👤 User ID:", user_id);
     console.log("🧾 Items reçus:", items);
-    console.log("🎫 Code promo reçu:", promo_code);
 
     // Validation du panier
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -120,10 +119,21 @@ export const POST = async ({ request }) => {
     }
 
     // Calculer le total (uniquement produits payants)
-    const total = payableItems.reduce((acc, item) => {
+    let subtotal = payableItems.reduce((acc, item) => {
       const finalPrice = item.has_discount && item.price ? item.price : item.price;
       return acc + (finalPrice * item.quantity);
     }, 0);
+    
+    // 🎫 NOUVEAU : Appliquer le code promo au total
+    let promoDiscount = 0;
+    let total = subtotal;
+    
+    if (promo_code && promo_code.discount_amount) {
+      promoDiscount = promo_code.discount_amount;
+      total = Math.max(0, subtotal - promoDiscount); // Ne peut pas être négatif
+      console.log(`🎫 [CHECKOUT] Code promo appliqué: ${promo_code.code} = -${promoDiscount}€`);
+      console.log(`🎫 [CHECKOUT] Sous-total: ${subtotal}€ -> Total avec promo: ${total}€`);
+    }
     
     // Validation du montant minimum
     const STRIPE_MINIMUM_EUR = 0.50;
@@ -145,28 +155,19 @@ export const POST = async ({ request }) => {
         quantity: item.quantity,
       };
     });
-
-    // 🎫 NOUVEAU : Ajouter le code promo comme réduction si présent
-    if (promo_code && promo_code.discount_amount > 0) {
-      console.log("🎫 Code promo détecté:", promo_code);
-      
-      // Créer un line item de réduction (montant négatif)
+    
+    // 🎫 NOUVEAU : Ajouter une ligne de réduction si un code promo est appliqué
+    if (promo_code && promoDiscount > 0) {
       lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
             name: `Code promo: ${promo_code.code}`,
-            description: `Réduction appliquée avec le code ${promo_code.code}`,
+            description: `Réduction appliquée`
           },
-          unit_amount: Math.round(-promo_code.discount_amount * 100), // Montant négatif en centimes
+          unit_amount: Math.round(-promoDiscount * 100), // Montant négatif en centimes
         },
         quantity: 1,
-      });
-      
-      console.log("🎫 Line item de réduction ajouté:", {
-        code: promo_code.code,
-        discount: promo_code.discount_amount,
-        unit_amount: Math.round(-promo_code.discount_amount * 100)
       });
     }
 
@@ -178,7 +179,10 @@ export const POST = async ({ request }) => {
         user_id: user_id || null,
         items: JSON.stringify(payableItems), // Seulement les produits payants
         wheel_gifts: JSON.stringify(wheelGifts), // Cadeaux de la roue séparément
+        subtotal: subtotal.toString(),
+        promo_discount: promoDiscount.toString(),
         total: total.toString(),
+        promo_code: promo_code ? JSON.stringify(promo_code) : null,
         ...(shipping_info || {})
       };
       session = await stripe.checkout.sessions.create({
