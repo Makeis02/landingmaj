@@ -1438,7 +1438,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                               position: 'absolute',
                               top: '50%',
                               left: '50%',
-                              transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-80px)`,
+                              transform: `translate(-50%, -50%) rotate(${midAngle}deg) translateY(-60px)`,
                               width: segment.image_url ? '50px' : '120px',
                               height: segment.image_url ? '50px' : 'auto',
                               textAlign: 'center',
@@ -1459,12 +1459,14 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                                 src={segment.image_url}
                                 alt="Segment"
                                 style={{
-                                  width: '40px',
-                                  height: '40px',
+                                  width: '45px',
+                                  height: '45px',
                                   objectFit: 'cover',
-                                  borderRadius: '6px',
+                                  borderRadius: '8px',
                                   border: '2px solid rgba(255,255,255,0.9)',
                                   boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+                                  display: 'block',
+                                  margin: '0 auto',
                                 }}
                               />
                             ) : (
