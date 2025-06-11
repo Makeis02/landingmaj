@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { User, ShoppingCart, CreditCard, Truck, Lock, Minus, Plus, Trash2, User as UserIcon, Mail, Phone, MapPin } from "lucide-react";
+import { User, ShoppingCart, CreditCard, Truck, Lock, Minus, Plus, Trash2, User as UserIcon, Mail, Phone, MapPin, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -97,6 +97,109 @@ interface ShippingSettings {
   };
 }
 
+// 🎫 NOUVEAU : Composant pour gérer le code promo
+const PromoCodeSection = () => {
+  const [promoCode, setPromoCode] = useState("");
+  const { toast } = useToast();
+  
+  // 🎫 RÉCUPÉRER LES FONCTIONS DU STORE ICI
+  const { 
+    appliedPromoCode, 
+    isApplyingPromo, 
+    applyPromoCode, 
+    removePromoCode 
+  } = useCartStore();
+
+  const handleApplyPromoCode = async () => {
+    if (!promoCode.trim()) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un code promo",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const result = await applyPromoCode(promoCode.trim());
+    
+    if (result.success) {
+      setPromoCode(""); // Réinitialiser le champ
+      toast({
+        title: "✅ Code promo appliqué !",
+        description: result.message,
+      });
+    } else {
+      toast({
+        title: "❌ Code promo invalide",
+        description: result.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemovePromoCode = () => {
+    removePromoCode();
+    toast({
+      title: "Code promo retiré",
+      description: "Le code promo a été supprimé de votre panier",
+    });
+  };
+
+  return (
+    <div className="border-b pb-4">
+      {appliedPromoCode ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">%</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm text-green-800">Code appliqué</p>
+                <p className="text-xs text-green-600">
+                  {appliedPromoCode.code}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemovePromoCode}
+              className="text-green-600 hover:text-green-800 h-6 w-6 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+           <Label htmlFor="promo-code">Code promo</Label>
+           <div className="flex gap-2">
+            <Input
+              id="promo-code"
+              placeholder="Votre code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleApplyPromoCode();
+              }}
+              disabled={isApplyingPromo}
+              className="h-9"
+            />
+            <Button 
+              onClick={handleApplyPromoCode}
+              disabled={isApplyingPromo || !promoCode.trim()}
+              className="h-9"
+            >
+              {isApplyingPromo ? "..." : "OK"}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Checkout = () => {
   // 🎫 MODIFIÉ : Ajouter les fonctions de codes promo
   const { 
@@ -105,7 +208,10 @@ const Checkout = () => {
     removeItem, 
     getTotal, 
     getTotalWithPromo, 
-    appliedPromoCode 
+    appliedPromoCode,
+    applyPromoCode,
+    removePromoCode,
+    isApplyingPromo
   } = useCartStore();
   
   const user = useUserStore((s) => s.user);
@@ -874,100 +980,97 @@ const Checkout = () => {
 
               {/* Sidebar - Récapitulatif commande */}
               <div className="space-y-6">
-                {/* Récapitulatif du panier */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Récapitulatif de commande</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {/* 🎁 Section des cadeaux de la roue */}
-                    {giftItems.length > 0 && (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
-                          <span className="text-2xl">🎁</span>
-                          <h3 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h3>
-                          <Badge className="bg-blue-100 text-blue-800">{giftItems.length}</Badge>
-                        </div>
-                        {giftItems.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
-                            {/* Effet scintillant pour les cadeaux */}
-                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                            
-                            {item.image_url && (
-                              <div className="relative">
-                                <img
-                                  src={item.image_url}
-                                  alt={item.title}
-                                  className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
-                                />
-                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                                  <span className="text-white text-xs">🎁</span>
-                                </div>
-                              </div>
-                            )}
-                            
-                            <div className="flex-1 min-w-0 relative z-10">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
-                                <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
-                              </div>
-                              
-                              {item.expires_at && (
-                                <div className="text-xs text-blue-600 mb-2">
-                                  ⏰ Expire le {new Date(item.expires_at).toLocaleDateString('fr-FR', {
-                                    day: '2-digit',
-                                    month: '2-digit', 
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </div>
-                              )}
-                              
-                              <div className="text-sm font-bold text-green-600">
-                                OFFERT 🎉
-                              </div>
-                              
-                              <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                                  Quantité: {item.quantity}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
-                                  onClick={() => removeItem(item.id)}
-                                  title="Retirer ce cadeau"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            <div className="text-right relative z-10">
-                              <p className="text-lg font-bold text-green-600">
-                                GRATUIT
-                              </p>
-                              <p className="text-xs text-green-500">
-                                0,00€
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                {/* 🎫 NOUVEAU : Section pour le code promo */}
+                <PromoCodeSection />
 
-                    {/* 💰 Section des produits payants */}
-                    {payableItems.length > 0 && (
-                      <div className="space-y-3">
-                        {giftItems.length > 0 && (
-                          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mt-6">
-                            <span className="text-2xl">🛒</span>
-                            <h3 className="font-semibold text-gray-800">Produits</h3>
-                            <Badge className="bg-gray-100 text-gray-800">{payableItems.length}</Badge>
+                {/* 🎁 Section des cadeaux de la roue */}
+                {giftItems.length > 0 && (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
+                      <span className="text-2xl">🎁</span>
+                      <h3 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h3>
+                      <Badge className="bg-blue-100 text-blue-800">{giftItems.length}</Badge>
+                    </div>
+                    {giftItems.map((item) => (
+                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
+                        {/* Effet scintillant pour les cadeaux */}
+                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                        
+                        {item.image_url && (
+                          <div className="relative">
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                              className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
+                            />
+                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs">🎁</span>
+                            </div>
                           </div>
                         )}
-                        {payableItems.map((item) => (
+                        
+                        <div className="flex-1 min-w-0 relative z-10">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
+                            <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
+                          </div>
+                          
+                          {item.expires_at && (
+                            <div className="text-xs text-blue-600 mb-2">
+                              ⏰ Expire le {new Date(item.expires_at).toLocaleDateString('fr-FR', {
+                                day: '2-digit',
+                                month: '2-digit', 
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </div>
+                          )}
+                          
+                          <div className="text-sm font-bold text-green-600">
+                            OFFERT 🎉
+                          </div>
+                          
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                              Quantité: {item.quantity}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
+                              onClick={() => removeItem(item.id)}
+                              title="Retirer ce cadeau"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right relative z-10">
+                          <p className="text-lg font-bold text-green-600">
+                            GRATUIT
+                          </p>
+                          <p className="text-xs text-green-500">
+                            0,00€
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 💰 Section des produits payants */}
+                {payableItems.length > 0 && (
+                  <div className="space-y-3">
+                    {giftItems.length > 0 && (
+                      <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mt-6">
+                        <span className="text-2xl">🛒</span>
+                        <h3 className="font-semibold text-gray-800">Produits</h3>
+                        <Badge className="bg-gray-100 text-gray-800">{payableItems.length}</Badge>
+                      </div>
+                    )}
+                    {payableItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         {item.image_url && (
                           <img
@@ -1036,124 +1139,45 @@ const Checkout = () => {
                         </div>
                       </div>
                     ))}
-                      </div>
-                    )}
+                  </div>
+                )}
 
-                    {/* Affichage du point relais sélectionné si Mondial Relay */}
-                    {selectedShipping === 'mondial_relay' && selectedRelais && (
-                      <div className="p-2 bg-blue-50 border border-blue-200 rounded mb-2">
-                        <div className="font-semibold text-blue-800 text-sm mb-1">Point relais sélectionné :</div>
-                        <div className="text-xs text-blue-900">
-                          <b>{selectedRelais.LgAdr1}</b><br />
-                          {selectedRelais.LgAdr2 && <>{selectedRelais.LgAdr2}<br /></>}
-                          {selectedRelais.CP} {selectedRelais.Ville}
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="border-t pt-4 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Sous-total</span>
-                        <span>{subtotal.toFixed(2)}€</span>
-                      </div>
-                      
-                      {/* 🎫 NOUVEAU : Affichage du code promo appliqué */}
-                      {discount > 0 && appliedPromoCode && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
-                          <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
-                        </div>
-                      )}
-                      
-                      <div className="flex justify-between text-sm">
-                        <span>Livraison</span>
-                        {shippingSettings ? (
-                          shippingFree ? (
-                            <span className="text-green-600 font-bold">Offert</span>
-                          ) : (
-                            <span>{shippingPrice.toFixed(2)}€</span>
-                          )
-                        ) : (
-                          <span>—</span>
-                        )}
-                      </div>
-                      <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                        <span>Total TTC</span>
-                        {/* 🎫 MODIFIÉ : Utiliser finalTotal au lieu de total */}
-                        <span>{(finalTotal + (shippingFree ? 0 : shippingPrice)).toFixed(2)}€</span>
-                      </div>
+                {/* Affichage du point relais sélectionné si Mondial Relay */}
+                {selectedShipping === 'mondial_relay' && selectedRelais && (
+                  <div className="p-2 bg-blue-50 border border-blue-200 rounded mb-2">
+                    <div className="font-semibold text-blue-800 text-sm mb-1">Point relais sélectionné :</div>
+                    <div className="text-xs text-blue-900">
+                      <b>{selectedRelais.LgAdr1}</b><br />
+                      {selectedRelais.LgAdr2 && <>{selectedRelais.LgAdr2}<br /></>}
+                      {selectedRelais.CP} {selectedRelais.Ville}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                )}
 
-                {/* Paiement */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <CreditCard className="h-5 w-5 mr-2" />
-                      Paiement
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-center p-4 bg-green-50 rounded-lg border border-green-200">
-                      <Lock className="h-5 w-5 text-green-600 mr-2" />
-                      <span className="text-sm text-green-700 font-medium">
-                        Paiement 100% sécurisé via Stripe
-                      </span>
-                    </div>
-                    
-                    {/* 🎁 Message informatif si seulement des cadeaux */}
-                    {hasOnlyGifts && (
-                      <div className="flex items-center justify-center p-4 bg-amber-50 rounded-lg border border-amber-200 mb-4">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-amber-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                        </svg>
-                        <div className="text-sm text-amber-700">
-                          <span className="font-medium">Panier contenant uniquement des cadeaux</span>
-                          <br />
-                          <span className="text-xs">Ajoutez des produits payants pour pouvoir commander</span>
-                        </div>
-                      </div>
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Sous-total</span>
+                    <span>{subtotal.toFixed(2)}€</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-sm">
+                    <span>Livraison</span>
+                    {shippingSettings ? (
+                      shippingFree ? (
+                        <span className="text-green-600 font-bold">Offert</span>
+                      ) : (
+                        <span>{shippingPrice.toFixed(2)}€</span>
+                      )
+                    ) : (
+                      <span>—</span>
                     )}
-                    
-                    <Button
-                      onClick={handleCheckout}
-                      disabled={loading || items.length === 0 || !canCheckout}
-                      className={`rounded-xl transition-colors px-6 py-2 font-semibold w-full flex items-center justify-center gap-2 h-12 ${
-                        !canCheckout 
-                          ? 'bg-gray-400 text-gray-600 cursor-not-allowed' 
-                          : 'bg-[#0074b3] text-white hover:bg-[#005a8c]'
-                      }`}
-                    >
-                      {loading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Redirection en cours...
-                        </>
-                      ) : !canCheckout ? (
-                        <>
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.18 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                          </svg>
-                          Ajoutez des produits pour commander
-                        </>
-                      ) : (
-                        <>
-                          Procéder au paiement
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2 h-4 w-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
-                        </>
-                      )}
-                    </Button>
-                    
-                    <p className="text-xs text-gray-500 text-center">
-                      {canCheckout ? (
-                        "En cliquant sur \"Procéder au paiement\", vous acceptez nos conditions générales de vente."
-                      ) : (
-                        "Vous ne pouvez pas passer commande avec uniquement des cadeaux gratuits."
-                      )}
-                    </p>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                    <span>Total TTC</span>
+                    {/* 🎫 MODIFIÉ : Utiliser finalTotal au lieu de total */}
+                    <span>{(finalTotal + (shippingFree ? 0 : shippingPrice)).toFixed(2)}€</span>
+                  </div>
+                </div>
               </div>
             </div>
           )}
