@@ -176,9 +176,7 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
               <div>
                 <p className="font-medium text-green-800">Code promo appliqué</p>
                 <p className="text-sm text-green-600">
-                  <span className="font-bold">{appliedPromoCode.code}</span>
-                  {appliedPromoCode.type === 'percentage' && ` (${appliedPromoCode.value}%)`}: 
-                  <span className="font-bold"> -{discount.toFixed(2)}€</span>
+                  {appliedPromoCode.code} - {appliedPromoCode.type === 'percentage' ? `${appliedPromoCode.value}%` : `${appliedPromoCode.value}€`} de réduction
                 </p>
               </div>
             </div>
@@ -227,11 +225,11 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
           </div>
         )}
         {/* 🎫 NOUVEAU : Affichage de la réduction du code promo */}
-        {discount > 0 && (
+        {discount > 0 && appliedPromoCode && (
           <div className="flex justify-between mb-2">
             <span className="text-blue-600">
-              Code promo ({appliedPromoCode?.code})
-              {appliedPromoCode?.type === 'percentage' && ` - ${appliedPromoCode.value}%`}
+              Code promo ({appliedPromoCode.code})
+              {appliedPromoCode.type === 'percentage' && ` (${appliedPromoCode.value}%)`}
             </span>
             <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
           </div>
