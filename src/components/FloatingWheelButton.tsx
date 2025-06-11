@@ -53,10 +53,43 @@ const FloatingWheelButton: React.FC = () => {
 
   return (
     <>
+      {/* Style CSS personnalisé pour l'animation douce */}
+      <style>{`
+        @keyframes gentle-pulse {
+          0%, 100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
+        }
+        
+        .gentle-pulse-animation {
+          animation: gentle-pulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes gentle-glow {
+          0%, 100% {
+            box-shadow: 0 0 10px rgba(2, 119, 182, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 20px rgba(2, 119, 182, 0.6), 0 0 30px rgba(2, 119, 182, 0.4);
+          }
+        }
+        
+        .gentle-glow-animation {
+          animation: gentle-glow 3s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Bouton flottant */}
       <button
         onClick={() => setIsWheelOpen(true)}
-        className={`fixed ${positionClass} z-40 w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl group ${canSpin ? 'animate-pulse' : ''}`}
+        className={`fixed ${positionClass} z-40 w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl group ${
+          canSpin ? 'gentle-pulse-animation gentle-glow-animation' : ''
+        }`}
         style={{ backgroundColor: '#0277b6' }}
         title={wheelSettings.floating_button_text}
       >
@@ -110,14 +143,6 @@ const FloatingWheelButton: React.FC = () => {
             />
           </svg>
         </div>
-
-        {/* Effet de pulsation - Maintenant contrôlé par la classe `animate-pulse` sur le bouton principal */}
-        {/*
-        <div 
-          className="absolute inset-0 rounded-full animate-ping opacity-20"
-          style={{ backgroundColor: '#0277b6' }}
-        ></div>
-        */}
 
         {/* Tooltip sur hover */}
         <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
