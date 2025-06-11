@@ -73,9 +73,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
     if (isOpen) {
-      console.log('⭐ 🔄 Popup ouverte - Chargement des données et paramètres...');
       loadWheelData();
-      // 🆕 Vérifier si l'utilisateur est connecté
       checkUserAuth();
     } else {
       // 🆕 Réinitialiser les états email quand la modale se ferme
@@ -88,11 +86,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
     }
   }, [isOpen]);
 
-  // 🆕 SURVEILLANCE DES PARAMÈTRES - Recharger si modifiés en mode édition
+  // Surveillance des paramètres - Recharger si modifiés en mode édition
   useEffect(() => {
     if (isOpen && !isEditMode) {
-      console.log('⭐ 🔄 Mode client - Surveillance des paramètres...');
-      
       const checkForUpdatedSettings = async () => {
         try {
           const { data: latestSettings, error } = await supabase
@@ -106,17 +102,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             const currentTimestamp = wheelSettings.updated_at;
             const latestTimestamp = latestSettings.updated_at;
             
-            console.log('⭐ 🔄 Vérification timestamps:', {
-              current: currentTimestamp,
-              latest: latestTimestamp,
-              needsUpdate: latestTimestamp !== currentTimestamp
-            });
-            
             // Si les paramètres ont été mis à jour
             if (latestTimestamp !== currentTimestamp) {
-              console.log('⭐ 🔄 PARAMÈTRES MODIFIÉS - Rechargement...');
-              
-                             setWheelSettings({
+              setWheelSettings({
                  title: latestSettings.title || 'Roue Aquatique',
                  description: latestSettings.description || 'Plongez dans l\'aventure et gagnez des cadeaux aquatiques !',
                  is_enabled: latestSettings.is_enabled || true,
@@ -135,19 +123,17 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                  updated_at: latestSettings.updated_at
                });
 
-              // 🔄 Recalculer le timer avec les nouveaux paramètres si email validé
+              // Recalculer le timer avec les nouveaux paramètres si email validé
               if (email && emailValidated) {
-                console.log('⭐ 🔄 [CLIENT] Recalcul timer avec paramètres mis à jour:', latestSettings.participation_delay);
                 await recalculateTimerWithNewSettings(email, latestSettings.participation_delay || 72);
               }
             }
           }
         } catch (error) {
-          console.error('⭐ ❌ Erreur surveillance paramètres:', error);
+          console.error('Erreur surveillance paramètres:', error);
         }
       };
 
-      // Vérifier toutes les 2 secondes
       const interval = setInterval(checkForUpdatedSettings, 2000);
       
       return () => clearInterval(interval);
@@ -1600,30 +1586,23 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
             )}
           </Button>
 
-                <div className="text-xs text-blue-500 mt-4 space-y-1">
-            <p>🐟 Fréquence : {
-              wheelSettings.participation_frequency === 'per_3days' ? `Toutes les ${wheelSettings.participation_delay || 72}h (personnalisé)` :
-              wheelSettings.participation_frequency === 'per_session' ? 'Une fois par session de navigation' :
-              wheelSettings.participation_frequency === 'per_day' ? 'Une fois par jour (24h)' :
-              wheelSettings.participation_frequency === 'per_week' ? 'Une fois par semaine (168h)' :
-              `Toutes les ${wheelSettings.participation_delay || 72}h`
-            } • Système anti-contournement actif</p>
-            {isEditMode && (
-              <div className="bg-blue-50 p-2 rounded border border-blue-200">
-                <p className="font-semibold text-blue-700 mb-1">⚙️ Configuration actuelle :</p>
-                <p>• Popup auto : {wheelSettings.auto_show_popup ? `✅ Oui (${wheelSettings.auto_show_delay}s)` : '❌ Non'}</p>
-                <p>• Scroll trigger : {wheelSettings.scroll_trigger_enabled ? `✅ Oui (${wheelSettings.scroll_trigger_percentage}%)` : '❌ Non'}</p>
-                <p>• Délai participation : {wheelSettings.participation_delay}h</p>
-                <p>• Mode fréquence : {
-                  wheelSettings.participation_frequency === 'per_3days' ? `Personnalisé (${wheelSettings.participation_delay}h)` :
-                  wheelSettings.participation_frequency === 'per_session' ? 'Par session' :
-                  wheelSettings.participation_frequency === 'per_day' ? 'Quotidien (24h)' :
-                  wheelSettings.participation_frequency === 'per_week' ? 'Hebdomadaire (168h)' :
-                  'Personnalisé'
-                }</p>
-              </div>
-            )}
-          </div>
+                {isEditMode && (
+                  <div className="text-xs text-blue-500 mt-4 space-y-1">
+                    <div className="bg-blue-50 p-2 rounded border border-blue-200">
+                      <p className="font-semibold text-blue-700 mb-1">⚙️ Configuration actuelle :</p>
+                      <p>• Popup auto : {wheelSettings.auto_show_popup ? `✅ Oui (${wheelSettings.auto_show_delay}s)` : '❌ Non'}</p>
+                      <p>• Scroll trigger : {wheelSettings.scroll_trigger_enabled ? `✅ Oui (${wheelSettings.scroll_trigger_percentage}%)` : '❌ Non'}</p>
+                      <p>• Délai participation : {wheelSettings.participation_delay}h</p>
+                      <p>• Mode fréquence : {
+                        wheelSettings.participation_frequency === 'per_3days' ? `Personnalisé (${wheelSettings.participation_delay}h)` :
+                        wheelSettings.participation_frequency === 'per_session' ? 'Par session' :
+                        wheelSettings.participation_frequency === 'per_day' ? 'Quotidien (24h)' :
+                        wheelSettings.participation_frequency === 'per_week' ? 'Hebdomadaire (168h)' :
+                        'Personnalisé'
+                      }</p>
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1970,97 +1949,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                 🗑️ Vider le panier des cadeaux ({cartItems.filter(item => item.type === 'wheel_gift').length})
               </Button>
               
-                             {/* 🔍 Bouton test éligibilité pour un email */}
-               <div className="bg-yellow-50 p-2 rounded border">
-                 <label className="text-xs text-gray-600 block mb-1">Test éligibilité email :</label>
-                 <div className="flex gap-1">
-                   <input
-                     type="email"
-                     value={testEmail}
-                     onChange={(e) => setTestEmail(e.target.value)}
-                     placeholder="email@test.com"
-                     className="flex-1 px-2 py-1 border rounded text-xs"
-                   />
-                   <Button 
-                     onClick={async () => {
-                       if (!testEmail) return;
-                       console.log('🔍 [TEST] Test éligibilité pour:', testEmail);
-                       const result = await checkSpinEligibilityWithSettings(null, testEmail);
-                       console.log('🔍 [TEST] Résultat pour', testEmail, ':', result);
-                       alert(`Résultat pour ${testEmail}:\nPeut jouer: ${result.canSpin}\nTemps restant: ${result.timeUntilNextSpin}h`);
-                     }}
-                     className="bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded text-xs"
-                   >
-                     🔍 Test
-              </Button>
-                 </div>
-                 <Button 
-                   onClick={() => {
-                     const wheelKeys = Object.keys(localStorage).filter(key => key.includes('wheel') || key.includes('last_wheel_spin'));
-                     console.log('🔍 [DEBUG] Toutes les clés localStorage wheel:', wheelKeys);
-                     wheelKeys.forEach(key => {
-                       console.log(`🔍 [DEBUG] ${key} =`, localStorage.getItem(key));
-                     });
-                     if (testEmail) {
-                       const key = `last_wheel_spin_${testEmail.toLowerCase().trim()}`;
-                       console.log(`🔍 [DEBUG] Timer spécifique pour ${testEmail}:`, localStorage.getItem(key));
-                     }
-                   }}
-                   className="bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded text-xs mt-1 w-full"
-                 >
-                   🔍 Debug localStorage
-                 </Button>
-                 
-                 {/* 🧪 Bouton test insertion directe en base */}
-                 <Button 
-                   onClick={async () => {
-                     if (!testEmail) {
-                       alert('Entrez un email d\'abord');
-                       return;
-                     }
-                     
-                     try {
-                       console.log('🧪 [TEST] Insertion forcée pour:', testEmail);
-                       
-                       // Insertion directe dans wheel_email_entries
-                       const { data, error } = await supabase
-                         .from('wheel_email_entries')
-                         .insert({
-                           email: testEmail.toLowerCase().trim(),
-                           user_id: null,
-                           ip_address: 'test_debug',
-                           browser_fingerprint: 'debug_fingerprint',
-                           created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString() // 1h dans le passé
-                         })
-                         .select();
-                       
-                       console.log('🧪 [TEST] Résultat insertion:', { data, error });
-                       
-                       if (error) {
-                         alert(`Erreur insertion: ${error.message}`);
-                       } else {
-                         alert('✅ Insertion réussie ! Testez maintenant l\'éligibilité.');
-                         
-                         // Test immédiat de récupération
-                         const { data: checkData, error: checkError } = await supabase
-                           .from('wheel_email_entries')
-                           .select('*')
-                           .eq('email', testEmail.toLowerCase().trim())
-                           .order('created_at', { ascending: false })
-                           .limit(1);
-                         
-                         console.log('🧪 [TEST] Vérification post-insertion:', { checkData, checkError });
-                       }
-                     } catch (err) {
-                       console.error('🧪 [TEST] Erreur:', err);
-                       alert(`Erreur: ${err.message}`);
-                     }
-                   }}
-                   className="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded text-xs mt-1 w-full"
-                 >
-                   🧪 Test Insertion DB
-                 </Button>
-               </div>
+               
             </div>
 
             {/* 🆕 Formulaire de test en mode édition */}

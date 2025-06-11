@@ -27,7 +27,8 @@ const CookieBanner = () => {
         </div>
         <div className="flex gap-2 mt-2 md:mt-0">
           <button
-            className="px-4 py-2 rounded bg-blue-700 text-white font-semibold hover:bg-blue-800 transition"
+            className="px-4 py-2 rounded text-white font-semibold transition hover:opacity-90"
+            style={{ backgroundColor: '#0277b6' }}
             onClick={() => handleConsent("accepted")}
           >
             Accepter

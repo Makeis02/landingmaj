@@ -98,6 +98,7 @@ import CommandesPage from "@/pages/admin/CommandesPage";
 import OrderConfirmation from "@/pages/OrderConfirmation";
 import CookieBanner from "@/components/CookieBanner";
 import LuckyWheelPopup from "@/components/WheelPopup";
+import FloatingWheelButton from "@/components/FloatingWheelButton";
 import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
@@ -391,7 +392,7 @@ const App = () => {
 
           <Route path="*" element={<NotFound />} />
           </Routes>
-        {/* Boutons flottants pour les tests en mode édition */}
+        {/* Boutons admin pour les tests en mode édition */}
         {isEditMode && (
           <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
             <button
@@ -400,50 +401,11 @@ const App = () => {
             >
               🎡 Tester la roue
             </button>
-            <button
-              onClick={resetWheelState}
-              className="bg-red-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-red-700 transition text-sm"
-            >
-              🔄 Reset roue
-            </button>
           </div>
         )}
         
-        {/* 🔧 Bouton de debug temporaire - visible même hors mode édition */}
-        <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-2">
-          <button
-            onClick={() => { 
-              console.log('🔧 [DEBUG] Ouverture forcée du popup');
-              setShowWheel(true); 
-              setEditWheel(false); 
-            }}
-            className="bg-green-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-green-700 transition text-sm"
-          >
-            🎡 Debug Roue
-          </button>
-          <button
-            onClick={() => {
-              console.log('🔧 [DEBUG] État localStorage avant reset:', {
-                dismissed: localStorage.getItem('wheel_popup_dismissed'),
-                lastSeen: localStorage.getItem('wheel_popup_last_seen')
-              });
-              resetWheelState();
-            }}
-            className="bg-orange-600 text-white px-4 py-2 rounded-full shadow-lg hover:bg-orange-700 transition text-sm"
-          >
-            🔄 Debug Reset
-          </button>
-          
-          {/* 🆕 Indicateur des paramètres actifs */}
-          {wheelSettings && isWheelEnabled && (
-            <div className="bg-blue-600 text-white px-3 py-2 rounded-lg shadow-lg text-xs max-w-xs">
-              <div className="font-semibold mb-1">🎛️ Paramètres Roue:</div>
-              <div>• Auto: {wheelSettings.auto_show_popup ? `✅ ${wheelSettings.auto_show_delay}s` : '❌'}</div>
-              <div>• Scroll: {wheelSettings.scroll_trigger_enabled ? `✅ ${wheelSettings.scroll_trigger_percentage}%` : '❌'}</div>
-              <div>• Déjà déclenché: {showWheel ? '✅' : (scrollTriggerSet ? '⏰' : '❌')}</div>
-            </div>
-          )}
-        </div>
+        {/* Bouton flottant de la roue pour les clients */}
+        <FloatingWheelButton />
         <LuckyWheelPopup 
           isOpen={showWheel} 
           onClose={() => {
