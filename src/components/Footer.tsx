@@ -175,7 +175,7 @@ const Footer = () => {
       const { data, error } = await supabase
         .from('footer_links')
         .select('*')
-        .order('created_at', { ascending: true }); // On récupère tout, ordre chronologique
+        .order('created_at', { ascending: false }); // 🔄 Nouveaux en premier pour contourner la limite de 1000
 
       if (error) {
         console.error("❌ [QUERY] Error:", error);
