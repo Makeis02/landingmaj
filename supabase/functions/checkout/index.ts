@@ -40,7 +40,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { items, user_id, mondial_relay } = body;
+    const { items, user_id, mondial_relay, promo_code } = body;
     // Ajout des nouveaux champs de contact/adresse/mode livraison
     const {
       first_name,
@@ -54,7 +54,7 @@ serve(async (req) => {
       country,
       shipping_method
     } = body;
-    debug.received = { items, user_id, mondial_relay, first_name, last_name, email, phone, address1, address2, postal_code, city, country, shipping_method };
+    debug.received = { items, user_id, mondial_relay, promo_code, first_name, last_name, email, phone, address1, address2, postal_code, city, country, shipping_method };
 
     // 🛒 Vérification panier
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -96,8 +96,23 @@ serve(async (req) => {
       });
     }
 
-    // 💰 Calcul du total (SEULEMENT les produits payants)
-    const total = payableItems.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0);
+    // 💰 Calcul du sous-total (SEULEMENT les produits payants)
+    const subtotal = payableItems.reduce((sum: number, i: any) => sum + i.price * i.quantity, 0);
+    
+    // 🎫 Application du code promo
+    let promoDiscount = 0;
+    if (promo_code && promo_code.discount_amount) {
+      promoDiscount = parseFloat(promo_code.discount_amount) || 0;
+      console.log(`🎫 Code promo appliqué: ${promo_code.code} = -${promoDiscount}€`);
+    }
+    
+    // Calcul du total final avec réduction
+    const total = Math.max(0, subtotal - promoDiscount);
+    
+    console.log(`💰 Calcul: Sous-total: ${subtotal}€ - Promo: ${promoDiscount}€ = Total: ${total}€`);
+    
+    debug.validated.subtotal = subtotal;
+    debug.validated.promoDiscount = promoDiscount;
     debug.validated.total = total;
     debug.validated.payableItems = payableItems.length;
     debug.validated.wheelGifts = wheelGifts.length;
@@ -163,8 +178,26 @@ serve(async (req) => {
     params.append("mode", "payment");
     params.append("success_url", `https://majemsiteteste.netlify.app/order-confirmation?order_id=${order.id}`);
     params.append("cancel_url", `https://majemsiteteste.netlify.app/checkout?canceled=true`);
+    
+    // 🎫 NOUVEAU : Utiliser price_data pour appliquer les codes promo
     payableItems.forEach((item: any, idx: number) => {
-      params.append(`line_items[${idx}][price]`, item.stripe_price_id);
+      // Calculer le prix unitaire avec réduction proportionnelle du code promo
+      let unitPrice = item.price;
+      
+      if (promoDiscount > 0 && subtotal > 0) {
+        const promoReductionRatio = promoDiscount / subtotal;
+        const itemPromoReduction = unitPrice * promoReductionRatio;
+        unitPrice = Math.max(0, unitPrice - itemPromoReduction);
+        console.log(`🎫 Item ${item.title}: Prix original: ${item.price}€, après promo: ${unitPrice}€`);
+      }
+      
+      // Utiliser price_data au lieu de price_id pour les prix dynamiques
+      params.append(`line_items[${idx}][price_data][currency]`, "eur");
+      params.append(`line_items[${idx}][price_data][product_data][name]`, item.title || "Produit");
+      params.append(`line_items[${idx}][price_data][unit_amount]`, String(Math.round(unitPrice * 100))); // Stripe utilise les centimes
+      if (item.image_url) {
+        params.append(`line_items[${idx}][price_data][product_data][images][0]`, item.image_url);
+      }
       params.append(`line_items[${idx}][quantity]`, String(item.quantity));
     });
     params.append("metadata[supabase_order_id]", order.id);
@@ -185,6 +218,12 @@ serve(async (req) => {
     if (country) params.append("metadata[country]", country);
     if (shipping_method) params.append("metadata[shipping_method]", shipping_method);
     if (mondial_relay) params.append("metadata[mondial_relay]", typeof mondial_relay === 'string' ? mondial_relay : JSON.stringify(mondial_relay));
+    // Ajout des informations du code promo dans les métadonnées
+    if (promo_code) {
+      params.append("metadata[promo_code]", JSON.stringify(promo_code));
+      params.append("metadata[subtotal]", subtotal.toString());
+      params.append("metadata[promo_discount]", promoDiscount.toString());
+    }
     params.append("metadata[order_id]", order.id);
     params.append("metadata[total]", total.toString());
 
