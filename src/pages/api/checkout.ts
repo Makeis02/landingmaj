@@ -118,22 +118,23 @@ export const POST = async ({ request }) => {
       }), { status: 400 });
     }
 
-    // Calculer le total (uniquement produits payants)
-    let subtotal = payableItems.reduce((acc, item) => {
+    // Calculer le sous-total (uniquement produits payants)
+    const subtotal = payableItems.reduce((acc, item) => {
       const finalPrice = item.has_discount && item.price ? item.price : item.price;
       return acc + (finalPrice * item.quantity);
     }, 0);
     
-    // 🎫 NOUVEAU : Appliquer le code promo au total
+    // 🎫 NOUVEAU : Appliquer la réduction du code promo
     let promoDiscount = 0;
-    let total = subtotal;
-    
     if (promo_code && promo_code.discount_amount) {
-      promoDiscount = promo_code.discount_amount;
-      total = Math.max(0, subtotal - promoDiscount); // Ne peut pas être négatif
-      console.log(`🎫 [CHECKOUT] Code promo appliqué: ${promo_code.code} = -${promoDiscount}€`);
-      console.log(`🎫 [CHECKOUT] Sous-total: ${subtotal}€ -> Total avec promo: ${total}€`);
+      promoDiscount = parseFloat(promo_code.discount_amount) || 0;
+      console.log(`🎫 Code promo appliqué: ${promo_code.code} = -${promoDiscount}€`);
     }
+    
+    // Calculer le total final avec la réduction du code promo
+    const total = Math.max(0, subtotal - promoDiscount);
+    
+    console.log(`💰 Calcul total: Sous-total: ${subtotal}€ - Promo: ${promoDiscount}€ = Total: ${total}€`);
     
     // Validation du montant minimum
     const STRIPE_MINIMUM_EUR = 0.50;
@@ -145,31 +146,31 @@ export const POST = async ({ request }) => {
       }), { status: 400 });
     }
 
-    // Créer les line items Stripe (uniquement produits payants)
-    const lineItems: any[] = payableItems.map(item => {
-      const priceId = (item.has_discount && item.stripe_discount_price_id)
-        ? item.stripe_discount_price_id
-        : item.stripe_price_id;
+    // 🎫 NOUVEAU : Créer les line items Stripe avec price_data pour gérer les codes promo
+    const lineItems = payableItems.map(item => {
+      // Calculer le prix unitaire avec la réduction proportionnelle du code promo
+      let unitPrice = item.price; // Prix déjà avec réductions produit
+      
+      if (promoDiscount > 0 && subtotal > 0) {
+        // Appliquer la réduction proportionnelle du code promo
+        const promoReductionRatio = promoDiscount / subtotal;
+        const itemPromoReduction = unitPrice * promoReductionRatio;
+        unitPrice = Math.max(0, unitPrice - itemPromoReduction);
+        console.log(`🎫 Item ${item.title}: Prix original: ${item.price}€, après promo: ${unitPrice}€`);
+      }
+      
       return {
-        price: priceId,
-        quantity: item.quantity,
-      };
-    });
-    
-    // 🎫 NOUVEAU : Ajouter une ligne de réduction si un code promo est appliqué
-    if (promo_code && promoDiscount > 0) {
-      lineItems.push({
         price_data: {
           currency: 'eur',
           product_data: {
-            name: `Code promo: ${promo_code.code}`,
-            description: `Réduction appliquée`
+            name: item.title || 'Produit',
+            ...(item.image_url && { images: [item.image_url] })
           },
-          unit_amount: Math.round(-promoDiscount * 100), // Montant négatif en centimes
+          unit_amount: Math.round(unitPrice * 100), // Stripe utilise les centimes
         },
-        quantity: 1,
-      });
-    }
+        quantity: item.quantity,
+      };
+    });
 
     // Créer la session Stripe avec les métadonnées nécessaires
     let session;
@@ -181,8 +182,8 @@ export const POST = async ({ request }) => {
         wheel_gifts: JSON.stringify(wheelGifts), // Cadeaux de la roue séparément
         subtotal: subtotal.toString(),
         promo_discount: promoDiscount.toString(),
-        total: total.toString(),
         promo_code: promo_code ? JSON.stringify(promo_code) : null,
+        total: total.toString(),
         ...(shipping_info || {})
       };
       session = await stripe.checkout.sessions.create({
