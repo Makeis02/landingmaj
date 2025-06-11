@@ -1,69 +1,138 @@
 import React, { useState, useEffect } from 'react';
-import { Gift } from 'lucide-react';
-import LuckyWheelPopup from './WheelPopup';
 import { supabase } from '@/integrations/supabase/client';
-import { useWheelEligibility } from '@/hooks/useWheelEligibility';
+import LuckyWheelPopup from './WheelPopup';
 
-const FloatingWheelButton = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [settings, setSettings] = useState<any>(null);
-  const { isEligible, isLoading: isEligibilityLoading } = useWheelEligibility();
+const FloatingWheelButton: React.FC = () => {
+  const [isWheelOpen, setIsWheelOpen] = useState(false);
+  const [canSpin, setCanSpin] = useState(false);
+  const [wheelSettings, setWheelSettings] = useState({
+    is_enabled: true,
+    floating_button_text: 'Tentez votre chance !',
+    floating_button_position: 'bottom_right'
+  });
 
+  // Charger les paramètres de la roue
   useEffect(() => {
-    const fetchSettings = async () => {
+    const loadWheelSettings = async () => {
       try {
         const { data, error } = await supabase
           .from('wheel_settings')
           .select('*')
           .limit(1)
           .single();
-        if (error) throw error;
-        setSettings(data);
+
+        if (!error && data) {
+          setWheelSettings({
+            is_enabled: data.is_enabled !== false,
+            floating_button_text: data.floating_button_text || 'Tentez votre chance !',
+            floating_button_position: data.floating_button_position || 'bottom_right'
+          });
+        }
       } catch (error) {
-        console.error("Error fetching wheel settings for button:", error);
+        console.error('Erreur chargement paramètres roue:', error);
       }
     };
-    fetchSettings();
+
+    loadWheelSettings();
   }, []);
 
-  if (!settings || !settings.is_enabled) {
+  // Ne pas afficher le bouton si la roue est désactivée
+  if (!wheelSettings.is_enabled) {
     return null;
   }
-  
+
+  // Déterminer la position du bouton
   const positionClasses = {
-    bottom_right: 'bottom-8 right-8',
-    bottom_left: 'bottom-8 left-8',
-    top_right: 'top-8 right-8',
-    top_left: 'top-8 left-8',
+    bottom_right: 'bottom-6 right-6',
+    bottom_left: 'bottom-6 left-6',
+    top_right: 'top-6 right-6',
+    top_left: 'top-6 left-6'
   };
 
-  const buttonClass = `
-    fixed ${positionClasses[settings.floating_button_position] || 'bottom-8 right-8'} 
-    bg-gradient-to-r from-cyan-500 to-blue-600 
-    text-white 
-    rounded-full 
-    p-4 
-    shadow-lg 
-    hover:scale-110 
-    transition-transform 
-    duration-300 
-    z-40
-    flex items-center gap-2
-    ${isEligible && !isEligibilityLoading ? 'animate-pulse' : ''}
-  `;
+  const positionClass = positionClasses[wheelSettings.floating_button_position] || positionClasses.bottom_right;
 
   return (
     <>
+      {/* Bouton flottant */}
       <button
-        onClick={() => setIsOpen(true)}
-        className={buttonClass}
-        aria-label="Ouvrir la roue de la fortune"
+        onClick={() => setIsWheelOpen(true)}
+        className={`fixed ${positionClass} z-40 w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl group ${canSpin ? 'animate-pulse' : ''}`}
+        style={{ backgroundColor: '#0277b6' }}
+        title={wheelSettings.floating_button_text}
       >
-        <Gift className="h-6 w-6" />
-        <span className="font-semibold hidden md:inline">{settings.floating_button_text || "Tentez votre chance !"}</span>
+        {/* Icône roue animée */}
+        <div className="w-full h-full flex items-center justify-center">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            className="text-white group-hover:animate-spin"
+          >
+            {/* Roue de fortune simple */}
+            <circle
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="rgba(255,255,255,0.1)"
+            />
+            <path
+              d="M12 2 L12 12 L22 12"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="rgba(255,255,255,0.2)"
+            />
+            <path
+              d="M12 2 L12 12 L2 12"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="rgba(255,255,255,0.3)"
+            />
+            <path
+              d="M12 22 L12 12 L2 12"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="rgba(255,255,255,0.1)"
+            />
+            <path
+              d="M12 22 L12 12 L22 12"
+              stroke="currentColor"
+              strokeWidth="2"
+              fill="rgba(255,255,255,0.2)"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="2"
+              fill="currentColor"
+            />
+          </svg>
+        </div>
+
+        {/* Effet de pulsation - Maintenant contrôlé par la classe `animate-pulse` sur le bouton principal */}
+        {/*
+        <div 
+          className="absolute inset-0 rounded-full animate-ping opacity-20"
+          style={{ backgroundColor: '#0277b6' }}
+        ></div>
+        */}
+
+        {/* Tooltip sur hover */}
+        <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none">
+          {wheelSettings.floating_button_text}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+        </div>
       </button>
-      
-      <LuckyWheelPopup isOpen={isOpen} onClose={() => setIsOpen(false)} />
+
+      {/* Popup de la roue */}
+      <LuckyWheelPopup
+        isOpen={isWheelOpen}
+        onClose={() => setIsWheelOpen(false)}
+        onEligibilityChange={setCanSpin}
+        isEditMode={false}
+      />
     </>
   );
 };
