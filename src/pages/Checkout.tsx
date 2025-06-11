@@ -1160,26 +1160,11 @@ const Checkout = () => {
                     <span>{subtotal.toFixed(2)}€</span>
                   </div>
                   
-                  {/* 🎫 AMÉLIORÉ : Affichage détaillé du code promo appliqué */}
+                  {/* 🎫 NOUVEAU : Affichage du code promo appliqué */}
                   {discount > 0 && appliedPromoCode && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 my-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                            <span className="text-blue-600 font-bold text-xs">%</span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-blue-800 text-sm">Code promo appliqué</p>
-                            <p className="text-xs text-blue-600">
-                              {appliedPromoCode.code} - {appliedPromoCode.type === 'percentage' ? `${appliedPromoCode.value}%` : `${appliedPromoCode.value}€`} de réduction
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-blue-600 font-bold text-sm">-{discount.toFixed(2)}€</p>
-                          <p className="text-xs text-blue-500">économisé</p>
-                        </div>
-                      </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
+                      <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
                     </div>
                   )}
                   
