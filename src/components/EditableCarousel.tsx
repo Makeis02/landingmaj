@@ -362,26 +362,26 @@ const EditableCarousel = () => {
               
               {/* Contenu superposé */}
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white max-w-4xl px-4">
+                <div className="text-center text-white max-w-4xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
                   {isEditMode ? (
                     /* Mode édition avec bouton modifier */
-                    <div className="space-y-6">
-                      <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                    <div className="space-y-4 md:space-y-6">
+                      <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
                         {slide.title}
                       </h1>
-                      <p className="text-xl md:text-2xl text-gray-200 mb-6">
+                      <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
                         {slide.subtitle}
                       </p>
                       <a
                         href={slide.button_url}
-                        className="inline-flex items-center px-8 py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-4"
+                        className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
                       >
-                        <LinkIcon className="w-5 h-5 mr-2" />
+                        <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                         {slide.button_text}
                       </a>
                       <Button
                         onClick={() => startEditing(index)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold"
+                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Modifier ce slide
@@ -389,18 +389,18 @@ const EditableCarousel = () => {
                     </div>
                   ) : (
                     /* Mode normal */
-                    <div className="space-y-6">
-                      <h1 className="text-4xl md:text-6xl font-bold mb-4">
+                    <div className="space-y-4 md:space-y-6">
+                      <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
                         {slide.title}
                       </h1>
-                      <p className="text-xl md:text-2xl text-gray-200 mb-6">
+                      <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
                         {slide.subtitle}
                       </p>
                       <a
                         href={slide.button_url}
-                        className="inline-flex items-center px-8 py-4 text-white font-bold rounded-lg transition-colors carousel-button"
+                        className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button text-sm md:text-base"
                       >
-                        <LinkIcon className="w-5 h-5 mr-2" />
+                        <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
                         {slide.button_text}
                       </a>
                     </div>
