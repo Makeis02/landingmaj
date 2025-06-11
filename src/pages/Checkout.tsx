@@ -98,39 +98,38 @@ interface ShippingSettings {
 }
 
 // 🎫 NOUVEAU : Composant pour gérer le code promo
-const PromoCodeSection = () => {
+const PromoCodeSection = ({ discount }: { discount: number }) => {
   const [promoCode, setPromoCode] = useState("");
   const { toast } = useToast();
   
-  // 🎫 RÉCUPÉRER LES FONCTIONS DU STORE ICI
   const { 
     appliedPromoCode, 
-    isApplyingPromo, 
     applyPromoCode, 
-    removePromoCode 
+    removePromoCode, 
+    isApplyingPromo
   } = useCartStore();
 
   const handleApplyPromoCode = async () => {
     if (!promoCode.trim()) {
       toast({
-        title: "Erreur",
+        title: "Code requis",
         description: "Veuillez entrer un code promo",
         variant: "destructive",
       });
       return;
     }
-    
+
     const result = await applyPromoCode(promoCode.trim());
     
     if (result.success) {
-      setPromoCode(""); // Réinitialiser le champ
       toast({
-        title: "✅ Code promo appliqué !",
+        title: "Code promo appliqué !",
         description: result.message,
       });
+      setPromoCode("");
     } else {
       toast({
-        title: "❌ Code promo invalide",
+        title: "Code promo invalide",
         description: result.message,
         variant: "destructive",
       });
@@ -141,59 +140,68 @@ const PromoCodeSection = () => {
     removePromoCode();
     toast({
       title: "Code promo retiré",
-      description: "Le code promo a été supprimé de votre panier",
+      description: "Le code promo a été supprimé de votre commande",
     });
   };
 
   return (
-    <div className="border-b pb-4">
+    <div className="space-y-4">
+      <h4 className="font-medium text-gray-900">Code promotionnel</h4>
+      
       {appliedPromoCode ? (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+        // Code promo appliqué
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
                 <span className="text-green-600 font-bold text-sm">%</span>
               </div>
               <div>
-                <p className="font-medium text-sm text-green-800">Code appliqué</p>
-                <p className="text-xs text-green-600">
-                  {appliedPromoCode.code}
+                <p className="font-medium text-green-800">Code promo appliqué</p>
+                <p className="text-sm text-green-600">
+                  {appliedPromoCode.code} - {appliedPromoCode.type === 'percentage' 
+                    ? `${appliedPromoCode.value}% de réduction` 
+                    : `${appliedPromoCode.value}€ de réduction`}
                 </p>
+                {discount > 0 && (
+                  <p className="text-xs text-green-600 font-medium">
+                    Vous économisez {discount.toFixed(2)}€
+                  </p>
+                )}
               </div>
             </div>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleRemovePromoCode}
-              className="text-green-600 hover:text-green-800 h-6 w-6 p-0"
+              className="text-green-600 hover:text-green-800 h-8 w-8 p-0"
             >
               <X className="h-4 w-4" />
             </Button>
           </div>
         </div>
       ) : (
-        <div className="space-y-2">
-           <Label htmlFor="promo-code">Code promo</Label>
-           <div className="flex gap-2">
-            <Input
-              id="promo-code"
-              placeholder="Votre code"
-              value={promoCode}
-              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') handleApplyPromoCode();
-              }}
-              disabled={isApplyingPromo}
-              className="h-9"
-            />
-            <Button 
-              onClick={handleApplyPromoCode}
-              disabled={isApplyingPromo || !promoCode.trim()}
-              className="h-9"
-            >
-              {isApplyingPromo ? "..." : "OK"}
-            </Button>
-          </div>
+        // Saisie du code promo
+        <div className="flex gap-2">
+          <Input
+            placeholder="Entrez votre code promo"
+            value={promoCode}
+            onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleApplyPromoCode();
+              }
+            }}
+            disabled={isApplyingPromo}
+            className="flex-1"
+          />
+          <Button 
+            onClick={handleApplyPromoCode}
+            disabled={isApplyingPromo || !promoCode.trim()}
+            className="whitespace-nowrap"
+          >
+            {isApplyingPromo ? "..." : "Appliquer"}
+          </Button>
         </div>
       )}
     </div>
@@ -240,9 +248,14 @@ const Checkout = () => {
   const hasOnlyGifts = items.length > 0 && payableItems.length === 0;
   const canCheckout = payableItems.length > 0; // Peut checkout seulement s'il y a des produits payants
 
-  // 🎫 NOUVEAU : Utiliser les totaux avec codes promo
-  const { subtotal, discount, total: finalTotal } = useCartStore(state => state.getTotalWithPromo());
-  const total = getTotal(); // Garder pour compatibilité avec le code existant
+  // 🎫 NOUVEAU : Utiliser les totaux de manière stable pour éviter les boucles de rendu
+  const [orderSummary, setOrderSummary] = useState({ subtotal: 0, discount: 0, total: 0 });
+  
+  // Mettre à jour le résumé de commande de manière contrôlée
+  useEffect(() => {
+    const summary = getTotalWithPromo();
+    setOrderSummary(summary);
+  }, [items.length, appliedPromoCode?.code]); // ✅ Dépendances plus stables
 
   // Formulaire d'adresse
   const [shippingForm, setShippingForm] = useState({
@@ -362,7 +375,7 @@ const Checkout = () => {
   if (shippingSettings) {
     const settings = shippingSettings[selectedShipping];
     shippingLogo = settings.logo_url;
-    if (finalTotal >= settings.free_shipping_threshold) {
+    if (orderSummary.total >= settings.free_shipping_threshold) {
       shippingFree = true;
       shippingPrice = 0;
     } else {
@@ -569,7 +582,7 @@ const Checkout = () => {
         : enrichedItems;
 
       // 💰 NOUVELLE VALIDATION : Vérifier le minimum Stripe (avec code promo appliqué)
-      const totalAmount = finalTotal; // Utiliser le total avec la réduction du code promo
+      const totalAmount = orderSummary.total; // Utiliser le total avec la réduction du code promo
       const STRIPE_MINIMUM_EUR = 0.50;
       
       if (totalAmount < STRIPE_MINIMUM_EUR) {
@@ -960,7 +973,7 @@ const Checkout = () => {
                                 {mode === 'colissimo' ? 'Colissimo' : 'Mondial Relay'}
                               </div>
                               <div className="text-sm text-gray-600 mb-1">
-                                {finalTotal >= s.free_shipping_threshold ? (
+                                {orderSummary.total >= s.free_shipping_threshold ? (
                                   <span className="text-green-600 font-bold">Offert</span>
                                 ) : (
                                   <span>{s.base_price.toFixed(2)} €</span>
@@ -981,7 +994,7 @@ const Checkout = () => {
               {/* Sidebar - Récapitulatif commande */}
               <div className="space-y-6">
                 {/* 🎫 NOUVEAU : Section pour le code promo */}
-                <PromoCodeSection />
+                <PromoCodeSection discount={orderSummary.discount} />
 
                 {/* 🎁 Section des cadeaux de la roue */}
                 {giftItems.length > 0 && (
@@ -1157,34 +1170,35 @@ const Checkout = () => {
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span>Sous-total</span>
-                    <span>{subtotal.toFixed(2)}€</span>
+                    <span>{orderSummary.subtotal.toFixed(2)} €</span>
                   </div>
-                  
-                  {/* 🎫 NOUVEAU : Affichage du code promo appliqué */}
-                  {discount > 0 && appliedPromoCode && (
+                  {orderSummary.discount > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-blue-600">Code promo ({appliedPromoCode.code})</span>
-                      <span className="text-blue-600 font-medium">-{discount.toFixed(2)}€</span>
+                      <span className="text-green-600 flex items-center gap-1">
+                        <span className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center text-xs">%</span>
+                        Code promo ({appliedPromoCode?.code})
+                        {appliedPromoCode?.type === 'percentage' && (
+                          <span className="text-xs">(-{appliedPromoCode.value}%)</span>
+                        )}
+                      </span>
+                      <span className="text-green-600 font-medium">-{orderSummary.discount.toFixed(2)} €</span>
                     </div>
                   )}
-                  
                   <div className="flex justify-between text-sm">
                     <span>Livraison</span>
-                    {shippingSettings ? (
-                      shippingFree ? (
-                        <span className="text-green-600 font-bold">Offert</span>
-                      ) : (
-                        <span>{shippingPrice.toFixed(2)}€</span>
-                      )
-                    ) : (
-                      <span>—</span>
-                    )}
+                    <span>Calculé à l'étape suivante</span>
                   </div>
-                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
-                    <span>Total TTC</span>
-                    {/* 🎫 MODIFIÉ : Utiliser finalTotal au lieu de total */}
-                    <span>{(finalTotal + (shippingFree ? 0 : shippingPrice)).toFixed(2)}€</span>
+                  <div className="flex justify-between text-lg font-semibold pt-2 border-t">
+                    <span>Total</span>
+                    <span>{orderSummary.total.toFixed(2)} €</span>
                   </div>
+                  {orderSummary.discount > 0 && (
+                    <div className="text-center">
+                      <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                        🎉 Vous économisez {orderSummary.discount.toFixed(2)} € !
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
