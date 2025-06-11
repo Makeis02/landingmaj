@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Upload, Save, Link as LinkIcon, Edit } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 interface CarouselSlide {
   index: number;
-  image_url: string;
+  image_url_desktop: string;
+  image_url_mobile: string;
   title: string;
   subtitle: string;
   button_text: string;
@@ -24,12 +26,14 @@ const EditableCarousel = () => {
   const [editingSlide, setEditingSlide] = useState<number | null>(null);
   const [tempSlideData, setTempSlideData] = useState<CarouselSlide | null>(null);
   const { toast } = useToast();
+  const isMobile = useMediaQuery({ maxWidth: 767 });
 
   // Initialiser les slides par défaut
   const defaultSlides: CarouselSlide[] = [
     {
       index: 0,
-      image_url: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_desktop: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_mobile: 'https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
       title: 'Découvrez Notre Univers Aquatique',
       subtitle: 'Tout pour créer l\'aquarium de vos rêves',
       button_text: 'Découvrir',
@@ -37,7 +41,8 @@ const EditableCarousel = () => {
     },
     {
       index: 1,
-      image_url: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_desktop: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_mobile: 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
       title: 'Équipements Professionnels',
       subtitle: 'Filtration, éclairage et accessoires de qualité',
       button_text: 'Voir les produits',
@@ -45,7 +50,8 @@ const EditableCarousel = () => {
     },
     {
       index: 2,
-      image_url: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_desktop: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
+      image_url_mobile: 'https://images.unsplash.com/photo-1583212292454-1fe6229603b7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80',
       title: 'Conseils d\'Experts',
       subtitle: 'Accompagnement personnalisé pour votre projet',
       button_text: 'Nous contacter',
@@ -98,7 +104,8 @@ const EditableCarousel = () => {
 
         return {
           index,
-          image_url: imagesData?.[index]?.image_url || slide.image_url,
+          image_url_desktop: imagesData?.[index]?.image_url_desktop || slide.image_url_desktop,
+          image_url_mobile: imagesData?.[index]?.image_url_mobile || slide.image_url_mobile,
           title: titleData.data?.content || slide.title,
           subtitle: subtitleData.data?.content || slide.subtitle,
           button_text: buttonTextData.data?.content || slide.button_text,
@@ -130,7 +137,8 @@ const EditableCarousel = () => {
           .from('site_content_images')
           .insert({
             key_name: 'homepage_carousel',
-            image_url: slide.image_url,
+            image_url_desktop: slide.image_url_desktop,
+            image_url_mobile: slide.image_url_mobile,
             created_at: new Date(Date.now() + slide.index).toISOString()
           });
 
@@ -167,9 +175,9 @@ const EditableCarousel = () => {
     }
   };
 
-  const handleImageUpload = async (index: number, file: File) => {
+  const handleImageUpload = async (index: number, file: File, type: 'desktop' | 'mobile') => {
     try {
-      const filePath = `carousel/homepage/${Date.now()}-${file.name}`;
+      const filePath = `carousel/homepage/${type}/${Date.now()}-${file.name}`;
       
       const { data, error } = await supabase.storage
         .from('images')
@@ -189,29 +197,31 @@ const EditableCarousel = () => {
           .eq('key_name', 'homepage_carousel')
           .order('created_at', { ascending: true });
 
+        const imageField = type === 'desktop' ? 'image_url_desktop' : 'image_url_mobile';
+
         if (existingImages && existingImages[index]) {
           await supabase
             .from('site_content_images')
-            .update({ image_url: urlData.publicUrl })
+            .update({ [imageField]: urlData.publicUrl })
             .eq('id', existingImages[index].id);
         } else {
           await supabase
             .from('site_content_images')
             .insert({
               key_name: 'homepage_carousel',
-              image_url: urlData.publicUrl,
+              [imageField]: urlData.publicUrl,
               created_at: new Date(Date.now() + index).toISOString()
             });
         }
 
         // Mettre à jour l'état local
         const updatedSlides = [...slides];
-        updatedSlides[index].image_url = urlData.publicUrl;
+        updatedSlides[index][imageField] = urlData.publicUrl;
         setSlides(updatedSlides);
 
         toast({
           title: "Image mise à jour",
-          description: "L'image du carousel a été mise à jour avec succès",
+          description: `L'image ${type} du carousel a été mise à jour avec succès`,
         });
       }
     } catch (error) {
@@ -343,7 +353,9 @@ const EditableCarousel = () => {
             >
               <div
                 className="w-full h-full bg-cover bg-center"
-                style={{ backgroundImage: `url('${slide.image_url}')` }}
+                style={{ 
+                  backgroundImage: `url('${isMobile ? slide.image_url_mobile : slide.image_url_desktop}')` 
+                }}
               >
                 <div className="absolute inset-0 bg-black bg-opacity-40"></div>
               </div>
@@ -399,7 +411,7 @@ const EditableCarousel = () => {
           ))}
         </div>
 
-        {/* Modal d'édition (affiché par-dessus le carousel) */}
+        {/* Modal d'édition */}
         {isEditMode && editingSlide !== null && (
           <div className="absolute inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-hidden">
@@ -464,13 +476,65 @@ const EditableCarousel = () => {
                     </div>
                   </div>
 
-                  {/* Colonne droite - Image et aperçu */}
+                  {/* Colonne droite - Images et aperçu */}
                   <div className="space-y-6">
                     <div>
-                      <label className="block text-sm font-semibold mb-3 text-gray-700">Image actuelle</label>
+                      <label className="block text-sm font-semibold mb-3 text-gray-700">Image Desktop</label>
                       <div className="relative">
                         <img 
-                          src={tempSlideData?.image_url} 
+                          src={tempSlideData?.image_url_desktop} 
+                          alt="Aperçu Desktop" 
+                          className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(editingSlide, file, 'desktop');
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <div className="text-white text-center">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <span className="text-sm">Cliquez pour changer l'image</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-3 text-gray-700">Image Mobile</label>
+                      <div className="relative">
+                        <img 
+                          src={tempSlideData?.image_url_mobile} 
+                          alt="Aperçu Mobile" 
+                          className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                        />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageUpload(editingSlide, file, 'mobile');
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                          <div className="text-white text-center">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <span className="text-sm">Cliquez pour changer l'image</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-semibold mb-3 text-gray-700">Aperçu</label>
+                      <div className="relative">
+                        <img 
+                          src={isMobile ? tempSlideData?.image_url_mobile : tempSlideData?.image_url_desktop} 
                           alt="Aperçu" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                         />
@@ -485,50 +549,34 @@ const EditableCarousel = () => {
                         </div>
                       </div>
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold mb-3 text-gray-700">Changer l'image</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            handleImageUpload(editingSlide, file);
-                          }
-                        }}
-                        className="hidden"
-                        id={`image-upload-${editingSlide}`}
-                      />
-                      <label
-                        htmlFor={`image-upload-${editingSlide}`}
-                        className="w-full inline-flex items-center justify-center px-6 py-4 bg-gray-600 text-white rounded-lg cursor-pointer hover:bg-gray-700 transition-colors text-lg font-medium"
-                      >
-                        <Upload className="w-5 h-5 mr-3" />
-                        Changer l'image
-                      </label>
-                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer du modal */}
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-                <div className="flex gap-4 justify-end">
+                {/* Boutons d'action */}
+                <div className="mt-6 flex justify-end gap-4">
                   <Button
                     onClick={cancelEditing}
                     variant="outline"
-                    className="px-6 py-3 text-lg"
+                    className="px-6"
                   >
                     Annuler
                   </Button>
                   <Button
                     onClick={saveSlideChanges}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6"
                     disabled={isSaving}
-                    className="bg-green-600 hover:bg-green-700 px-8 py-3 text-lg"
                   >
-                    <Save className="w-5 h-5 mr-2" />
-                    {isSaving ? 'Sauvegarde...' : 'Sauvegarder'}
+                    {isSaving ? (
+                      <>
+                        <Save className="w-4 h-4 mr-2 animate-spin" />
+                        Enregistrement...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4 mr-2" />
+                        Enregistrer
+                      </>
+                    )}
                   </Button>
                 </div>
               </div>

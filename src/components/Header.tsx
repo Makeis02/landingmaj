@@ -10,7 +10,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import CartDrawer from "./cart/CartDrawer";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchActiveCategories } from "@/lib/api/categories";
 import { useCartStore } from "@/stores/useCartStore";
@@ -21,6 +21,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { useUserStore } from "@/stores/useUserStore";
 import AnnouncementBanner from "@/components/AnnouncementBanner";
+import { useEditStore } from "@/stores/useEditStore";
+import { useToast } from "@/hooks/use-toast";
+import { useImageUpload } from "@/hooks/useImageUpload";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -40,6 +43,10 @@ const Header = () => {
   const navigate = useNavigate();
   const user = useUserStore((s) => s.user);
   const location = useLocation();
+  const { isEditMode } = useEditStore();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [logoUrl, setLogoUrl] = useState('');
 
   const { data: categories = [] } = useQuery({
     queryKey: ["active-categories"],
@@ -188,6 +195,94 @@ const Header = () => {
   // Afficher la bannière rouge uniquement sur les fiches produit
   const isProductPage = /^\/produits\//.test(location.pathname);
 
+  // Fetch header settings
+  const { data: headerSettings = {} } = useQuery({
+    queryKey: ['header-settings'],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('header_settings')
+          .select('*')
+          .single();
+
+        if (error) {
+          console.error('Error fetching header settings:', error);
+          return {};
+        }
+
+        return data || { header_logo_url: '' };
+      } catch (error) {
+        console.error('Unexpected error fetching header settings:', error);
+        return { header_logo_url: '' };
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (headerSettings) {
+      setLogoUrl(headerSettings.header_logo_url || '');
+    }
+  }, [headerSettings]);
+
+  // Setup image upload hook
+  const { isUploading, handleImageUpload } = useImageUpload({
+    imageKey: 'header_logo',
+    onUpdate: (newUrl) => {
+      setLogoUrl(newUrl);
+      updateHeaderSettingsMutation.mutate({
+        header_logo_url: newUrl
+      });
+    }
+  });
+
+  // Update header settings mutation
+  const updateHeaderSettingsMutation = useMutation({
+    mutationFn: async (updates: any) => {
+      try {
+        const { data: existingSettings } = await supabase
+          .from('header_settings')
+          .select('id')
+          .single();
+
+        let result;
+        if (existingSettings) {
+          result = await supabase
+            .from('header_settings')
+            .update(updates)
+            .eq('id', existingSettings.id);
+        } else {
+          result = await supabase
+            .from('header_settings')
+            .insert([updates]);
+        }
+
+        if (result.error) throw result.error;
+      } catch (error) {
+        console.error('Error updating header settings:', error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['header-settings'] });
+      toast({
+        title: "Logo mis à jour",
+        description: "Le logo du header a été mis à jour avec succès",
+      });
+    },
+  });
+
+  // Handle logo upload
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      await handleImageUpload(file);
+    } catch (error) {
+      console.error('Error in handleLogoUpload:', error);
+    }
+  };
+
   return (
     <>
       {/* Bannière modifiable : visible partout sauf sur les fiches produit */}
@@ -212,7 +307,31 @@ const Header = () => {
 
             {/* Logo centré */}
             <Link to="/" className="flex-grow text-center">
-              <span className="text-2xl font-bold text-ocean">AquaShop</span>
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo AquaShop" 
+                  className="h-12 mx-auto object-contain" 
+                />
+              ) : (
+                <span className="text-2xl font-bold text-ocean">AquaShop</span>
+              )}
+              {isEditMode && (
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-primary file:text-white
+                      hover:file:bg-primary/90"
+                  />
+                  {isUploading && <p className="text-xs mt-1 text-gray-500">Chargement...</p>}
+                </div>
+              )}
             </Link>
 
             {/* Icônes à droite */}
@@ -260,7 +379,31 @@ const Header = () => {
           <div className="hidden lg:flex items-center justify-between gap-2 h-16">
             {/* Logo */}
             <Link to="/" className="text-2xl font-bold text-ocean mr-6">
-              AquaShop
+              {logoUrl ? (
+                <img 
+                  src={logoUrl} 
+                  alt="Logo AquaShop" 
+                  className="h-12 object-contain" 
+                />
+              ) : (
+                <span className="text-2xl font-bold text-ocean">AquaShop</span>
+              )}
+              {isEditMode && (
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="block w-full text-sm text-gray-500
+                      file:mr-4 file:py-2 file:px-4
+                      file:rounded-md file:border-0
+                      file:text-sm file:font-semibold
+                      file:bg-primary file:text-white
+                      hover:file:bg-primary/90"
+                  />
+                  {isUploading && <p className="text-xs mt-1 text-gray-500">Chargement...</p>}
+                </div>
+              )}
             </Link>
 
             {/* Desktop Navigation */}
@@ -457,7 +600,15 @@ const Header = () => {
             {/* Barre supérieure avec logo + bouton de fermeture */}
             <div className="sticky top-0 left-0 right-0 flex items-center justify-between p-4 bg-white/80 backdrop-blur-sm border-b">
               <Link to="/" className="text-xl font-bold text-ocean">
-                AquaShop
+                {logoUrl ? (
+                  <img 
+                    src={logoUrl} 
+                    alt="Logo AquaShop" 
+                    className="h-10 object-contain" 
+                  />
+                ) : (
+                  <span className="text-xl font-bold text-ocean">AquaShop</span>
+                )}
               </Link>
               <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
                 <X className="h-6 w-6 text-gray-600" />
