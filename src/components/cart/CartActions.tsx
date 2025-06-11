@@ -83,7 +83,7 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
       });
       return;
     }
-
+    
     const result = await applyPromoCode(promoCode.trim());
     
     if (result.success) {
@@ -192,8 +192,8 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
         </div>
       ) : (
         // Saisie du code promo
-        <div className="flex gap-2">
-          <Input
+      <div className="flex gap-2">
+        <Input
             placeholder="Code promo"
             value={promoCode}
             onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
@@ -203,14 +203,14 @@ const CartActions = ({ total, items, firstThresholdValue, onCheckout }: CartActi
               }
             }}
             disabled={isApplyingPromo}
-          />
+        />
           <Button 
             onClick={handleApplyPromoCode}
             disabled={isApplyingPromo || !promoCode.trim()}
           >
             {isApplyingPromo ? "..." : "Appliquer"}
           </Button>
-        </div>
+      </div>
       )}
 
       <div className="border-t pt-4">

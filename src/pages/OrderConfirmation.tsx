@@ -196,7 +196,7 @@ const OrderConfirmation = () => {
                 
                 {/* Liste des produits payants */}
                 {orderItems.filter(i => !i.product_id.startsWith('shipping_')).length > 0 && (
-                  <div className="border-t pt-4 space-y-2">
+                <div className="border-t pt-4 space-y-2">
                     <div className="flex items-center gap-2 mb-3">
                       <Package className="h-5 w-5 text-gray-700" />
                       <h4 className="font-semibold text-gray-800">Produits commandés</h4>
@@ -204,35 +204,35 @@ const OrderConfirmation = () => {
                         {orderItems.filter(i => !i.product_id.startsWith('shipping_')).length}
                       </Badge>
                     </div>
-                    <table className="min-w-full text-sm border">
-                      <thead>
-                        <tr className="bg-gray-100">
-                          <th className="p-2 border">Produit</th>
-                          <th className="p-2 border">Qté</th>
-                          <th className="p-2 border">Prix</th>
-                          <th className="p-2 border">Total</th>
+                  <table className="min-w-full text-sm border">
+                    <thead>
+                      <tr className="bg-gray-100">
+                        <th className="p-2 border">Produit</th>
+                        <th className="p-2 border">Qté</th>
+                        <th className="p-2 border">Prix</th>
+                        <th className="p-2 border">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {orderItems.filter(i => !i.product_id.startsWith('shipping_')).map((item, idx) => (
+                        <tr key={item.id || idx}>
+                          <td className="p-2 border flex items-center gap-2">
+                            {productImages[item.product_id] && (
+                              <img src={productImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded border mr-2" />
+                            )}
+                            {item.product_title || item.title || item.product_id}
+                            {item.variant && (
+                              <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
+                            )}
+                          </td>
+                          <td className="p-2 border text-center">{item.quantity}</td>
+                          <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
+                          <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {orderItems.filter(i => !i.product_id.startsWith('shipping_')).map((item, idx) => (
-                          <tr key={item.id || idx}>
-                            <td className="p-2 border flex items-center gap-2">
-                              {productImages[item.product_id] && (
-                                <img src={productImages[item.product_id]} alt="img" className="w-10 h-10 object-contain rounded border mr-2" />
-                              )}
-                              {item.product_title || item.title || item.product_id}
-                              {item.variant && (
-                                <span className="text-xs text-gray-500 ml-1">– {item.variant}</span>
-                              )}
-                            </td>
-                            <td className="p-2 border text-center">{item.quantity}</td>
-                            <td className="p-2 border text-right">{item.price?.toFixed(2)} €</td>
-                            <td className="p-2 border text-right">{(item.price * item.quantity).toFixed(2)} €</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 )}
                 
                 {/* Récapitulatif total */}

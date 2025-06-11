@@ -968,74 +968,74 @@ const Checkout = () => {
                           </div>
                         )}
                         {payableItems.map((item) => (
-                          <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                            {item.image_url && (
-                              <img
-                                src={item.image_url}
-                                alt={item.title}
-                                className="w-16 h-16 object-cover rounded"
-                              />
+                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                        {item.image_url && (
+                          <img
+                            src={item.image_url}
+                            alt={item.title}
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
+                          {item.variant && (
+                            <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
+                          )}
+                          <div className="text-sm">
+                            {item.has_discount && item.original_price ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-gray-500 line-through">
+                                  {item.original_price.toFixed(2)}€
+                                </span>
+                                <span className="text-red-600 font-medium">
+                                  {item.price.toFixed(2)}€
+                                </span>
+                                <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
+                                  -{item.discount_percentage}%
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-gray-600">{item.price.toFixed(2)}€</span>
                             )}
-                            
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
-                              {item.variant && (
-                                <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
-                              )}
-                              <div className="text-sm">
-                                {item.has_discount && item.original_price ? (
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-gray-500 line-through">
-                                      {item.original_price.toFixed(2)}€
-                                    </span>
-                                    <span className="text-red-600 font-medium">
-                                      {item.price.toFixed(2)}€
-                                    </span>
-                                    <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
-                                      -{item.discount_percentage}%
-                                    </span>
-                                  </div>
-                                ) : (
-                                  <span className="text-gray-600">{item.price.toFixed(2)}€</span>
-                                )}
-                              </div>
-                              
-                              <div className="flex items-center gap-2 mt-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => handleQuantityChange(item.id, -1)}
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="h-6 w-6 p-0"
-                                  onClick={() => handleQuantityChange(item.id, 1)}
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
-                                  onClick={() => removeItem(item.id)}
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            <div className="text-right">
-                              <p className="font-medium text-sm">
-                                {(item.price * item.quantity).toFixed(2)}€
-                              </p>
-                            </div>
                           </div>
-                        ))}
+                          
+                          <div className="flex items-center gap-2 mt-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => handleQuantityChange(item.id, -1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-6 w-6 p-0"
+                              onClick={() => handleQuantityChange(item.id, 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
+                              onClick={() => removeItem(item.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="text-right">
+                          <p className="font-medium text-sm">
+                            {(item.price * item.quantity).toFixed(2)}€
+                          </p>
+                        </div>
+                      </div>
+                    ))}
                       </div>
                     )}
 
