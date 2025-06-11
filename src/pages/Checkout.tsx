@@ -1200,6 +1200,65 @@ const Checkout = () => {
                     </div>
                   )}
                 </div>
+
+                {/* 🚨 NOUVEAU : Bouton Procéder au paiement et sécurité Stripe */}
+                <div className="space-y-4">
+                  {hasOnlyGifts ? (
+                    <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center justify-center text-amber-700 mb-2">
+                        <span className="text-2xl mr-2">🎁</span>
+                        <span className="font-medium">Panier contenant uniquement des cadeaux</span>
+                      </div>
+                      <p className="text-sm text-amber-600">
+                        Ajoutez des produits payants pour pouvoir procéder au paiement
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={handleCheckout}
+                        disabled={loading || !canCheckout}
+                        className="w-full bg-primary hover:bg-primary/90 text-white py-3 px-6 rounded-lg font-semibold text-lg transition-all duration-200 hover:shadow-lg"
+                      >
+                        {loading ? (
+                          <div className="flex items-center justify-center">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                            Redirection en cours...
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center">
+                            <CreditCard className="mr-2 h-5 w-5" />
+                            Procéder au paiement
+                          </div>
+                        )}
+                      </Button>
+
+                      {/* 🔒 Encadré de sécurité Stripe */}
+                      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <Lock className="h-5 w-5 text-green-600" />
+                          <span className="font-semibold text-gray-800">Paiement 100% sécurisé</span>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-sm text-gray-600 mb-2">
+                            Vos données de paiement sont protégées par
+                          </p>
+                          <div className="flex items-center justify-center space-x-4">
+                            <img 
+                              src="https://cdn.brandfolder.io/KGT2DTA4/as/pl546j-7le8zk-6gwiyo/Stripe_wordmark_-_blurple.svg" 
+                              alt="Stripe" 
+                              className="h-6"
+                            />
+                            <div className="flex items-center text-green-600">
+                              <Lock className="h-4 w-4 mr-1" />
+                              <span className="text-xs font-medium">SSL 256-bit</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           )}
