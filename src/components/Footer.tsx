@@ -13,6 +13,130 @@ import { EditableText } from "@/components/EditableText";
 import { EditableURL } from "@/components/EditableURL";
 import { useImageUpload } from "@/hooks/useImageUpload";
 
+// 🔍 Panneau de debug pour les données Footer (comme dans Modele.tsx)
+const FooterDebugPanel = ({ footerLinks, footerSettings, legalLinks, usefulLinks, socialLinks }) => {
+  const [showDebug, setShowDebug] = useState(false);
+  
+  if (!showDebug) {
+    return (
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button
+          onClick={() => setShowDebug(true)}
+          className="bg-purple-600 hover:bg-purple-700 text-white text-xs px-3 py-1"
+        >
+          🔍 Debug Footer
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 max-w-2xl w-full">
+      <div className="bg-white border-2 border-purple-500 rounded-lg shadow-lg p-4 max-h-96 overflow-y-auto">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-purple-700">🔍 Debug Footer Data</h3>
+          <Button
+            onClick={() => setShowDebug(false)}
+            variant="ghost"
+            className="text-purple-600 hover:text-purple-800 p-1"
+          >
+            ✕
+          </Button>
+        </div>
+
+        <div className="space-y-4 text-xs">
+          {/* 📊 Données brutes footer_links */}
+          <div className="border border-gray-200 rounded p-3">
+            <h4 className="font-semibold text-gray-800 mb-2">📊 Raw footer_links ({footerLinks?.length || 0})</h4>
+            <div className="bg-gray-50 p-2 rounded text-xs font-mono max-h-32 overflow-auto">
+              {footerLinks?.length > 0 ? (
+                <pre>{JSON.stringify(footerLinks, null, 2)}</pre>
+              ) : (
+                <span className="text-red-500">Aucune donnée dans footer_links</span>
+              )}
+            </div>
+          </div>
+
+          {/* 📊 Données footer_settings */}
+          <div className="border border-gray-200 rounded p-3">
+            <h4 className="font-semibold text-gray-800 mb-2">⚙️ Footer Settings</h4>
+            <div className="bg-gray-50 p-2 rounded text-xs font-mono max-h-32 overflow-auto">
+              <pre>{JSON.stringify(footerSettings, null, 2)}</pre>
+            </div>
+          </div>
+
+          {/* 🏷️ Sections filtrées */}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="border border-blue-200 rounded p-2">
+              <h5 className="font-semibold text-blue-700 mb-1">⚖️ Mentions Légales ({legalLinks?.length || 0})</h5>
+              <div className="bg-blue-50 p-1 rounded text-xs max-h-20 overflow-auto">
+                {legalLinks?.length > 0 ? (
+                  legalLinks.map((link, i) => (
+                    <div key={i} className="mb-1">
+                      <strong>{link.label}</strong>: {link.url}
+                      <br />
+                      <span className="text-gray-500">Section: "{link.section}"</span>
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-red-500">Aucune mention légale</span>
+                )}
+              </div>
+            </div>
+
+            <div className="border border-green-200 rounded p-2">
+              <h5 className="font-semibold text-green-700 mb-1">🔗 Liens Utiles ({usefulLinks?.length || 0})</h5>
+              <div className="bg-green-50 p-1 rounded text-xs max-h-20 overflow-auto">
+                {usefulLinks?.length > 0 ? (
+                  usefulLinks.map((link, i) => (
+                    <div key={i} className="mb-1">
+                      <strong>{link.label}</strong>: {link.url}
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-red-500">Aucun lien utile</span>
+                )}
+              </div>
+            </div>
+
+            <div className="border border-orange-200 rounded p-2">
+              <h5 className="font-semibold text-orange-700 mb-1">📱 Réseaux Sociaux ({socialLinks?.length || 0})</h5>
+              <div className="bg-orange-50 p-1 rounded text-xs max-h-20 overflow-auto">
+                {socialLinks?.length > 0 ? (
+                  socialLinks.map((link, i) => (
+                    <div key={i} className="mb-1">
+                      <strong>{link.label}</strong>: {link.url}
+                    </div>
+                  ))
+                ) : (
+                  <span className="text-red-500">Aucun réseau social</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 🚨 Tests de normalisation */}
+          <div className="border border-red-200 rounded p-3">
+            <h4 className="font-semibold text-red-700 mb-2">🧪 Test Normalisation</h4>
+            <div className="space-y-1 text-xs">
+              {footerLinks?.map((link, i) => {
+                const normalized = link.section?.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+                const isMatching = normalized.includes("mentions legales");
+                return (
+                  <div key={i} className={`p-1 rounded ${isMatching ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <strong>#{i}</strong> "{link.section}" → "{normalized}" 
+                    {isMatching ? ' ✅ MATCH' : ' ❌ NO MATCH'}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Footer = () => {
   const { isEditMode } = useEditStore();
   const { toast } = useToast();
@@ -188,6 +312,14 @@ const Footer = () => {
       console.log('📝 [mutationFn] Start adding new link:', newLink);
       const formattedUrl = formatUrl(newLink.url, newLink.section);
       console.log('🔗 [mutationFn] Formatted URL:', formattedUrl);
+      
+      // 🔍 DEBUG : Vérifier la table avant insertion
+      const { data: beforeData, error: beforeError } = await supabase
+        .from('footer_links')
+        .select('*')
+        .order('id');
+      console.log('📊 [DEBUG] Table footer_links AVANT insertion:', { beforeData, beforeError });
+      
       const { data, error } = await supabase
         .from('footer_links')
         .insert([{ ...newLink, url: formattedUrl }])
@@ -199,6 +331,13 @@ const Footer = () => {
       }
 
       console.log('✅ [mutationFn] Link inserted successfully:', data);
+      
+      // 🔍 DEBUG : Vérifier la table après insertion
+      const { data: afterData, error: afterError } = await supabase
+        .from('footer_links')
+        .select('*')
+        .order('id');
+      console.log('📊 [DEBUG] Table footer_links APRÈS insertion:', { afterData, afterError });
       return data[0];
     },
     onSuccess: async (data) => {
@@ -925,6 +1064,17 @@ const Footer = () => {
           </div>
         </div>
       </div>
+
+      {/* 🔍 Panneau de debug en mode édition */}
+      {isEditMode && (
+        <FooterDebugPanel
+          footerLinks={footerLinks}
+          footerSettings={footerSettings}
+          legalLinks={legalLinks}
+          usefulLinks={usefulLinks}
+          socialLinks={socialLinks}
+        />
+      )}
     </footer>
   );
 };
