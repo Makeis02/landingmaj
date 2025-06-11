@@ -169,14 +169,13 @@ const Footer = () => {
 
   // Fetch footer links from Supabase
   const { data: footerLinks = [], isLoading: isLoadingLinks } = useQuery({
-    queryKey: ['footer-links-debug', Math.random()], // 🔄 Cache bust avec random
+    queryKey: ['footer-links'], // ✅ Clé de requête stable et unique
     queryFn: async () => {
-      console.log("🔄 [QUERY] Fetching footer_links...");
+      console.log("🔄 [QUERY] Fetching ALL footer_links..."); // Changement de log
       const { data, error } = await supabase
         .from('footer_links')
         .select('*')
-        .order('created_at', { ascending: false }) // 🔄 Plus récents en premier
-        .limit(10); // 🔄 Limite très réduite pour debug
+        .order('created_at', { ascending: true }); // On récupère tout, ordre chronologique
 
       if (error) {
         console.error("❌ [QUERY] Error:", error);
@@ -184,7 +183,6 @@ const Footer = () => {
       }
       console.log(`📊 [QUERY] Récupéré ${data?.length || 0} footer_links`);
       console.log(`📊 [QUERY] RAW DATA:`, data);
-      console.log(`📊 [QUERY] Première entrée:`, data?.[0]);
       console.log(`📊 [QUERY] Mentions Légales dans les données:`, 
         data?.filter((link: any) => link.section?.includes('Mentions')).length || 0
       );
@@ -361,10 +359,9 @@ const Footer = () => {
     onSuccess: async (data) => {
       try {
         console.log('🎯 [onSuccess] Link added successfully:', data);
-        console.log('🔄 [onSuccess] Invalidating & refetching footer-links...');
+        console.log('🔄 [onSuccess] Invalidating footer-links...');
         await queryClient.invalidateQueries({ queryKey: ['footer-links'] });
-        await queryClient.refetchQueries({ queryKey: ['footer-links'] });
-        console.log('✅ [onSuccess] footer-links invalidated & refetched');
+        console.log('✅ [onSuccess] footer-links invalidated');
 
         // Gestion sécurisée des sections
         const normalizedSection = normalize(data.section);
