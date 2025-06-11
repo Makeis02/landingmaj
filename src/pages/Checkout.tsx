@@ -146,73 +146,57 @@ const PromoCodeSection = () => {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <span className="text-lg mr-2">🎫</span>
-          Code promo
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {appliedPromoCode ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <span className="text-green-600 font-bold text-lg">%</span>
-                </div>
-                <div>
-                  <p className="font-medium text-green-800">Code promo appliqué</p>
-                  <p className="text-sm text-green-600">
-                    <span className="font-semibold">{appliedPromoCode.code}</span> - {appliedPromoCode.type === 'percentage' ? `${appliedPromoCode.value}%` : `${appliedPromoCode.value}€`} de réduction
-                  </p>
-                </div>
+    <div className="border-b pb-4">
+      {appliedPromoCode ? (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 font-bold text-sm">%</span>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRemovePromoCode}
-                className="text-green-600 hover:text-green-800 h-8 w-8 p-0"
-                title="Retirer le code promo"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div>
+                <p className="font-medium text-sm text-green-800">Code appliqué</p>
+                <p className="text-xs text-green-600">
+                  {appliedPromoCode.code}
+                </p>
+              </div>
             </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRemovePromoCode}
+              className="text-green-600 hover:text-green-800 h-6 w-6 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        ) : (
-          <div className="space-y-3">
-             <Label htmlFor="promo-code">Avez-vous un code promo ?</Label>
-             <div className="flex gap-2">
-              <Input
-                id="promo-code"
-                placeholder="Entrez votre code"
-                value={promoCode}
-                onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') handleApplyPromoCode();
-                }}
-                disabled={isApplyingPromo}
-                className="h-10"
-              />
-              <Button 
-                onClick={handleApplyPromoCode}
-                disabled={isApplyingPromo || !promoCode.trim()}
-                className="h-10 px-6"
-              >
-                {isApplyingPromo ? (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                ) : (
-                  "Appliquer"
-                )}
-              </Button>
-            </div>
-            <p className="text-xs text-gray-500">
-              Les codes promo sont appliqués automatiquement à votre commande
-            </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+           <Label htmlFor="promo-code">Code promo</Label>
+           <div className="flex gap-2">
+            <Input
+              id="promo-code"
+              placeholder="Votre code"
+              value={promoCode}
+              onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter') handleApplyPromoCode();
+              }}
+              disabled={isApplyingPromo}
+              className="h-9"
+            />
+            <Button 
+              onClick={handleApplyPromoCode}
+              disabled={isApplyingPromo || !promoCode.trim()}
+              className="h-9"
+            >
+              {isApplyingPromo ? "..." : "OK"}
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -996,7 +980,7 @@ const Checkout = () => {
 
               {/* Sidebar - Récapitulatif commande */}
               <div className="space-y-6">
-                {/* 🎫 Section pour le code promo */}
+                {/* 🎫 NOUVEAU : Section pour le code promo */}
                 <PromoCodeSection />
 
                 {/* 🎁 Section des cadeaux de la roue */}
