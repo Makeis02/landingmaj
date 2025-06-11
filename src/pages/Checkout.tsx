@@ -1185,12 +1185,25 @@ const Checkout = () => {
                     </div>
                   )}
                   <div className="flex justify-between text-sm">
-                    <span>Livraison</span>
-                    <span>Calculé à l'étape suivante</span>
+                    <span>Livraison ({selectedShipping === 'mondial_relay' ? 'Mondial Relay' : 'Colissimo'})</span>
+                    {shippingSettings ? (
+                      shippingFree ? (
+                        <span className="text-green-600 font-bold">Gratuit</span>
+                      ) : (
+                        <span>{shippingPrice.toFixed(2)} €</span>
+                      )
+                    ) : (
+                      <span>Chargement...</span>
+                    )}
                   </div>
+                  {shippingSettings && !shippingFree && (
+                    <div className="text-xs text-gray-500 text-right">
+                      Livraison gratuite à partir de {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-semibold pt-2 border-t">
-                    <span>Total</span>
-                    <span>{orderSummary.total.toFixed(2)} €</span>
+                    <span>Total TTC</span>
+                    <span>{(orderSummary.total + (shippingFree ? 0 : shippingPrice)).toFixed(2)} €</span>
                   </div>
                   {orderSummary.discount > 0 && (
                     <div className="text-center">
