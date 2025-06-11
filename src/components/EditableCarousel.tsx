@@ -486,21 +486,25 @@ const EditableCarousel = () => {
                           alt="Aperçu Desktop" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                         />
+                        <label
+                          htmlFor={`desktop-upload-${editingSlide}`}
+                          className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <div className="text-white text-center">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <span className="text-sm">Cliquez pour changer l'image</span>
+                          </div>
+                        </label>
                         <input
                           type="file"
+                          id={`desktop-upload-${editingSlide}`}
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) handleImageUpload(editingSlide, file, 'desktop');
                           }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          className="hidden"
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                          <div className="text-white text-center">
-                            <Upload className="w-8 h-8 mx-auto mb-2" />
-                            <span className="text-sm">Cliquez pour changer l'image</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
 
@@ -512,21 +516,25 @@ const EditableCarousel = () => {
                           alt="Aperçu Mobile" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
                         />
+                        <label
+                          htmlFor={`mobile-upload-${editingSlide}`}
+                          className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+                        >
+                          <div className="text-white text-center">
+                            <Upload className="w-8 h-8 mx-auto mb-2" />
+                            <span className="text-sm">Cliquez pour changer l'image</span>
+                          </div>
+                        </label>
                         <input
                           type="file"
+                          id={`mobile-upload-${editingSlide}`}
                           accept="image/*"
                           onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) handleImageUpload(editingSlide, file, 'mobile');
                           }}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          className="hidden"
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                          <div className="text-white text-center">
-                            <Upload className="w-8 h-8 mx-auto mb-2" />
-                            <span className="text-sm">Cliquez pour changer l'image</span>
-                          </div>
-                        </div>
                       </div>
                     </div>
 
