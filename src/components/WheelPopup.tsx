@@ -1459,14 +1459,12 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, isEd
                                 src={segment.image_url}
                                 alt="Segment"
                                 style={{
-                                  width: '42px',
-                                  height: '42px',
+                                  width: '40px',
+                                  height: '40px',
                                   objectFit: 'cover',
                                   borderRadius: '6px',
                                   border: '2px solid rgba(255,255,255,0.9)',
                                   boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
-                                  display: 'block',
-                                  flexShrink: 0,
                                 }}
                               />
                             ) : (
