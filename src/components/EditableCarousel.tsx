@@ -15,6 +15,7 @@ interface CarouselSlide {
   subtitle: string;
   button_text: string;
   button_url: string;
+  is_active: boolean;
 }
 
 const EditableCarousel = () => {
@@ -37,7 +38,8 @@ const EditableCarousel = () => {
       title: 'Découvrez Notre Univers Aquatique',
       subtitle: 'Tout pour créer l\'aquarium de vos rêves',
       button_text: 'Découvrir',
-      button_url: '/categories'
+      button_url: '/categories',
+      is_active: true
     },
     {
       index: 1,
@@ -46,7 +48,8 @@ const EditableCarousel = () => {
       title: 'Équipements Professionnels',
       subtitle: 'Filtration, éclairage et accessoires de qualité',
       button_text: 'Voir les produits',
-      button_url: '/produits'
+      button_url: '/produits',
+      is_active: true
     },
     {
       index: 2,
@@ -55,7 +58,8 @@ const EditableCarousel = () => {
       title: 'Conseils d\'Experts',
       subtitle: 'Accompagnement personnalisé pour votre projet',
       button_text: 'Nous contacter',
-      button_url: '/contact'
+      button_url: '/contact',
+      is_active: true
     }
   ];
 
@@ -79,7 +83,7 @@ const EditableCarousel = () => {
 
       // Charger les textes depuis editable_content
       const textPromises = defaultSlides.map(async (slide, index) => {
-        const [titleData, subtitleData, buttonTextData, buttonUrlData] = await Promise.all([
+        const [titleData, subtitleData, buttonTextData, buttonUrlData, activeData] = await Promise.all([
           supabase
             .from('editable_content')
             .select('content')
@@ -99,6 +103,11 @@ const EditableCarousel = () => {
             .from('editable_content')
             .select('content')
             .eq('content_key', `homepage_carousel_button_url_${index}`)
+            .single(),
+          supabase
+            .from('editable_content')
+            .select('content')
+            .eq('content_key', `homepage_carousel_active_${index}`)
             .single()
         ]);
 
@@ -109,7 +118,8 @@ const EditableCarousel = () => {
           title: titleData.data?.content || slide.title,
           subtitle: subtitleData.data?.content || slide.subtitle,
           button_text: buttonTextData.data?.content || slide.button_text,
-          button_url: buttonUrlData.data?.content || slide.button_url
+          button_url: buttonUrlData.data?.content || slide.button_url,
+          is_active: activeData.data?.content === 'true' ? true : (activeData.data?.content === 'false' ? false : slide.is_active)
         };
       });
 
@@ -167,6 +177,12 @@ const EditableCarousel = () => {
             .insert({
               content_key: `homepage_carousel_button_url_${slide.index}`,
               content: slide.button_url
+            }),
+          supabase
+            .from('editable_content')
+            .insert({
+              content_key: `homepage_carousel_active_${slide.index}`,
+              content: slide.is_active.toString()
             })
         ]);
       }
@@ -311,6 +327,35 @@ const EditableCarousel = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
+  const toggleSlideActive = async (index: number) => {
+    try {
+      const updatedSlides = [...slides];
+      updatedSlides[index].is_active = !updatedSlides[index].is_active;
+      
+      // Mettre à jour dans la base de données
+      await supabase
+        .from('editable_content')
+        .upsert({
+          content_key: `homepage_carousel_active_${index}`,
+          content: updatedSlides[index].is_active.toString()
+        }, { onConflict: 'content_key' });
+
+      setSlides(updatedSlides);
+      
+      toast({
+        title: "Slide mis à jour",
+        description: `Le slide a été ${updatedSlides[index].is_active ? 'activé' : 'désactivé'}`,
+      });
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la mise à jour du statut",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Auto-play du carousel (seulement si pas en mode édition)
   useEffect(() => {
     if (!isEditMode && slides.length > 0) {
@@ -344,7 +389,7 @@ const EditableCarousel = () => {
       <section className="relative h-[500px] overflow-hidden">
         {/* Images du carousel */}
         <div className="relative h-full">
-          {slides.map((slide, index) => (
+          {slides.filter(slide => isEditMode || slide.is_active).map((slide, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-500 ${
@@ -625,18 +670,27 @@ const EditableCarousel = () => {
         {/* Boutons d'édition rapide (en mode édition) */}
         {isEditMode && (
           <div className="absolute top-4 right-4 flex flex-col gap-2">
-            {slides.map((_, index) => (
-              <Button
-                key={index}
-                onClick={() => startEditing(index)}
-                size="sm"
-                className={`bg-yellow-500 hover:bg-yellow-600 text-black font-bold ${
-                  index === currentSlide ? 'ring-2 ring-white' : ''
-                }`}
-              >
-                <Edit className="w-3 h-3 mr-1" />
-                Slide {index + 1}
-              </Button>
+            {slides.map((slide, index) => (
+              <div key={index} className="flex gap-2">
+                <Button
+                  onClick={() => startEditing(index)}
+                  size="sm"
+                  className={`bg-yellow-500 hover:bg-yellow-600 text-black font-bold ${
+                    index === currentSlide ? 'ring-2 ring-white' : ''
+                  }`}
+                >
+                  <Edit className="w-3 h-3 mr-1" />
+                  Slide {index + 1}
+                </Button>
+                <Button
+                  onClick={() => toggleSlideActive(index)}
+                  size="sm"
+                  variant={slide.is_active ? "default" : "destructive"}
+                  className="min-w-[100px]"
+                >
+                  {slide.is_active ? 'Actif' : 'Inactif'}
+                </Button>
+              </div>
             ))}
           </div>
         )}
