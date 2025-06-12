@@ -6,6 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEditStore } from '@/stores/useEditStore';
 import { EditableImage } from '@/components/EditableImage';
 import { EditableText } from "@/components/EditableText";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface Category {
   id: string;
@@ -34,6 +35,9 @@ const DynamicUniverseGrid = () => {
   const itemsPerSlide = 4; // Nombre de catégories visibles à la fois
   const { isEditMode } = useEditStore();
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
+  const queryClient = useQueryClient();
+
+  console.log("📸 DynamicUniverseGrid: Rendu du composant...");
 
   // Mapping des icônes et couleurs par type de catégorie
   const getCategoryStyle = (categoryName: string) => {
@@ -261,6 +265,92 @@ const DynamicUniverseGrid = () => {
     fetchCustomImages();
   }, [universes]);
 
+  // Charger les univers depuis la base de données
+  const { data: fetchedUniverses, error: queryError } = useQuery<UniverseCategory[]>({
+    queryKey: ["universes"],
+    queryFn: async () => {
+      console.log("📸 DynamicUniverseGrid: 🔍 Début du fetch des univers...");
+      const { data, error } = await supabase
+        .from("universes")
+        .select("*")
+        .order("category_order", { ascending: true });
+
+      if (error) {
+        console.error("📸 DynamicUniverseGrid: ❌ Erreur lors du fetch des univers:", error);
+        throw error;
+      }
+      console.log("📸 DynamicUniverseGrid: ✅ Univers récupérés:", data);
+      return data || [];
+    },
+  });
+
+  // Charger les images customisées depuis site_content_images
+  const { data: customImagesContent } = useQuery({
+    queryKey: ["universe-images", fetchedUniverses?.map(u => u.id)],
+    enabled: !!fetchedUniverses?.length,
+    queryFn: async () => {
+      if (!fetchedUniverses || fetchedUniverses.length === 0) {
+        console.log("📸 DynamicUniverseGrid: ⏩ Pas d'univers, pas de fetch d'images customisées.");
+        return {};
+      }
+      const keysToFetch = fetchedUniverses.map(u => `universe_card_${u.id}_image`);
+      console.log("📸 DynamicUniverseGrid: 🔍 Début du fetch des images customisées pour les clés:", keysToFetch);
+      const { data, error } = await supabase
+        .from("site_content_images")
+        .select("key_name, image_url");
+
+      if (error) {
+        console.error("📸 DynamicUniverseGrid: ❌ Erreur lors du fetch des images customisées depuis Supabase:", error);
+        throw error;
+      }
+
+      const result: Record<string, string> = {};
+      data.forEach(img => {
+        result[img.key_name] = img.image_url;
+      });
+
+      console.log("📸 DynamicUniverseGrid: 📊 Images customisées récupérées depuis Supabase:", result);
+      return result;
+    }
+  });
+
+  // Synchroniser l'état local avec les données fetched une fois qu'elles sont disponibles
+  useEffect(() => {
+    if (fetchedUniverses) {
+      console.log("📸 DynamicUniverseGrid: Mise à jour de l'état local des univers.");
+      setUniverses(fetchedUniverses);
+      setIsLoading(false);
+    }
+  }, [fetchedUniverses]);
+
+  // Mutation pour mettre à jour l'URL de l'image de l'univers
+  const updateUniverseImageMutation = useMutation({
+    mutationFn: async ({ universeId, imageUrl }: { universeId: string; imageUrl: string }) => {
+      const keyName = `universe_card_${universeId}_image`;
+      console.log(`📸 DynamicUniverseGrid: ➡️ Début mutation pour sauvegarder l'image pour l'univers ${universeId}. Nouvelle URL: ${imageUrl}`);
+      const { error } = await supabase
+        .from('site_content_images')
+        .upsert(
+          { key_name: keyName, image_url: imageUrl },
+          { onConflict: 'key_name' }
+        );
+      
+      if (error) {
+        console.error(`📸 DynamicUniverseGrid: ❌ Erreur Supabase lors de la sauvegarde de l'image pour l'univers ${universeId}:`, error);
+        throw error;
+      }
+      console.log(`📸 DynamicUniverseGrid: ✅ Image de l'univers ${universeId} sauvegardée avec succès dans Supabase.`);
+    },
+    onSuccess: () => {
+      console.log("📸 DynamicUniverseGrid: 🎉 Mutation réussie. Invalidation des requêtes 'universe-images'...");
+      queryClient.invalidateQueries({ queryKey: ["universe-images"] });
+      console.log("📸 DynamicUniverseGrid: 🔄 Requêtes 'universe-images' invalidées, le composant devrait recharger les données.");
+    },
+    onError: (err) => {
+      console.error("📸 DynamicUniverseGrid: 🔴 Échec de la mutation pour la sauvegarde de l'image:", err);
+    }
+  });
+
   if (isLoading) {
     return (
       <section className="py-20 bg-white">
@@ -280,6 +370,16 @@ const DynamicUniverseGrid = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (queryError) {
+    return (
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-red-500">Erreur lors du chargement des univers.</p>
         </div>
       </section>
     );
@@ -320,66 +420,78 @@ const DynamicUniverseGrid = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {visibleUniverses.map((universe) => (
-            <Card key={universe.id} className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer transform hover:-translate-y-2 flex flex-col h-full">
-              <div className="relative">
-                <div className={`h-3 ${universe.color}`}></div>
-                <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
-                  {isEditMode ? (
-                    <EditableImage
-                      imageKey={`universe_card_${universe.id}_image`}
-                      initialUrl={customImages[universe.id] || universe.image}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      onUpdate={url => setCustomImages(imgs => ({ ...imgs, [universe.id]: url }))}
-                    />
-                  ) : (
-                    <img
-                      src={customImages[universe.id] || universe.image}
-                      alt={universe.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  )}
-                  <div className="absolute top-4 left-4">
-                    <div className="text-4xl">{universe.icon}</div>
+          {visibleUniverses.map((universe) => {
+            // Déterminer l'URL de l'image à afficher, en priorité celle de Supabase
+            const imageUrl = customImagesContent?.[`universe_card_${universe.id}_image`] || universe.image || "/placeholder.jpg";
+            console.log(`📸 DynamicUniverseGrid: 🖼️ Rendu de l'univers ${universe.id}. URL affichée:`, imageUrl);
+
+            return (
+              <Card key={universe.id} className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer transform hover:-translate-y-2 flex flex-col h-full">
+                <div className="relative">
+                  <div className={`h-3 ${universe.color}`}></div>
+                  <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
+                    {isEditMode ? (
+                      <EditableImage
+                        imageKey={`universe_card_${universe.id}_image`}
+                        initialUrl={imageUrl}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        onUpdate={(newUrl) => {
+                          console.log(`📸 DynamicUniverseGrid: 🟢 onUpdate de EditableImage déclenché pour l'univers ${universe.id} avec la nouvelle URL: ${newUrl}`);
+                          updateUniverseImageMutation.mutate({
+                            universeId: universe.id,
+                            imageUrl: newUrl
+                          });
+                        }}
+                      />
+                    ) : (
+                      <img
+                        src={imageUrl}
+                        alt={universe.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    )}
+                    <div className="absolute top-4 left-4">
+                      <div className="text-4xl">{universe.icon}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <CardContent className="p-6 flex flex-col flex-1 justify-between">
-                <div>
-                  <h3 className="font-bold text-xl mb-3 transition-colors group-hover:text-[#0074b3]">
-                    {universe.title}
-                  </h3>
-                  {isEditMode ? (
-                    <EditableText
-                      contentKey={`universe_description_${universe.id}`}
-                      initialContent={universe.description}
-                      className="text-gray-600 text-base leading-relaxed mb-4"
-                      onUpdate={(newText) => {
-                        // Mettre à jour l'état local
-                        const updatedUniverses = universes.map(u => 
-                          u.id === universe.id ? { ...u, description: newText } : u
-                        );
-                        setUniverses(updatedUniverses);
-                      }}
-                    />
-                  ) : (
-                    <p className="text-gray-600 text-base leading-relaxed mb-4">
-                      {universe.description}
-                    </p>
-                  )}
-                </div>
-                <div className="mt-auto flex items-end">
-                  <Button 
-                    className="rounded-xl bg-[#0074b3] text-white hover:bg-[#005a8c] transition-colors px-6 py-2 font-semibold w-full"
-                    onClick={() => window.location.href = universe.redirectUrl}
-                  >
-                    Explorer
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                <CardContent className="p-6 flex flex-col flex-1 justify-between">
+                  <div>
+                    <h3 className="font-bold text-xl mb-3 transition-colors group-hover:text-[#0074b3]">
+                      {universe.title}
+                    </h3>
+                    {isEditMode ? (
+                      <EditableText
+                        contentKey={`universe_description_${universe.id}`}
+                        initialContent={universe.description}
+                        className="text-gray-600 text-base leading-relaxed mb-4"
+                        onUpdate={(newText) => {
+                          // Mettre à jour l'état local
+                          const updatedUniverses = universes.map(u => 
+                            u.id === universe.id ? { ...u, description: newText } : u
+                          );
+                          setUniverses(updatedUniverses);
+                        }}
+                      />
+                    ) : (
+                      <p className="text-gray-600 text-base leading-relaxed mb-4">
+                        {universe.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="mt-auto flex items-end">
+                    <Button 
+                      className="rounded-xl bg-[#0074b3] text-white hover:bg-[#005a8c] transition-colors px-6 py-2 font-semibold w-full"
+                      onClick={() => window.location.href = universe.redirectUrl}
+                    >
+                      Explorer
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Indicateurs de pagination */}
