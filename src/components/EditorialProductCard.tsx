@@ -697,57 +697,62 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
 
   // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
   const handleImageUpdate = async (newUrl: string) => {
-    console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL: ${newUrl}`);
+    console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL reçue: ${newUrl}`);
     setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
     
     try {
+      const keyName = `editorial_card_${cardIndex}_image`;
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
+
       // Vérifier d'abord si l'entrée existe dans site_content_images
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour vérifier l'existence...`);
       const { data: existing, error: checkError } = await supabase
         .from('site_content_images')
         .select('id')
-        .eq('key_name', `editorial_card_${cardIndex}_image`)
+        .eq('key_name', keyName)
         .maybeSingle();
 
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Vérification existence image:`, { existing, checkError });
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Résultat SELECT:`, { existing, checkError });
 
       let result;
       if (existing) {
-        // Mise à jour si l'entrée existe
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Entrée existante (ID: ${existing.id}). Exécution UPDATE avec image_url: ${newUrl}`);
         result = await supabase
           .from('site_content_images')
           .update({ image_url: newUrl })
-          .eq('key_name', `editorial_card_${cardIndex}_image`);
+          .eq('key_name', keyName);
       } else {
-        // Insertion si l'entrée n'existe pas
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune entrée existante. Exécution INSERT avec image_url: ${newUrl}`);
         result = await supabase
           .from('site_content_images')
           .insert([{ 
-            key_name: `editorial_card_${cardIndex}_image`, 
+            key_name: keyName, 
             image_url: newUrl 
           }]);
       }
 
       if (result.error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase:`, result.error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
         toast({ 
           title: "Erreur", 
           description: "Échec de la sauvegarde de l'image", 
           variant: "destructive" 
         });
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans site_content_images.`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération (UPDATE/INSERT) réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
         // Mettre à jour l'état local des images custom
         setCustomImages(prev => ({
           ...prev,
           [cardIndex]: newUrl
         }));
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: État local customImages mis à jour. Nouvelle valeur: ${customImages[cardIndex]}`);
         toast({ 
           title: "Image mise à jour", 
           description: "L'image a été sauvegardée avec succès." 
         });
       }
     } catch (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue:`, error);
+      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue dans handleImageUpdate:`, error);
       toast({ 
         title: "Erreur", 
         description: "Une erreur inattendue s'est produite", 
@@ -759,31 +764,49 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // Charger les images custom uploadées depuis Supabase
   useEffect(() => {
     const fetchCustomImages = async () => {
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom.`);
+      const keyName = `editorial_card_${cardIndex}_image`;
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom pour key_name: ${keyName}`);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour récupérer l'image custom...`);
       const { data, error } = await supabase
         .from('site_content_images')
         .select('key_name, image_url')
-        .eq('key_name', `editorial_card_${cardIndex}_image`);
+        .eq('key_name', keyName);
 
       if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch custom images:`, error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur fetch custom images:`, error);
         return;
       }
 
       if (data && data.length > 0) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image custom trouvée:`, data[0]);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image custom trouvée! Données:`, data[0]);
+        const fetchedImageUrl = data[0].image_url;
         setCustomImages(prev => ({
           ...prev,
-          [cardIndex]: data[0].image_url
+          [cardIndex]: fetchedImageUrl
         }));
-        setImageUrl(data[0].image_url);
+        setImageUrl(fetchedImageUrl);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image chargée au démarrage. URL: ${fetchedImageUrl}`);
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée.`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée pour key_name: ${keyName}.`);
+        // Si aucune image custom n'est trouvée, assurez-vous d'utiliser l'image par défaut
+        setImageUrl(editorialData.image || '/placeholder.svg');
       }
     };
 
     fetchCustomImages();
-  }, [cardIndex]);
+  }, [cardIndex, editorialData.image]);
+
+  // Mise à jour de l'image affichée si une image custom est présente
+  useEffect(() => {
+    const customImage = customImages[cardIndex];
+    if (customImage) {
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: customImage détectée, mise à jour de l'URL affichée: ${customImage}`);
+      setImageUrl(customImage);
+    } else {
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune customImage détectée, utilisation de l'image par défaut: ${editorialData.image}`);
+      setImageUrl(editorialData.image || '/placeholder.svg');
+    }
+  }, [customImages, cardIndex, editorialData.image]);
 
   // Affichage carte éditoriale classique si pas de catégorie sélectionnée
   if (!selectedCategory && !isEditMode) {
