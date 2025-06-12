@@ -25,12 +25,14 @@ export const EditableImage = ({
   console.log("Props received:", { imageKey, initialUrl, className });
   
   const { isEditMode } = useEditStore();
+  const [imageUrl, setImageUrl] = useState(initialUrl);
   const { toast } = useToast();
   
   const { isUploading, isAuthenticated, handleImageUpload } = useImageUpload({
     imageKey,
     onUpdate: (newUrl) => {
       console.log("onUpdate callback received new URL:", newUrl);
+      setImageUrl(newUrl);
       if (onUpdate) {
         console.log("Calling parent onUpdate with new URL");
         onUpdate(newUrl);
@@ -93,11 +95,11 @@ export const EditableImage = ({
     isEditMode,
     isUploading,
     isAuthenticated,
-    currentImageUrl: initialUrl
+    currentImageUrl: imageUrl
   });
 
   if (!isEditMode && !forceEditable) {
-    return <img src={initialUrl} alt="" className={className} />;
+    return <img src={imageUrl} alt="" className={className} />;
   }
 
   if (children) {
@@ -107,11 +109,11 @@ export const EditableImage = ({
   return (
     <div className="relative group">
       <img
-        src={initialUrl}
+        src={imageUrl}
         alt=""
         className={className}
         onError={() => {
-          console.error("Image failed to load:", initialUrl);
+          console.error("Image failed to load:", imageUrl);
           toast({
             title: "Erreur",
             description: "L'image n'a pas pu être chargée",

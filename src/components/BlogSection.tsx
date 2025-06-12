@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,12 +10,9 @@ import { EditableURL } from "./EditableURL";
 import { Link } from "react-router-dom";
 import { useEditStore } from "@/stores/useEditStore";
 import { EditableImage } from "./EditableImage";
-import { toast } from "@/components/ui/use-toast";
 
 const BlogSection = () => {
   const { isEditMode } = useEditStore();
-  const queryClient = useQueryClient();
-
   const { data: articles, error } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
@@ -30,73 +28,24 @@ const BlogSection = () => {
   });
 
   const { data: content } = useQuery({
-    queryKey: ["blog-content", articles?.map(a => a.id)],
-    enabled: !!articles?.length,
+    queryKey: ["blog-content"],
     queryFn: async () => {
-      const keys = [
-        "blog_cta_url",
-        "blog_see_more_url",
-        ...(articles?.map(a => `blog_${a.id}_image_url`) || [])
-      ];
-
       const { data, error } = await supabase
         .from("editable_content")
         .select("*")
-        .in("content_key", keys);
+        .in("content_key", ["blog_cta_url", "blog_see_more_url"]);
 
       if (error) throw error;
-
-      const result: Record<string, string> = {};
-      data?.forEach((item) => {
-        result[item.content_key] = item.content;
+      
+      const urls: Record<string, string> = {};
+      data?.forEach(item => {
+        urls[item.content_key] = item.content;
       });
-
+      
       return {
-        ctaUrl: result.blog_cta_url || "/blog",
-        seeMoreUrl: result.blog_see_more_url || "/blog",
-        images: result,
+        ctaUrl: urls.blog_cta_url || "/blog",
+        seeMoreUrl: urls.blog_see_more_url || "/blog"
       };
-    },
-  });
-
-  const updateArticleImageMutation = useMutation({
-    mutationFn: async ({ articleId, imageUrl }: { articleId: string; imageUrl: string }) => {
-      const updates = [
-        supabase
-          .from("blog_posts")
-          .update({ image_url: imageUrl })
-          .eq("id", articleId),
-        
-        supabase
-          .from("editable_content")
-          .upsert({
-            content_key: `blog_${articleId}_image_url`,
-            content: imageUrl,
-          }, { onConflict: "content_key" })
-      ];
-
-      const [blogPostResult, contentResult] = await Promise.all(updates);
-
-      if (blogPostResult.error || contentResult.error) {
-        throw blogPostResult.error || contentResult.error;
-      }
-
-      return blogPostResult.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
-      queryClient.invalidateQueries({ queryKey: ["blog-content"] });
-      toast({
-        title: "Image de l'article mise à jour",
-        description: "L'image a été sauvegardée avec succès.",
-      });
-    },
-    onError: (err) => {
-      toast({
-        title: "Erreur lors de la mise à jour de l'image",
-        description: err.message || "Impossible de mettre à jour l'image de l'article.",
-        variant: "destructive",
-      });
     },
   });
 
@@ -145,15 +94,8 @@ const BlogSection = () => {
                     )}
                     <EditableImage
                       imageKey={`blog_${article.id}`}
-                      initialUrl={
-                        content?.images?.[`blog_${article.id}_image_url`] ??
-                        article.image_url ??
-                        "https://images.unsplash.com/photo-1584267651117-32aacc26307b"
-                      }
+                      initialUrl={article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      onUpdate={(newUrl) => {
-                        updateArticleImageMutation.mutate({ articleId: article.id, imageUrl: newUrl });
-                      }}
                     />
                   </div>
                   <CardContent className="p-6 flex-1 flex flex-col">
