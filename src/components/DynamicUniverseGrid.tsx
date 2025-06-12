@@ -34,6 +34,7 @@ const DynamicUniverseGrid = () => {
   const itemsPerSlide = 4; // Nombre de catégories visibles à la fois
   const { isEditMode } = useEditStore();
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
+  const [savedDescriptions, setSavedDescriptions] = useState<Record<string, string>>({});
 
   // Mapping des icônes et couleurs par type de catégorie
   const getCategoryStyle = (categoryName: string) => {
@@ -261,6 +262,34 @@ const DynamicUniverseGrid = () => {
     fetchCustomImages();
   }, [universes]);
 
+  // Charger les descriptions sauvegardées depuis Supabase
+  useEffect(() => {
+    const fetchSavedDescriptions = async () => {
+      if (!universes.length) return;
+      const keys = universes.map(u => `universe_description_${u.id}`);
+      const { data, error } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', keys);
+      
+      if (error) {
+        console.error('Erreur lors du chargement des descriptions:', error);
+        return;
+      }
+
+      if (data) {
+        const descMap: Record<string, string> = {};
+        data.forEach(item => {
+          const id = item.content_key.replace('universe_description_', '');
+          descMap[id] = item.content;
+        });
+        setSavedDescriptions(descMap);
+      }
+    };
+
+    fetchSavedDescriptions();
+  }, [universes]);
+
   if (isLoading) {
     return (
       <section className="py-20 bg-white">
@@ -352,7 +381,7 @@ const DynamicUniverseGrid = () => {
                   {isEditMode ? (
                     <EditableText
                       contentKey={`universe_description_${universe.id}`}
-                      initialContent={universe.description}
+                      initialContent={savedDescriptions[universe.id] || universe.description}
                       className="text-gray-600 text-base leading-relaxed mb-4"
                       onUpdate={(newText) => {
                         // Mettre à jour l'état local
@@ -360,11 +389,16 @@ const DynamicUniverseGrid = () => {
                           u.id === universe.id ? { ...u, description: newText } : u
                         );
                         setUniverses(updatedUniverses);
+                        // Mettre à jour les descriptions sauvegardées
+                        setSavedDescriptions(prev => ({
+                          ...prev,
+                          [universe.id]: newText
+                        }));
                       }}
                     />
                   ) : (
                     <p className="text-gray-600 text-base leading-relaxed mb-4">
-                      {universe.description}
+                      {savedDescriptions[universe.id] || universe.description}
                     </p>
                   )}
                 </div>
