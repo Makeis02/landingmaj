@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,27 @@ const BlogSection = () => {
       if (error) throw error;
       return data;
     },
+  });
+
+  const { data: imagesContent } = useQuery({
+    queryKey: ["blog-images", articles?.map(a => a.id)],
+    enabled: !!articles?.length,
+    queryFn: async () => {
+      if (!articles || articles.length === 0) return {};
+      const { data, error } = await supabase
+        .from("site_content_images")
+        .select("*")
+        .in("key_name", articles.map(a => `blog_${a.id}`));
+
+      if (error) throw error;
+
+      const result: Record<string, string> = {};
+      data.forEach(img => {
+        result[img.key_name] = img.image_url;
+      });
+
+      return result;
+    }
   });
 
   const { data: content } = useQuery({
@@ -94,7 +114,11 @@ const BlogSection = () => {
                     )}
                     <EditableImage
                       imageKey={`blog_${article.id}`}
-                      initialUrl={article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
+                      initialUrl={
+                        imagesContent?.[`blog_${article.id}`] ||
+                        article.image_url ||
+                        "https://images.unsplash.com/photo-1584267651117-32aacc26307b"
+                      }
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     />
                   </div>
