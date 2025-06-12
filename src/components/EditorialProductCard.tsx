@@ -700,29 +700,29 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
     
     try {
-      // Vérifier d'abord si l'entrée existe
+      // Vérifier d'abord si l'entrée existe dans site_content_images
       const { data: existing, error: checkError } = await supabase
-        .from('editable_content')
+        .from('site_content_images')
         .select('id')
-        .eq('content_key', `editorial_card_${cardIndex}_image`)
+        .eq('key_name', `editorial_card_${cardIndex}_image`)
         .maybeSingle();
 
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Vérification existence entrée:`, { existing, checkError });
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Vérification existence image:`, { existing, checkError });
 
       let result;
       if (existing) {
         // Mise à jour si l'entrée existe
         result = await supabase
-          .from('editable_content')
-          .update({ content: newUrl })
-          .eq('content_key', `editorial_card_${cardIndex}_image`);
+          .from('site_content_images')
+          .update({ image_url: newUrl })
+          .eq('key_name', `editorial_card_${cardIndex}_image`);
       } else {
         // Insertion si l'entrée n'existe pas
         result = await supabase
-          .from('editable_content')
+          .from('site_content_images')
           .insert([{ 
-            content_key: `editorial_card_${cardIndex}_image`, 
-            content: newUrl 
+            key_name: `editorial_card_${cardIndex}_image`, 
+            image_url: newUrl 
           }]);
       }
 
@@ -734,7 +734,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
           variant: "destructive" 
         });
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès.`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans site_content_images.`);
         toast({ 
           title: "Image mise à jour", 
           description: "L'image a été sauvegardée avec succès." 
@@ -749,6 +749,36 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       });
     }
   };
+
+  // Modifier aussi la fonction fetchCustomImages pour utiliser site_content_images
+  useEffect(() => {
+    const fetchCustomImages = async () => {
+      if (!universes.length) return;
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom.`);
+      
+      const keys = universes.map(u => `editorial_card_${u.id}_image`);
+      const { data, error } = await supabase
+        .from('site_content_images')
+        .select('key_name, image_url')
+        .in('key_name', keys);
+
+      if (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch custom images:`, error);
+        return;
+      }
+
+      if (data) {
+        const imgMap: Record<string, string> = {};
+        data.forEach(item => {
+          const id = item.key_name.replace('editorial_card_', '').replace('_image', '');
+          imgMap[id] = item.image_url;
+        });
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Images custom chargées:`, imgMap);
+        setCustomImages(imgMap);
+      }
+    };
+    fetchCustomImages();
+  }, [universes]);
 
   // Affichage carte éditoriale classique si pas de catégorie sélectionnée
   if (!selectedCategory && !isEditMode) {
