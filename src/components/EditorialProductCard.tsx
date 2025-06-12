@@ -575,6 +575,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   const [leafCategories, setLeafCategories] = useState<Category[]>([]);
   const gradient = gradients[cardIndex % gradients.length];
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
+  const [customImages, setCustomImages] = useState<Record<number, string>>({});
 
   console.log(`📸 EditorialCategoryCard ${cardIndex}: Rendu du composant. isEditMode: ${isEditMode}`);
 
@@ -735,6 +736,11 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         });
       } else {
         console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans site_content_images.`);
+        // Mettre à jour l'état local des images custom
+        setCustomImages(prev => ({
+          ...prev,
+          [cardIndex]: newUrl
+        }));
         toast({ 
           title: "Image mise à jour", 
           description: "L'image a été sauvegardée avec succès." 
@@ -750,35 +756,34 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     }
   };
 
-  // Modifier aussi la fonction fetchCustomImages pour utiliser site_content_images
+  // Charger les images custom uploadées depuis Supabase
   useEffect(() => {
     const fetchCustomImages = async () => {
-      if (!universes.length) return;
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom.`);
-      
-      const keys = universes.map(u => `editorial_card_${u.id}_image`);
       const { data, error } = await supabase
         .from('site_content_images')
         .select('key_name, image_url')
-        .in('key_name', keys);
+        .eq('key_name', `editorial_card_${cardIndex}_image`);
 
       if (error) {
         console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch custom images:`, error);
         return;
       }
 
-      if (data) {
-        const imgMap: Record<string, string> = {};
-        data.forEach(item => {
-          const id = item.key_name.replace('editorial_card_', '').replace('_image', '');
-          imgMap[id] = item.image_url;
-        });
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Images custom chargées:`, imgMap);
-        setCustomImages(imgMap);
+      if (data && data.length > 0) {
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image custom trouvée:`, data[0]);
+        setCustomImages(prev => ({
+          ...prev,
+          [cardIndex]: data[0].image_url
+        }));
+        setImageUrl(data[0].image_url);
+      } else {
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée.`);
       }
     };
+
     fetchCustomImages();
-  }, [universes]);
+  }, [cardIndex]);
 
   // Affichage carte éditoriale classique si pas de catégorie sélectionnée
   if (!selectedCategory && !isEditMode) {
