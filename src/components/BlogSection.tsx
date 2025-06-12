@@ -117,7 +117,8 @@ const BlogSection = () => {
                           id: article.id, 
                           newImageUrl: newUrl
                         });
-                      }} 
+                      }}
+                      disableDefaultPersistence={true} 
                     />
                   </div>
                   <CardContent className="p-6 flex-1 flex flex-col">

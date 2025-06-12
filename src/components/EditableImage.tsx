@@ -11,6 +11,7 @@ interface EditableImageProps {
   onUpdate?: (newUrl: string) => void;
   children?: ({ openFileDialog }: { openFileDialog: () => void }) => React.ReactElement;
   forceEditable?: boolean;
+  disableDefaultPersistence?: boolean;
 }
 
 export const EditableImage = ({ 
@@ -19,7 +20,8 @@ export const EditableImage = ({
   className = "",
   onUpdate,
   children,
-  forceEditable = false
+  forceEditable = false,
+  disableDefaultPersistence = false
 }: EditableImageProps) => {
   console.log("=== EditableImage Component Render ===");
   console.log("Props received:", { imageKey, initialUrl, className });
