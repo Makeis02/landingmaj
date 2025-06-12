@@ -643,25 +643,81 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     fetchCategories();
   }, []);
 
+  // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
+  const handleImageUpdate = async (newUrl: string) => {
+    console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL: ${newUrl}`);
+    setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
+    
+    try {
+      // Utiliser upsert au lieu de insert pour gérer les conflits
+      const { data, error } = await supabase
+        .from('editable_content')
+        .upsert(
+          { 
+            content_key: `editorial_card_${cardIndex}_image`, 
+            content: newUrl 
+          },
+          { 
+            onConflict: 'content_key',
+            ignoreDuplicates: false
+          }
+        );
+      
+      if (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde de l'image:`, error);
+        toast({ 
+          title: "Erreur", 
+          description: "Échec de la sauvegarde de l'image", 
+          variant: "destructive" 
+        });
+        return;
+      }
+
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans editable_content.`);
+      toast({ 
+        title: "Image mise à jour", 
+        description: "L'image a été sauvegardée avec succès." 
+      });
+
+      // Mettre à jour l'état local après confirmation de la sauvegarde
+      setImageUrl(newUrl);
+    } catch (error) {
+      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue:`, error);
+      toast({ 
+        title: "Erreur", 
+        description: "Une erreur inattendue s'est produite", 
+        variant: "destructive" 
+      });
+    }
+  };
+
   // Charger l'image depuis Supabase editable_content
   useEffect(() => {
     const fetchImage = async () => {
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content.`);
-      const { data, error } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', `editorial_card_${cardIndex}_image`)
-        .single();
-      if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
-      }
-      if (data && data.content) {
-        setImageUrl(data.content);
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée depuis editable_content: ${data.content}`);
-      } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content, utilisant l'URL par défaut.`);
+      try {
+        const { data, error } = await supabase
+          .from('editable_content')
+          .select('content')
+          .eq('content_key', `editorial_card_${cardIndex}_image`)
+          .single();
+
+        if (error) {
+          console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
+          return;
+        }
+
+        if (data && data.content) {
+          setImageUrl(data.content);
+          console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée depuis editable_content: ${data.content}`);
+        } else {
+          console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content, utilisant l'URL par défaut.`);
+        }
+      } catch (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur inattendue lors du fetch de l'image:`, error);
       }
     };
+
     fetchImage();
   }, [cardIndex]);
 
@@ -692,28 +748,6 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     toast({ title: 'Catégorie sélectionnée', description: 'La catégorie a été associée à la carte.' });
     setShowSelect(false);
     console.log(`📸 EditorialCategoryCard ${cardIndex}: Catégorie ${categoryId} sauvegardée.`);
-  };
-
-  // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
-  const handleImageUpdate = async (newUrl: string) => {
-    console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL: ${newUrl}`);
-    setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
-    
-    // Sauvegarder l'URL dans Supabase
-    const { data, error } = await supabase
-      .from('editable_content')
-      .upsert(
-        { content_key: `editorial_card_${cardIndex}_image`, content: newUrl },
-        { onConflict: 'content_key' }
-      );
-    
-    if (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde de l'image:`, error);
-      toast({ title: "Erreur", description: "Échec de la sauvegarde de l'image", variant: "destructive" });
-    } else {
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans editable_content.`);
-      toast({ title: "Image mise à jour", description: "L'image a été sauvegardée avec succès." });
-    }
   };
 
   // Affichage carte éditoriale classique si pas de catégorie sélectionnée
