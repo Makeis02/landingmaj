@@ -337,7 +337,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   if (selectedProduct || isSpecialCard) {
     const priceToDisplay = hasPromo ? promoPrice : (variantPriceRange?.min || (selectedProduct ? parseFloat(selectedProduct.unit_amount_decimal) / 100 : 0));
     const originalPrice = selectedProduct ? parseFloat(selectedProduct.unit_amount_decimal) / 100 : 0;
-    const ctaUrl = customCtaUrl || (selectedProduct ? `/products/${slugify(selectedProduct.name, { lower: true })}` : '#');
+    const ctaUrl = customCtaUrl || (selectedProduct?.name ? `/products/${slugify(selectedProduct.name, { lower: true })}` : '#');
     const ctaText = customCtaText || editorialData.cta;
 
     return (
