@@ -60,7 +60,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
       onEligibilityChange(canSpin);
     }
   }, [canSpin, onEligibilityChange]);
-
+  
   // Importer les fonctions du store Zustand
   const { addItem, items: cartItems, clearWheelGifts } = useCartStore();
 

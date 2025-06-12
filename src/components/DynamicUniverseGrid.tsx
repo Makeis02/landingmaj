@@ -6,9 +6,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useEditStore } from '@/stores/useEditStore';
 import { EditableImage } from '@/components/EditableImage';
 import { EditableText } from "@/components/EditableText";
-import { useImageUpload } from "@/hooks/useImageUpload";
-import { toast } from "@/components/ui/use-toast";
-import { v4 as uuidv4 } from 'uuid';
 
 interface Category {
   id: string;
@@ -37,7 +34,6 @@ const DynamicUniverseGrid = () => {
   const itemsPerSlide = 4; // Nombre de catégories visibles à la fois
   const { isEditMode } = useEditStore();
   const [customImages, setCustomImages] = useState<Record<string, string>>({});
-  const [currentEditingId, setCurrentEditingId] = useState<string | null>(null);
 
   // Mapping des icônes et couleurs par type de catégorie
   const getCategoryStyle = (categoryName: string) => {
@@ -265,79 +261,6 @@ const DynamicUniverseGrid = () => {
     fetchCustomImages();
   }, [universes]);
 
-  // Configuration de l'upload d'images
-  const { isUploading, handleImageUpload } = useImageUpload({
-    imageKey: 'universe_image',
-    onUpdate: (newUrl) => {
-      // Mettre à jour l'état local avec la nouvelle URL
-      const updatedUniverses = universes.map(u => 
-        u.id === currentEditingId ? { ...u, image: newUrl } : u
-      );
-      setUniverses(updatedUniverses);
-    }
-  });
-
-  // Fonction pour gérer l'upload d'image directement avec Supabase
-  const handleUniverseImageUpload = async (event: React.ChangeEvent<HTMLInputElement>, universeId: string) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setCurrentEditingId(universeId);
-      
-      // Générer un nom de fichier unique
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${uuidv4()}.${fileExt}`;
-      const filePath = `universe-images/${fileName}`;
-
-      // Upload direct vers Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('public')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) throw error;
-
-      // Obtenir l'URL publique
-      const { data: { publicUrl } } = supabase.storage
-        .from('public')
-        .getPublicUrl(filePath);
-
-      // Mettre à jour l'état local
-      const updatedUniverses = universes.map(u => 
-        u.id === universeId ? { ...u, image: publicUrl } : u
-      );
-      setUniverses(updatedUniverses);
-
-      // Sauvegarder l'URL dans la base de données
-      const { error: updateError } = await supabase
-        .from('editable_content')
-        .upsert({
-          content_key: `universe_card_${universeId}_image`,
-          content: publicUrl
-        }, { onConflict: 'content_key' });
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: "Image mise à jour",
-        description: "L'image a été mise à jour avec succès",
-      });
-
-    } catch (error) {
-      console.error('Erreur lors de l\'upload de l\'image:', error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'upload de l'image",
-        variant: "destructive",
-      });
-    } finally {
-      setCurrentEditingId(null);
-    }
-  };
-
   if (isLoading) {
     return (
       <section className="py-20 bg-white">
@@ -403,29 +326,15 @@ const DynamicUniverseGrid = () => {
                 <div className={`h-3 ${universe.color}`}></div>
                 <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                   {isEditMode ? (
-                    <div className="relative w-full h-full group">
-                      <img
-                        src={universe.image}
-                        alt={universe.title}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <label className="cursor-pointer w-full h-full flex items-center justify-center">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleUniverseImageUpload(e, universe.id)}
-                            className="hidden"
-                          />
-                          <span className="text-white text-sm font-medium">
-                            {currentEditingId === universe.id ? 'Chargement...' : 'Changer l\'image'}
-                          </span>
-                        </label>
-                      </div>
-                    </div>
+                    <EditableImage
+                      imageKey={`universe_card_${universe.id}_image`}
+                      initialUrl={customImages[universe.id] || universe.image}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      onUpdate={url => setCustomImages(imgs => ({ ...imgs, [universe.id]: url }))}
+                    />
                   ) : (
                     <img
-                      src={universe.image}
+                      src={customImages[universe.id] || universe.image}
                       alt={universe.title}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     />

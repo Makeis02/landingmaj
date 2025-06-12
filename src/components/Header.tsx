@@ -314,7 +314,7 @@ const Header = () => {
                   className="h-12 mx-auto object-contain" 
                 />
               ) : (
-                <span className="text-2xl font-bold text-ocean">AquaShop</span>
+              <span className="text-2xl font-bold text-ocean">AquaShop</span>
               )}
               {isEditMode && (
                 <div className="mt-2">

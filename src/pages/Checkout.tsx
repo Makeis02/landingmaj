@@ -996,94 +996,94 @@ const Checkout = () => {
                 {/* 🎫 NOUVEAU : Section pour le code promo */}
                 <PromoCodeSection discount={orderSummary.discount} />
 
-                {/* 🎁 Section des cadeaux de la roue */}
-                {giftItems.length > 0 && (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
-                      <span className="text-2xl">🎁</span>
-                      <h3 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h3>
-                      <Badge className="bg-blue-100 text-blue-800">{giftItems.length}</Badge>
-                    </div>
-                    {giftItems.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
-                        {/* Effet scintillant pour les cadeaux */}
-                        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                        
-                        {item.image_url && (
-                          <div className="relative">
-                            <img
-                              src={item.image_url}
-                              alt={item.title}
-                              className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
-                            />
-                            <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                              <span className="text-white text-xs">🎁</span>
-                            </div>
-                          </div>
-                        )}
-                        
-                        <div className="flex-1 min-w-0 relative z-10">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
-                            <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
-                          </div>
-                          
-                          {item.expires_at && (
-                            <div className="text-xs text-blue-600 mb-2">
-                              ⏰ Expire le {new Date(item.expires_at).toLocaleDateString('fr-FR', {
-                                day: '2-digit',
-                                month: '2-digit', 
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </div>
-                          )}
-                          
-                          <div className="text-sm font-bold text-green-600">
-                            OFFERT 🎉
-                          </div>
-                          
-                          <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
-                              Quantité: {item.quantity}
-                            </span>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
-                              onClick={() => removeItem(item.id)}
-                              title="Retirer ce cadeau"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="text-right relative z-10">
-                          <p className="text-lg font-bold text-green-600">
-                            GRATUIT
-                          </p>
-                          <p className="text-xs text-green-500">
-                            0,00€
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* 💰 Section des produits payants */}
-                {payableItems.length > 0 && (
-                  <div className="space-y-3">
+                    {/* 🎁 Section des cadeaux de la roue */}
                     {giftItems.length > 0 && (
-                      <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mt-6">
-                        <span className="text-2xl">🛒</span>
-                        <h3 className="font-semibold text-gray-800">Produits</h3>
-                        <Badge className="bg-gray-100 text-gray-800">{payableItems.length}</Badge>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 pb-2 border-b border-blue-200">
+                          <span className="text-2xl">🎁</span>
+                          <h3 className="font-semibold text-blue-800">Cadeaux de la roue de la fortune</h3>
+                          <Badge className="bg-blue-100 text-blue-800">{giftItems.length}</Badge>
+                        </div>
+                        {giftItems.map((item) => (
+                          <div key={item.id} className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border-2 border-blue-200 relative overflow-hidden">
+                            {/* Effet scintillant pour les cadeaux */}
+                            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                            
+                            {item.image_url && (
+                              <div className="relative">
+                                <img
+                                  src={item.image_url}
+                                  alt={item.title}
+                                  className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
+                                />
+                                <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-xs">🎁</span>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <div className="flex-1 min-w-0 relative z-10">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
+                                <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
+                              </div>
+                              
+                              {item.expires_at && (
+                                <div className="text-xs text-blue-600 mb-2">
+                                  ⏰ Expire le {new Date(item.expires_at).toLocaleDateString('fr-FR', {
+                                    day: '2-digit',
+                                    month: '2-digit', 
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
+                              
+                              <div className="text-sm font-bold text-green-600">
+                                OFFERT 🎉
+                              </div>
+                              
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded-full">
+                                  Quantité: {item.quantity}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 ml-2 text-red-500 hover:text-red-600"
+                                  onClick={() => removeItem(item.id)}
+                                  title="Retirer ce cadeau"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            
+                            <div className="text-right relative z-10">
+                              <p className="text-lg font-bold text-green-600">
+                                GRATUIT
+                              </p>
+                              <p className="text-xs text-green-500">
+                                0,00€
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
-                    {payableItems.map((item) => (
+
+                    {/* 💰 Section des produits payants */}
+                    {payableItems.length > 0 && (
+                      <div className="space-y-3">
+                        {giftItems.length > 0 && (
+                          <div className="flex items-center gap-2 pb-2 border-b border-gray-200 mt-6">
+                            <span className="text-2xl">🛒</span>
+                            <h3 className="font-semibold text-gray-800">Produits</h3>
+                            <Badge className="bg-gray-100 text-gray-800">{payableItems.length}</Badge>
+                          </div>
+                        )}
+                        {payableItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         {item.image_url && (
                           <img
@@ -1152,28 +1152,28 @@ const Checkout = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
-                )}
+                      </div>
+                    )}
 
-                {/* Affichage du point relais sélectionné si Mondial Relay */}
-                {selectedShipping === 'mondial_relay' && selectedRelais && (
-                  <div className="p-2 bg-blue-50 border border-blue-200 rounded mb-2">
-                    <div className="font-semibold text-blue-800 text-sm mb-1">Point relais sélectionné :</div>
-                    <div className="text-xs text-blue-900">
-                      <b>{selectedRelais.LgAdr1}</b><br />
-                      {selectedRelais.LgAdr2 && <>{selectedRelais.LgAdr2}<br /></>}
-                      {selectedRelais.CP} {selectedRelais.Ville}
-                    </div>
-                  </div>
-                )}
+                    {/* Affichage du point relais sélectionné si Mondial Relay */}
+                    {selectedShipping === 'mondial_relay' && selectedRelais && (
+                      <div className="p-2 bg-blue-50 border border-blue-200 rounded mb-2">
+                        <div className="font-semibold text-blue-800 text-sm mb-1">Point relais sélectionné :</div>
+                        <div className="text-xs text-blue-900">
+                          <b>{selectedRelais.LgAdr1}</b><br />
+                          {selectedRelais.LgAdr2 && <>{selectedRelais.LgAdr2}<br /></>}
+                          {selectedRelais.CP} {selectedRelais.Ville}
+                        </div>
+                      </div>
+                    )}
 
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Sous-total</span>
+                    <div className="border-t pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Sous-total</span>
                     <span>{orderSummary.subtotal.toFixed(2)} €</span>
-                  </div>
+                      </div>
                   {orderSummary.discount > 0 && (
-                    <div className="flex justify-between text-sm">
+                        <div className="flex justify-between text-sm">
                       <span className="text-green-600 flex items-center gap-1">
                         <span className="w-4 h-4 bg-green-100 rounded-full flex items-center justify-center text-xs">%</span>
                         Code promo ({appliedPromoCode?.code})
@@ -1182,29 +1182,29 @@ const Checkout = () => {
                         )}
                       </span>
                       <span className="text-green-600 font-medium">-{orderSummary.discount.toFixed(2)} €</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-sm">
+                        </div>
+                      )}
+                      <div className="flex justify-between text-sm">
                     <span>Livraison ({selectedShipping === 'mondial_relay' ? 'Mondial Relay' : 'Colissimo'})</span>
-                    {shippingSettings ? (
-                      shippingFree ? (
+                        {shippingSettings ? (
+                          shippingFree ? (
                         <span className="text-green-600 font-bold">Gratuit</span>
-                      ) : (
+                          ) : (
                         <span>{shippingPrice.toFixed(2)} €</span>
-                      )
-                    ) : (
+                          )
+                        ) : (
                       <span>Chargement...</span>
-                    )}
-                  </div>
+                        )}
+                      </div>
                   {shippingSettings && !shippingFree && (
                     <div className="text-xs text-gray-500 text-right">
                       Livraison gratuite à partir de {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-semibold pt-2 border-t">
-                    <span>Total TTC</span>
+                        <span>Total TTC</span>
                     <span>{(orderSummary.total + (shippingFree ? 0 : shippingPrice)).toFixed(2)} €</span>
-                  </div>
+                      </div>
                   {orderSummary.discount > 0 && (
                     <div className="text-center">
                       <span className="text-sm text-green-600 bg-green-50 px-2 py-1 rounded-full">
@@ -1212,40 +1212,40 @@ const Checkout = () => {
                       </span>
                     </div>
                   )}
-                </div>
-
+                    </div>
+                    
                 {/* 🚨 NOUVEAU : Bouton Procéder au paiement et sécurité Stripe */}
                 <div className="space-y-4">
                   {hasOnlyGifts ? (
                     <div className="text-center p-4 bg-amber-50 border border-amber-200 rounded-lg">
                       <div className="flex items-center justify-center text-amber-700 mb-2">
                         <span className="text-2xl mr-2">🎁</span>
-                        <span className="font-medium">Panier contenant uniquement des cadeaux</span>
-                      </div>
+                          <span className="font-medium">Panier contenant uniquement des cadeaux</span>
+                        </div>
                       <p className="text-sm text-amber-600">
                         Ajoutez des produits payants pour pouvoir procéder au paiement
                       </p>
-                    </div>
+                      </div>
                   ) : (
                     <>
-                      <Button
-                        onClick={handleCheckout}
+                    <Button
+                      onClick={handleCheckout}
                         disabled={loading || !canCheckout}
                         className="w-full bg-primary hover:bg-primary/90 text-white py-3 px-6 rounded-lg font-semibold text-lg transition-all duration-200 hover:shadow-lg"
-                      >
-                        {loading ? (
+                    >
+                      {loading ? (
                           <div className="flex items-center justify-center">
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                            Redirection en cours...
+                          Redirection en cours...
                           </div>
                         ) : (
                           <div className="flex items-center justify-center">
                             <CreditCard className="mr-2 h-5 w-5" />
-                            Procéder au paiement
+                          Procéder au paiement
                           </div>
-                        )}
-                      </Button>
-
+                      )}
+                    </Button>
+                    
                       {/* 🔒 Encadré de sécurité Stripe */}
                       <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
                         <div className="flex items-center justify-center space-x-2 mb-2">
