@@ -649,18 +649,19 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     const fetchImage = async () => {
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content.`);
       const { data, error } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', `editorial_card_${cardIndex}_image`)
+        .from('site_content_images')
+        .select('image_url')
+        .eq('key_name', `editorial_card_${cardIndex}_image`)
         .single();
       if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from site_content_images:`, error);
       }
-      if (data && data.content) {
-        setImageUrl(data.content);
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée depuis editable_content: ${data.content}`);
+      if (data?.image_url) {
+        setImageUrl(data.image_url);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée depuis site_content_images: ${data.image_url}`);
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content, utilisant l'URL par défaut.`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans site_content_images, utilisant l'URL par défaut.`);
+        setImageUrl(editorialData.image || '/placeholder.svg');
       }
     };
     fetchImage();
@@ -929,21 +930,109 @@ interface EditorialPackCardProps {
 
 export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex, editorialData }) => {
   const { isEditMode } = useEditStore();
+  const { toast } = useToast();
   const [link, setLink] = useState(editorialData.link || '');
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
+  const [customImages, setCustomImages] = useState<Record<number, string>>({});
 
+  // Charger les images custom uploadées depuis Supabase
   useEffect(() => {
-    const fetchImage = async () => {
-      const { data } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', `editorial_card_${cardIndex}_image`)
-        .single();
-      if (data && data.content) setImageUrl(data.content);
+    const fetchCustomImages = async () => {
+      const keyName = `editorial_card_${cardIndex}_image`;
+      console.log(`📸 EditorialPackCard ${cardIndex}: Début du fetch des images custom pour key_name: ${keyName}`);
+      const { data, error } = await supabase
+        .from('site_content_images')
+        .select('key_name, image_url')
+        .eq('key_name', keyName);
+
+      if (error) {
+        console.error(`📸 EditorialPackCard ${cardIndex}: ❌ Erreur fetch custom images:`, error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        console.log(`📸 EditorialPackCard ${cardIndex}: ✅ Image custom trouvée! Données:`, data[0]);
+        const fetchedImageUrl = data[0].image_url;
+        setCustomImages(prev => ({
+          ...prev,
+          [cardIndex]: fetchedImageUrl
+        }));
+        setImageUrl(fetchedImageUrl);
+      } else {
+        console.log(`📸 EditorialPackCard ${cardIndex}: Aucune image custom trouvée pour key_name: ${keyName}.`);
+        setImageUrl(editorialData.image || '/placeholder.svg');
+      }
     };
-    fetchImage();
-  }, [cardIndex]);
+
+    fetchCustomImages();
+  }, [cardIndex, editorialData.image]);
+
+  // Mise à jour de l'image affichée si une image custom est présente
+  useEffect(() => {
+    const customImage = customImages[cardIndex];
+    if (customImage) {
+      setImageUrl(customImage);
+    } else {
+      setImageUrl(editorialData.image || '/placeholder.svg');
+    }
+  }, [customImages, cardIndex, editorialData.image]);
+
+  const handleImageUpdate = async (newUrl: string) => {
+    console.log(`📸 EditorialPackCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL reçue: ${newUrl}`);
+    setImageUrl(newUrl);
+    
+    try {
+      const keyName = `editorial_card_${cardIndex}_image`;
+      console.log(`📸 EditorialPackCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
+
+      const { data: existing, error: checkError } = await supabase
+        .from('site_content_images')
+        .select('id')
+        .eq('key_name', keyName)
+        .maybeSingle();
+
+      let result;
+      if (existing) {
+        result = await supabase
+          .from('site_content_images')
+          .update({ image_url: newUrl })
+          .eq('key_name', keyName);
+      } else {
+        result = await supabase
+          .from('site_content_images')
+          .insert([{ 
+            key_name: keyName, 
+            image_url: newUrl 
+          }]);
+      }
+
+      if (result.error) {
+        console.error(`📸 EditorialPackCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
+        toast({ 
+          title: "Erreur", 
+          description: "Échec de la sauvegarde de l'image", 
+          variant: "destructive" 
+        });
+      } else {
+        setCustomImages(prev => ({
+          ...prev,
+          [cardIndex]: newUrl
+        }));
+        toast({ 
+          title: "Image mise à jour", 
+          description: "L'image a été sauvegardée avec succès." 
+        });
+      }
+    } catch (error) {
+      console.error(`📸 EditorialPackCard ${cardIndex}: ❌ Erreur inattendue dans handleImageUpdate:`, error);
+      toast({ 
+        title: "Erreur", 
+        description: "Une erreur inattendue s'est produite", 
+        variant: "destructive" 
+      });
+    }
+  };
 
   const gradients = [
     'from-[#0074b3] to-blue-400',
@@ -957,13 +1046,6 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
     'from-[#0074b3] to-indigo-400',
   ];
   const gradient = gradients[cardIndex % gradients.length];
-
-  const handleImageUpdate = async (newUrl: string) => {
-    setImageUrl(newUrl);
-    await supabase
-      .from('editable_content')
-      .upsert({ content_key: `editorial_card_${cardIndex}_image`, content: newUrl });
-  };
 
   return (
     <Card className="flex flex-row h-full overflow-hidden rounded-2xl shadow-md">
