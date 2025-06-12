@@ -30,39 +30,62 @@ const BlogSection = () => {
   });
 
   const { data: content } = useQuery({
-    queryKey: ["blog-content"],
+    queryKey: ["blog-content", articles?.map(a => a.id)],
+    enabled: !!articles?.length,
     queryFn: async () => {
+      const keys = [
+        "blog_cta_url",
+        "blog_see_more_url",
+        ...(articles?.map(a => `blog_${a.id}_image_url`) || [])
+      ];
+
       const { data, error } = await supabase
         .from("editable_content")
         .select("*")
-        .in("content_key", ["blog_cta_url", "blog_see_more_url"]);
+        .in("content_key", keys);
 
       if (error) throw error;
-      
-      const urls: Record<string, string> = {};
-      data?.forEach(item => {
-        urls[item.content_key] = item.content;
+
+      const result: Record<string, string> = {};
+      data?.forEach((item) => {
+        result[item.content_key] = item.content;
       });
-      
+
       return {
-        ctaUrl: urls.blog_cta_url || "/blog",
-        seeMoreUrl: urls.blog_see_more_url || "/blog"
+        ctaUrl: result.blog_cta_url || "/blog",
+        seeMoreUrl: result.blog_see_more_url || "/blog",
+        images: result,
       };
     },
   });
 
   const updateArticleImageMutation = useMutation({
     mutationFn: async ({ articleId, imageUrl }: { articleId: string; imageUrl: string }) => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .update({ image_url: imageUrl })
-        .eq("id", articleId);
+      const updates = [
+        supabase
+          .from("blog_posts")
+          .update({ image_url: imageUrl })
+          .eq("id", articleId),
+        
+        supabase
+          .from("editable_content")
+          .upsert({
+            content_key: `blog_${articleId}_image_url`,
+            content: imageUrl,
+          }, { onConflict: "content_key" })
+      ];
 
-      if (error) throw error;
-      return data;
+      const [blogPostResult, contentResult] = await Promise.all(updates);
+
+      if (blogPostResult.error || contentResult.error) {
+        throw blogPostResult.error || contentResult.error;
+      }
+
+      return blogPostResult.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
+      queryClient.invalidateQueries({ queryKey: ["blog-content"] });
       toast({
         title: "Image de l'article mise à jour",
         description: "L'image a été sauvegardée avec succès.",
@@ -122,7 +145,11 @@ const BlogSection = () => {
                     )}
                     <EditableImage
                       imageKey={`blog_${article.id}`}
-                      initialUrl={article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
+                      initialUrl={
+                        content?.images?.[`blog_${article.id}_image_url`] ??
+                        article.image_url ??
+                        "https://images.unsplash.com/photo-1584267651117-32aacc26307b"
+                      }
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                       onUpdate={(newUrl) => {
                         updateArticleImageMutation.mutate({ articleId: article.id, imageUrl: newUrl });
