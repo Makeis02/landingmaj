@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,16 +12,25 @@ import { EditableImage } from "./EditableImage";
 
 const BlogSection = () => {
   const { isEditMode } = useEditStore();
+  const queryClient = useQueryClient();
+
+  console.log("📸 BlogSection: Rendu du composant...");
+
   const { data: articles, error } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
+      console.log("📸 BlogSection: 🔍 Début du fetch des articles de blog...");
       const { data, error } = await supabase
         .from("blog_posts")
         .select("*")
         .order("published_at", { ascending: false })
         .limit(3);
 
-      if (error) throw error;
+      if (error) {
+        console.error("📸 BlogSection: ❌ Erreur lors du fetch des articles:", error);
+        throw error;
+      }
+      console.log("📸 BlogSection: ✅ Articles de blog récupérés:", data);
       return data;
     },
   });
@@ -30,19 +39,28 @@ const BlogSection = () => {
     queryKey: ["blog-images", articles?.map(a => a.id)],
     enabled: !!articles?.length,
     queryFn: async () => {
-      if (!articles || articles.length === 0) return {};
+      if (!articles || articles.length === 0) {
+        console.log("📸 BlogSection: ⏩ Pas d'articles, pas de fetch d'images de blog.");
+        return {};
+      }
+      const keysToFetch = articles.map(a => `blog_${a.id}`);
+      console.log("📸 BlogSection: 🔍 Début du fetch des images de blog pour les clés:", keysToFetch);
       const { data, error } = await supabase
         .from("site_content_images")
-        .select("*")
-        .in("key_name", articles.map(a => `blog_${a.id}`));
+        .select("key_name, image_url")
+        .in("key_name", keysToFetch);
 
-      if (error) throw error;
+      if (error) {
+        console.error("📸 BlogSection: ❌ Erreur lors du fetch des images de blog depuis Supabase:", error);
+        throw error;
+      }
 
       const result: Record<string, string> = {};
       data.forEach(img => {
         result[img.key_name] = img.image_url;
       });
 
+      console.log("📸 BlogSection: 📊 Images de blog récupérées depuis Supabase:", result);
       return result;
     }
   });
@@ -67,6 +85,32 @@ const BlogSection = () => {
         seeMoreUrl: urls.blog_see_more_url || "/blog"
       };
     },
+  });
+
+  const updateArticleImageMutation = useMutation({
+    mutationFn: async ({ articleId, imageUrl }: { articleId: number; imageUrl: string }) => {
+      console.log(`📸 BlogSection: ➡️ Début mutation pour sauvegarder l'image de l'article ${articleId}. Nouvelle URL: ${imageUrl}`);
+      const { error } = await supabase
+        .from('site_content_images')
+        .upsert(
+          { key_name: `blog_${articleId}`, image_url: imageUrl },
+          { onConflict: 'key_name' }
+        );
+      
+      if (error) {
+        console.error(`📸 BlogSection: ❌ Erreur Supabase lors de la sauvegarde de l'image pour article ${articleId}:`, error);
+        throw error;
+      }
+      console.log(`📸 BlogSection: ✅ Image de l'article ${articleId} sauvegardée avec succès dans Supabase.`);
+    },
+    onSuccess: () => {
+      console.log("📸 BlogSection: 🎉 Mutation réussie. Invalidation des requêtes 'blog-images'...");
+      queryClient.invalidateQueries({ queryKey: ["blog-images"] });
+      console.log("📸 BlogSection: 🔄 Requêtes 'blog-images' invalidées, le composant devrait recharger les données.");
+    },
+    onError: (err) => {
+      console.error("📸 BlogSection: 🔴 Échec de la mutation pour la sauvegarde de l'image:", err);
+    }
   });
 
   if (error) {
@@ -101,63 +145,74 @@ const BlogSection = () => {
         {articles && articles.length > 0 ? (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
-              {articles.map((article) => (
-                <Card
-                  key={article.id}
-                  className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
-                >
-                  <div className="relative h-56">
-                    {article.tag && (
-                      <span className="absolute top-4 left-4 bg-ocean text-white px-3 py-1 rounded-full text-sm font-medium z-10">
-                        {article.tag}
-                      </span>
-                    )}
-                    <EditableImage
-                      imageKey={`blog_${article.id}`}
-                      initialUrl={
-                        imagesContent?.[`blog_${article.id}`] ||
-                        article.image_url ||
-                        "https://images.unsplash.com/photo-1584267651117-32aacc26307b"
-                      }
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
-                  </div>
-                  <CardContent className="p-6 flex-1 flex flex-col">
-                    <div className="mb-2 text-sm text-gray-500">
-                      {article.published_at && (
-                        format(new Date(article.published_at), "d MMMM yyyy", { locale: fr })
+              {articles.map((article) => {
+                const imageUrl = imagesContent?.[`blog_${article.id}`] || article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b";
+                console.log(`📸 BlogSection: 🖼️ Rendu de l'article ${article.id}. URL affichée:`, imageUrl);
+                return (
+                  <Card
+                    key={article.id}
+                    className="overflow-hidden hover:shadow-xl transition-shadow duration-300 flex flex-col"
+                  >
+                    <div className="relative h-56">
+                      {article.tag && (
+                        <span className="absolute top-4 left-4 bg-ocean text-white px-3 py-1 rounded-full text-sm font-medium z-10">
+                          {article.tag}
+                        </span>
                       )}
+                      <EditableImage
+                        imageKey={`blog_${article.id}`}
+                        initialUrl={imageUrl}
+                        className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        onUpdate={(newUrl) => {
+                          console.log(`📸 BlogSection: 🟢 onUpdate de EditableImage déclenché pour article ${article.id} avec la nouvelle URL: ${newUrl}`);
+                          updateArticleImageMutation.mutate({
+                            articleId: article.id,
+                            imageUrl: newUrl
+                          });
+                        }}
+                      />
                     </div>
-                    <h3 className="text-xl font-semibold mb-3 text-gray-900">{article.title}</h3>
-                    {article.excerpt && (
-                      <p className="text-gray-600 mb-6 flex-1 line-clamp-3">{article.excerpt}</p>
-                    )}
-                    {!isEditMode && (
-                      <div className="relative">
-                        <Link 
-                          to={content?.ctaUrl || "/blog"}
-                          className="w-full mt-auto"
-                        >
-                          <Button 
-                            variant="outline" 
-                            className="w-full hover:bg-ocean hover:text-white transition-colors"
-                          >
-                            <EditableText
-                              contentKey="blog_cta"
-                              initialContent="Lire l'article"
-                              className="hover:text-white"
-                            />
-                          </Button>
-                        </Link>
-                        <EditableURL
-                          contentKey="blog_cta_url"
-                          initialContent="/blog"
-                        />
+                    <CardContent className="p-6 flex-1 flex flex-col">
+                      <div className="mb-2 text-sm text-gray-500">
+                        {article.published_at && (
+                          format(new Date(article.published_at), "d MMMM yyyy", { locale: fr })
+                        )}
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
+                      <h3 className="text-xl font-semibold mb-3 text-gray-900">
+                        {article.title}
+                      </h3>
+                      {article.excerpt && (
+                        <p className="text-gray-600 mb-6 flex-1 line-clamp-3">
+                          {article.excerpt}
+                        </p>
+                      )}
+                      {!isEditMode && (
+                        <div className="relative">
+                          <Link 
+                            to={content?.ctaUrl || "/blog"}
+                            className="w-full mt-auto"
+                          >
+                            <Button 
+                              variant="outline" 
+                              className="w-full hover:bg-ocean hover:text-white transition-colors"
+                            >
+                              <EditableText
+                                contentKey="blog_cta"
+                                initialContent="Lire l'article"
+                                className="hover:text-white"
+                              />
+                            </Button>
+                          </Link>
+                          <EditableURL
+                            contentKey="blog_cta_url"
+                            initialContent="/blog"
+                          />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
             {!isEditMode && (
               <div className="text-center relative">
