@@ -1,4 +1,5 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,6 @@ import { EditableImage } from "./EditableImage";
 
 const BlogSection = () => {
   const { isEditMode } = useEditStore();
-  const queryClient = useQueryClient();
   const { data: articles, error } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
@@ -46,22 +46,6 @@ const BlogSection = () => {
         ctaUrl: urls.blog_cta_url || "/blog",
         seeMoreUrl: urls.blog_see_more_url || "/blog"
       };
-    },
-  });
-
-  const updateArticleImageMutation = useMutation({
-    mutationFn: async ({ id, newImageUrl }: { id: string; newImageUrl: string }) => {
-      const { data, error } = await supabase
-        .from("blog_posts")
-        .update({ image_url: newImageUrl })
-        .eq("id", id)
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
     },
   });
 
@@ -112,13 +96,6 @@ const BlogSection = () => {
                       imageKey={`blog_${article.id}`}
                       initialUrl={article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      onUpdate={(newUrl) => {
-                        updateArticleImageMutation.mutate({
-                          id: article.id, 
-                          newImageUrl: newUrl
-                        });
-                      }}
-                      disableDefaultPersistence={true} 
                     />
                   </div>
                   <CardContent className="p-6 flex-1 flex flex-col">

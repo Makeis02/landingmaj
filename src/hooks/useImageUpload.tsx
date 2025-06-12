@@ -6,10 +6,9 @@ import { useToast } from "@/components/ui/use-toast";
 interface UseImageUploadProps {
   imageKey: string;
   onUpdate?: (newUrl: string) => void;
-  disableDefaultPersistence?: boolean;
 }
 
-export const useImageUpload = ({ imageKey, onUpdate, disableDefaultPersistence = false }: UseImageUploadProps) => {
+export const useImageUpload = ({ imageKey, onUpdate }: UseImageUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const { toast } = useToast();
@@ -96,26 +95,22 @@ export const useImageUpload = ({ imageKey, onUpdate, disableDefaultPersistence =
 
       console.log("Public URL generated:", publicUrl);
 
-      if (!disableDefaultPersistence) {
-        console.log("Persisting to site_content_images table...");
-        const { error: dbError } = await supabase
-          .from('site_content_images')
-          .upsert({
-            key_name: imageKey,
-            image_url: publicUrl,
-            created_at: new Date().toISOString()
-          }, {
-            onConflict: 'key_name'
-          });
+      const { error: dbError } = await supabase
+        .from('site_content_images')
+        .upsert({
+          key_name: imageKey,
+          image_url: publicUrl,
+          created_at: new Date().toISOString()
+        }, {
+          onConflict: 'key_name,image_url'
+        });
 
-        if (dbError) {
-          console.error("Content update error:", dbError);
-          throw dbError;
-        }
-        console.log("Successfully updated site_content_images table");
-      } else {
-        console.log("Default persistence to site_content_images disabled for this upload.");
+      if (dbError) {
+        console.error("Content update error:", dbError);
+        throw dbError;
       }
+
+      console.log("Successfully updated site_content_images table");
 
       if (onUpdate) {
         console.log("Calling onUpdate with new URL:", publicUrl);
