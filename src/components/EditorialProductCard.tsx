@@ -698,33 +698,31 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
   const handleImageUpdate = async (newUrl: string) => {
     console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL reçue: ${newUrl}`);
-    setImageUrl(newUrl);
+    setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
     
     try {
       const keyName = `editorial_card_${cardIndex}_image`;
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
 
-      // Vérifier d'abord si l'entrée existe
+      // Vérifier d'abord si l'entrée existe dans site_content_images
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour vérifier l'existence...`);
       const { data: existing, error: checkError } = await supabase
         .from('site_content_images')
         .select('id')
         .eq('key_name', keyName)
         .maybeSingle();
 
-      if (checkError) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur lors de la vérification:`, checkError);
-        throw checkError;
-      }
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Résultat SELECT:`, { existing, checkError });
 
       let result;
       if (existing) {
-        // Mise à jour
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Entrée existante (ID: ${existing.id}). Exécution UPDATE avec image_url: ${newUrl}`);
         result = await supabase
           .from('site_content_images')
           .update({ image_url: newUrl })
           .eq('key_name', keyName);
       } else {
-        // Insertion
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune entrée existante. Exécution INSERT avec image_url: ${newUrl}`);
         result = await supabase
           .from('site_content_images')
           .insert([{ 
@@ -734,25 +732,30 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       }
 
       if (result.error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase:`, result.error);
-        throw result.error;
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
+        toast({ 
+          title: "Erreur", 
+          description: "Échec de la sauvegarde de l'image", 
+          variant: "destructive" 
+        });
+      } else {
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération (UPDATE/INSERT) réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
+        // Mettre à jour l'état local des images custom
+        setCustomImages(prev => ({
+          ...prev,
+          [cardIndex]: newUrl
+        }));
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: État local customImages mis à jour. Nouvelle valeur: ${customImages[cardIndex]}`);
+        toast({ 
+          title: "Image mise à jour", 
+          description: "L'image a été sauvegardée avec succès." 
+        });
       }
-
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès`);
-      setCustomImages(prev => ({
-        ...prev,
-        [cardIndex]: newUrl
-      }));
-
-      toast({ 
-        title: "Image mise à jour", 
-        description: "L'image a été sauvegardée avec succès." 
-      });
     } catch (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur:`, error);
+      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue dans handleImageUpdate:`, error);
       toast({ 
         title: "Erreur", 
-        description: "Impossible de sauvegarder l'image", 
+        description: "Une erreur inattendue s'est produite", 
         variant: "destructive" 
       });
     }
@@ -762,28 +765,30 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   useEffect(() => {
     const fetchCustomImages = async () => {
       const keyName = `editorial_card_${cardIndex}_image`;
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Chargement de l'image custom pour ${keyName}`);
-      
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom pour key_name: ${keyName}`);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour récupérer l'image custom...`);
       const { data, error } = await supabase
         .from('site_content_images')
-        .select('image_url')
-        .eq('key_name', keyName)
-        .single();
+        .select('key_name, image_url')
+        .eq('key_name', keyName);
 
       if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur chargement image:`, error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur fetch custom images:`, error);
         return;
       }
 
-      if (data?.image_url) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image custom trouvée: ${data.image_url}`);
+      if (data && data.length > 0) {
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image custom trouvée! Données:`, data[0]);
+        const fetchedImageUrl = data[0].image_url;
         setCustomImages(prev => ({
           ...prev,
-          [cardIndex]: data.image_url
+          [cardIndex]: fetchedImageUrl
         }));
-        setImageUrl(data.image_url);
+        setImageUrl(fetchedImageUrl);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image chargée au démarrage. URL: ${fetchedImageUrl}`);
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée, utilisation image par défaut`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée pour key_name: ${keyName}.`);
+        // Si aucune image custom n'est trouvée, assurez-vous d'utiliser l'image par défaut
         setImageUrl(editorialData.image || '/placeholder.svg');
       }
     };
@@ -845,7 +850,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               imageKey={`editorial_card_${cardIndex}_image`}
               initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={handleImageUpdate}
+              onUpdate={handleImageUpdate} // ✅ Maintenant utilise la fonction de sauvegarde
             />
           </div>
         ) : (
@@ -924,7 +929,6 @@ interface EditorialPackCardProps {
 
 export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex, editorialData }) => {
   const { isEditMode } = useEditStore();
-  const { toast } = useToast();
   const [link, setLink] = useState(editorialData.link || '');
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
@@ -956,50 +960,9 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
 
   const handleImageUpdate = async (newUrl: string) => {
     setImageUrl(newUrl);
-    
-    try {
-      const keyName = `editorial_card_${cardIndex}_image`;
-      
-      // Vérifier si l'entrée existe
-      const { data: existing } = await supabase
-        .from('site_content_images')
-        .select('id')
-        .eq('key_name', keyName)
-        .maybeSingle();
-
-      let result;
-      if (existing) {
-        // Mise à jour
-        result = await supabase
-          .from('site_content_images')
-          .update({ image_url: newUrl })
-          .eq('key_name', keyName);
-      } else {
-        // Insertion
-        result = await supabase
-          .from('site_content_images')
-          .insert([{ 
-            key_name: keyName, 
-            image_url: newUrl 
-          }]);
-      }
-
-      if (result.error) {
-        throw result.error;
-      }
-
-      toast({ 
-        title: "Image mise à jour", 
-        description: "L'image a été sauvegardée avec succès." 
-      });
-    } catch (error) {
-      console.error('Erreur lors de la sauvegarde de l\'image:', error);
-      toast({ 
-        title: "Erreur", 
-        description: "Impossible de sauvegarder l'image", 
-        variant: "destructive" 
-      });
-    }
+    await supabase
+      .from('editable_content')
+      .upsert({ content_key: `editorial_card_${cardIndex}_image`, content: newUrl });
   };
 
   return (
