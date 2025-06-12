@@ -1,5 +1,4 @@
-
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +9,12 @@ import { EditableURL } from "./EditableURL";
 import { Link } from "react-router-dom";
 import { useEditStore } from "@/stores/useEditStore";
 import { EditableImage } from "./EditableImage";
+import { toast } from "@/components/ui/use-toast";
 
 const BlogSection = () => {
   const { isEditMode } = useEditStore();
+  const queryClient = useQueryClient();
+
   const { data: articles, error } = useQuery({
     queryKey: ["blog-posts"],
     queryFn: async () => {
@@ -46,6 +48,32 @@ const BlogSection = () => {
         ctaUrl: urls.blog_cta_url || "/blog",
         seeMoreUrl: urls.blog_see_more_url || "/blog"
       };
+    },
+  });
+
+  const updateArticleImageMutation = useMutation({
+    mutationFn: async ({ articleId, imageUrl }: { articleId: string; imageUrl: string }) => {
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .update({ image_url: imageUrl })
+        .eq("id", articleId);
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
+      toast({
+        title: "Image de l'article mise à jour",
+        description: "L'image a été sauvegardée avec succès.",
+      });
+    },
+    onError: (err) => {
+      toast({
+        title: "Erreur lors de la mise à jour de l'image",
+        description: err.message || "Impossible de mettre à jour l'image de l'article.",
+        variant: "destructive",
+      });
     },
   });
 
@@ -96,6 +124,9 @@ const BlogSection = () => {
                       imageKey={`blog_${article.id}`}
                       initialUrl={article.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
                       className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      onUpdate={(newUrl) => {
+                        updateArticleImageMutation.mutate({ articleId: article.id, imageUrl: newUrl });
+                      }}
                     />
                   </div>
                   <CardContent className="p-6 flex-1 flex flex-col">
