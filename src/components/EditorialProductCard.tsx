@@ -14,7 +14,6 @@ import { fetchCategories, Category } from '@/lib/api/categories';
 import { EditableImage } from '@/components/EditableImage';
 import { Heart } from 'lucide-react';
 import { getPriceIdForProduct } from '@/lib/stripe/getPriceIdFromSupabase';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface EditorialProductCardProps {
   cardIndex: number;
@@ -576,69 +575,6 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   const [leafCategories, setLeafCategories] = useState<Category[]>([]);
   const gradient = gradients[cardIndex % gradients.length];
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
-  const queryClient = useQueryClient();
-
-  // État local pour l'image de la catégorie
-  const [categoryImage, setCategoryImage] = useState<string | null>(null);
-
-  // 1. Charger l'URL de l'image depuis site_content_images
-  const imageKey = `editorial_category_card_${cardIndex}_image`;
-  const { data: fetchedImageUrl } = useQuery({
-    queryKey: ["editorial-category-image", imageKey],
-    queryFn: async () => {
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: 🔍 Début du fetch de l'image pour la clé: ${imageKey}`);
-      const { data, error } = await supabase
-        .from('site_content_images')
-        .select('image_url')
-        .eq('key_name', imageKey)
-        .maybeSingle();
-      
-      if (error) {
-        console.error(`🖼️ EditorialCategoryCard ${cardIndex}: ❌ Erreur lors du fetch de l'image depuis Supabase:`, error);
-        throw error;
-      }
-      const url = data?.image_url || editorialData.image; // Fallback to initial image
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: 📊 Image récupérée:`, url);
-      return url;
-    },
-    initialData: editorialData.image, // Utilise l'image par défaut comme donnée initiale
-    staleTime: 5 * 60 * 1000, // Les données sont considérées comme fraîches pendant 5 minutes
-    gcTime: 10 * 60 * 1000, // Les données sont conservées en cache pendant 10 minutes (anciennement cacheTime)
-  });
-
-  useEffect(() => {
-    if (fetchedImageUrl) {
-      setCategoryImage(fetchedImageUrl);
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: ✅ categoryImage mis à jour avec: ${fetchedImageUrl}`);
-    }
-  }, [fetchedImageUrl, cardIndex]);
-
-  // Mutation pour sauvegarder la nouvelle URL de l'image
-  const updateImageMutation = useMutation({
-    mutationFn: async (newUrl: string) => {
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: ➡️ Début mutation pour sauvegarder la nouvelle URL: ${newUrl}`);
-      const { error } = await supabase
-        .from('site_content_images')
-        .upsert(
-          { key_name: imageKey, image_url: newUrl },
-          { onConflict: 'key_name' }
-        );
-      
-      if (error) {
-        console.error(`🖼️ EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde de l'image:`, error);
-        throw error;
-      }
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans Supabase.`);
-    },
-    onSuccess: () => {
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: 🎉 Mutation réussie. Invalidation des requêtes 'editorial-category-image'...`);
-      queryClient.invalidateQueries({ queryKey: ["editorial-category-image", imageKey] });
-      console.log(`🖼️ EditorialCategoryCard ${cardIndex}: 🔄 Requêtes invalidées, le composant devrait recharger.`);
-    },
-    onError: (err) => {
-      console.error(`🖼️ EditorialCategoryCard ${cardIndex}: 🔴 Échec de la mutation pour la sauvegarde de l'image:`, err);
-    }
-  });
 
   // Charger toutes les catégories
   useEffect(() => {
@@ -769,19 +705,15 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         {isEditMode ? (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
             <EditableImage
-              imageKey={imageKey}
-              initialUrl={categoryImage || editorialData.image}
+              imageKey={`editorial_card_${cardIndex}_image`}
+              initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={(newUrl) => {
-                console.log(`🖼️ EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché avec la nouvelle URL: ${newUrl}`);
-                setCategoryImage(newUrl);
-                updateImageMutation.mutate(newUrl);
-              }}
+              onUpdate={setImageUrl}
             />
           </div>
         ) : (
           <img
-            src={categoryImage || editorialData.image}
+            src={imageUrl}
             alt={editorialData.title}
             className="w-full h-full object-cover"
           />
