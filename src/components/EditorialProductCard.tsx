@@ -60,7 +60,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPaths, setCategoryPaths] = useState<Record<string, string>>({});
   const [promoPrice, setPromoPrice] = useState<any>(null);
-  const [customImages, setCustomImages] = useState<Record<string, string>>({});
 
   // Fonction pour construire le chemin complet d'une catégorie
   const buildCategoryPath = (category: Category, allCategories: Category[]): string => {
@@ -249,80 +248,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     fetchPromo();
   }, [selectedProductId, allProducts]);
 
-  // Charger les images custom uploadées depuis Supabase
-  useEffect(() => {
-    const fetchCustomImages = async () => {
-      if (!selectedProductId) return;
-      const key = `product_${selectedProductId}_image_0`;
-      const { data, error } = await supabase
-        .from('site_content_images')
-        .select('key_name, image_url')
-        .eq('key_name', key);
-
-      if (error) {
-        console.error('Erreur lors du chargement des images custom:', error);
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setCustomImages(prev => ({
-          ...prev,
-          [selectedProductId]: data[0].image_url
-        }));
-        setProductImage(data[0].image_url);
-      }
-    };
-
-    fetchCustomImages();
-  }, [selectedProductId]);
-
-  // Fonction de mise à jour de l'image
-  const handleImageUpdate = async (newUrl: string) => {
-    if (!selectedProductId) return;
-    
-    try {
-      const key = `product_${selectedProductId}_image_0`;
-      
-      // Vérifier si l'image existe déjà
-      const { data: existing } = await supabase
-        .from('site_content_images')
-        .select('id')
-        .eq('key_name', key)
-        .maybeSingle();
-
-      let result;
-      if (existing) {
-        // Mettre à jour l'image existante
-        result = await supabase
-          .from('site_content_images')
-          .update({ image_url: newUrl })
-          .eq('key_name', key);
-      } else {
-        // Créer une nouvelle entrée
-        result = await supabase
-          .from('site_content_images')
-          .insert([{ 
-            key_name: key, 
-            image_url: newUrl 
-          }]);
-      }
-
-      if (result.error) {
-        console.error('Erreur lors de la sauvegarde de l\'image:', result.error);
-        return;
-      }
-
-      // Mettre à jour l'état local
-      setCustomImages(prev => ({
-        ...prev,
-        [selectedProductId]: newUrl
-      }));
-      setProductImage(newUrl);
-    } catch (error) {
-      console.error('Erreur inattendue lors de la mise à jour de l\'image:', error);
-    }
-  };
-
   // 🎯 NOUVELLE FONCTION : Gestion complète de l'ajout au panier avec promotions
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
@@ -501,22 +426,11 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
                 <PromoBadge />
               </div>
             )}
-            {isEditMode ? (
-              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
-                <EditableImage
-                  imageKey={`product_${selectedProductId}_image_0`}
-                  initialUrl={customImages[selectedProductId] || productImage || '/placeholder.svg'}
-                  className="w-full h-full object-cover"
-                  onUpdate={handleImageUpdate}
-                />
-              </div>
-            ) : (
-              <img
-                src={customImages[selectedProductId] || productImage || '/placeholder.svg'}
-                alt={selectedProduct?.title}
-                className="w-full h-full object-cover"
-              />
-            )}
+            <img 
+              src={productImage || '/placeholder.svg'} 
+              alt={selectedProduct?.title}
+              className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+            />
             <div className="absolute top-2 right-2 z-10">
               <Heart className="h-6 w-6 text-[#2596be] opacity-80 hover:opacity-100 transition" />
             </div>
@@ -784,31 +698,33 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
   const handleImageUpdate = async (newUrl: string) => {
     console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL reçue: ${newUrl}`);
-    setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
+    setImageUrl(newUrl);
     
     try {
       const keyName = `editorial_card_${cardIndex}_image`;
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
 
-      // Vérifier d'abord si l'entrée existe dans site_content_images
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour vérifier l'existence...`);
+      // Vérifier d'abord si l'entrée existe
       const { data: existing, error: checkError } = await supabase
         .from('site_content_images')
         .select('id')
         .eq('key_name', keyName)
         .maybeSingle();
 
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Résultat SELECT:`, { existing, checkError });
+      if (checkError) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur lors de la vérification:`, checkError);
+        throw checkError;
+      }
 
       let result;
       if (existing) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Entrée existante (ID: ${existing.id}). Exécution UPDATE avec image_url: ${newUrl}`);
+        // Mise à jour
         result = await supabase
           .from('site_content_images')
           .update({ image_url: newUrl })
           .eq('key_name', keyName);
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune entrée existante. Exécution INSERT avec image_url: ${newUrl}`);
+        // Insertion
         result = await supabase
           .from('site_content_images')
           .insert([{ 
@@ -818,30 +734,25 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       }
 
       if (result.error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
-        toast({ 
-          title: "Erreur", 
-          description: "Échec de la sauvegarde de l'image", 
-          variant: "destructive" 
-        });
-      } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération (UPDATE/INSERT) réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
-        // Mettre à jour l'état local des images custom
-        setCustomImages(prev => ({
-          ...prev,
-          [cardIndex]: newUrl
-        }));
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: État local customImages mis à jour. Nouvelle valeur: ${customImages[cardIndex]}`);
-        toast({ 
-          title: "Image mise à jour", 
-          description: "L'image a été sauvegardée avec succès." 
-        });
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase:`, result.error);
+        throw result.error;
       }
+
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès`);
+      setCustomImages(prev => ({
+        ...prev,
+        [cardIndex]: newUrl
+      }));
+
+      toast({ 
+        title: "Image mise à jour", 
+        description: "L'image a été sauvegardée avec succès." 
+      });
     } catch (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue dans handleImageUpdate:`, error);
+      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur:`, error);
       toast({ 
         title: "Erreur", 
-        description: "Une erreur inattendue s'est produite", 
+        description: "Impossible de sauvegarder l'image", 
         variant: "destructive" 
       });
     }
@@ -851,30 +762,28 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   useEffect(() => {
     const fetchCustomImages = async () => {
       const keyName = `editorial_card_${cardIndex}_image`;
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch des images custom pour key_name: ${keyName}`);
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour récupérer l'image custom...`);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Chargement de l'image custom pour ${keyName}`);
+      
       const { data, error } = await supabase
         .from('site_content_images')
-        .select('key_name, image_url')
-        .eq('key_name', keyName);
+        .select('image_url')
+        .eq('key_name', keyName)
+        .single();
 
       if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur fetch custom images:`, error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur chargement image:`, error);
         return;
       }
 
-      if (data && data.length > 0) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image custom trouvée! Données:`, data[0]);
-        const fetchedImageUrl = data[0].image_url;
+      if (data?.image_url) {
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image custom trouvée: ${data.image_url}`);
         setCustomImages(prev => ({
           ...prev,
-          [cardIndex]: fetchedImageUrl
+          [cardIndex]: data.image_url
         }));
-        setImageUrl(fetchedImageUrl);
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image chargée au démarrage. URL: ${fetchedImageUrl}`);
+        setImageUrl(data.image_url);
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée pour key_name: ${keyName}.`);
-        // Si aucune image custom n'est trouvée, assurez-vous d'utiliser l'image par défaut
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image custom trouvée, utilisation image par défaut`);
         setImageUrl(editorialData.image || '/placeholder.svg');
       }
     };
@@ -936,7 +845,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               imageKey={`editorial_card_${cardIndex}_image`}
               initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={handleImageUpdate} // ✅ Maintenant utilise la fonction de sauvegarde
+              onUpdate={handleImageUpdate}
             />
           </div>
         ) : (
@@ -1015,6 +924,7 @@ interface EditorialPackCardProps {
 
 export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex, editorialData }) => {
   const { isEditMode } = useEditStore();
+  const { toast } = useToast();
   const [link, setLink] = useState(editorialData.link || '');
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
@@ -1046,9 +956,50 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
 
   const handleImageUpdate = async (newUrl: string) => {
     setImageUrl(newUrl);
-    await supabase
-      .from('editable_content')
-      .upsert({ content_key: `editorial_card_${cardIndex}_image`, content: newUrl });
+    
+    try {
+      const keyName = `editorial_card_${cardIndex}_image`;
+      
+      // Vérifier si l'entrée existe
+      const { data: existing } = await supabase
+        .from('site_content_images')
+        .select('id')
+        .eq('key_name', keyName)
+        .maybeSingle();
+
+      let result;
+      if (existing) {
+        // Mise à jour
+        result = await supabase
+          .from('site_content_images')
+          .update({ image_url: newUrl })
+          .eq('key_name', keyName);
+      } else {
+        // Insertion
+        result = await supabase
+          .from('site_content_images')
+          .insert([{ 
+            key_name: keyName, 
+            image_url: newUrl 
+          }]);
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      toast({ 
+        title: "Image mise à jour", 
+        description: "L'image a été sauvegardée avec succès." 
+      });
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde de l\'image:', error);
+      toast({ 
+        title: "Erreur", 
+        description: "Impossible de sauvegarder l'image", 
+        variant: "destructive" 
+      });
+    }
   };
 
   return (
