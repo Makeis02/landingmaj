@@ -37,15 +37,34 @@ export const EditableImage = ({
       
       // Sauvegarder l'URL dans editable_content
       try {
-        const { error } = await supabase
+        // D'abord vérifier si l'entrée existe
+        const { data: existingEntry, error: checkError } = await supabase
           .from('editable_content')
-          .upsert({
-            content_key: imageKey,
-            content: newUrl
-          });
+          .select('id')
+          .eq('content_key', imageKey)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error("Error checking existing entry:", checkError);
+          throw checkError;
+        }
+
+        let result;
+        if (existingEntry) {
+          // Si l'entrée existe, faire un update
+          result = await supabase
+            .from('editable_content')
+            .update({ content: newUrl })
+            .eq('content_key', imageKey);
+        } else {
+          // Si l'entrée n'existe pas, faire un insert
+          result = await supabase
+            .from('editable_content')
+            .insert({ content_key: imageKey, content: newUrl });
+        }
         
-        if (error) {
-          console.error("Error saving image URL:", error);
+        if (result.error) {
+          console.error("Error saving image URL:", result.error);
           toast({
             title: "Erreur",
             description: "L'image a été uploadée mais n'a pas pu être sauvegardée",
@@ -53,6 +72,10 @@ export const EditableImage = ({
           });
         } else {
           console.log("Image URL saved successfully in editable_content");
+          toast({
+            title: "Succès",
+            description: "L'image a été sauvegardée avec succès",
+          });
         }
       } catch (error) {
         console.error("Error in onUpdate:", error);
