@@ -15,6 +15,7 @@ import { EditableImage } from '@/components/EditableImage';
 import { Heart } from 'lucide-react';
 import { getPriceIdForProduct } from '@/lib/stripe/getPriceIdFromSupabase';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { EditableText } from "@/components/EditableText";
 
 interface EditorialProductCardProps {
   cardIndex: number;
