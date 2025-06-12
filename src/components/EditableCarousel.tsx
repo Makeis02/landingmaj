@@ -339,18 +339,38 @@ const EditableCarousel = () => {
 
   const toggleSlideActive = async (index: number) => {
     try {
+      // Créer une copie des slides
       const updatedSlides = [...slides];
+      // Inverser l'état d'activation
       updatedSlides[index].is_active = !updatedSlides[index].is_active;
       
       // Mettre à jour dans la base de données
-      await supabase
+      const { error } = await supabase
         .from('editable_content')
         .upsert({
           content_key: `homepage_carousel_active_${index}`,
           content: updatedSlides[index].is_active.toString()
         }, { onConflict: 'content_key' });
 
+      if (error) throw error;
+
+      // Mettre à jour l'état local
       setSlides(updatedSlides);
+      
+      // Si on est en mode normal et que le slide actuel est désactivé
+      if (!isEditMode && index === currentSlide) {
+        // Trouver le prochain slide actif
+        const nextActiveIndex = updatedSlides.findIndex((slide, i) => i > index && slide.is_active);
+        if (nextActiveIndex === -1) {
+          // Si pas de slide actif après, chercher avant
+          const prevActiveIndex = [...updatedSlides].reverse().findIndex((slide, i) => 
+            updatedSlides.length - 1 - i < index && slide.is_active
+          );
+          setCurrentSlide(prevActiveIndex === -1 ? 0 : updatedSlides.length - 1 - prevActiveIndex);
+        } else {
+          setCurrentSlide(nextActiveIndex);
+        }
+      }
       
       toast({
         title: "Slide mis à jour",
@@ -399,71 +419,73 @@ const EditableCarousel = () => {
       <section className="relative h-[500px] overflow-hidden">
         {/* Images du carousel */}
         <div className="relative h-full">
-          {activeSlides.map((slide, index) => (
-            <div
-              key={index}
-              className={`absolute inset-0 transition-opacity duration-500 ${
-                index === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
+          {slides
+            .filter(slide => isEditMode || slide.is_active)
+            .map((slide, index) => (
               <div
-                className="w-full h-full bg-cover bg-center"
-                style={{ 
-                  backgroundImage: `url('${isMobile ? slide.image_url_mobile : slide.image_url_desktop}')` 
-                }}
+                key={index}
+                className={`absolute inset-0 transition-opacity duration-500 ${
+                  index === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
               >
-                <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-              </div>
-              
-              {/* Contenu superposé */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-white max-w-4xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
-                  {isEditMode ? (
-                    /* Mode édition avec bouton modifier */
-                    <div className="space-y-4 md:space-y-6">
-                      <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
-                        {slide.title}
-                      </h1>
-                      <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
-                        {slide.subtitle}
-                      </p>
-                      <a
-                        href={slide.button_url}
-                        className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
-                      >
-                        <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                        {slide.button_text}
-                      </a>
-                      <Button
-                        onClick={() => startEditing(index)}
-                        className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Modifier ce slide
-                      </Button>
-                    </div>
-                  ) : (
-                    /* Mode normal */
-                    <div className="space-y-4 md:space-y-6">
-                      <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
-                        {slide.title}
-                      </h1>
-                      <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
-                        {slide.subtitle}
-                      </p>
-                      <a
-                        href={slide.button_url}
-                        className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button text-sm md:text-base"
-                      >
-                        <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                        {slide.button_text}
-                      </a>
-                    </div>
-                  )}
+                <div
+                  className="w-full h-full bg-cover bg-center"
+                  style={{ 
+                    backgroundImage: `url('${isMobile ? slide.image_url_mobile : slide.image_url_desktop}')` 
+                  }}
+                >
+                  <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                </div>
+                
+                {/* Contenu superposé */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white max-w-4xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
+                    {isEditMode ? (
+                      /* Mode édition avec bouton modifier */
+                      <div className="space-y-4 md:space-y-6">
+                        <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
+                          {slide.title}
+                        </h1>
+                        <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
+                          {slide.subtitle}
+                        </p>
+                        <a
+                          href={slide.button_url}
+                          className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
+                        >
+                          <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                          {slide.button_text}
+                        </a>
+                        <Button
+                          onClick={() => startEditing(index)}
+                          className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
+                        >
+                          <Edit className="w-4 h-4 mr-2" />
+                          Modifier ce slide
+                        </Button>
+                      </div>
+                    ) : (
+                      /* Mode normal */
+                      <div className="space-y-4 md:space-y-6">
+                        <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
+                          {slide.title}
+                        </h1>
+                        <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
+                          {slide.subtitle}
+                        </p>
+                        <a
+                          href={slide.button_url}
+                          className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button text-sm md:text-base"
+                        >
+                          <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                          {slide.button_text}
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
 
         {/* Modal d'édition */}

@@ -323,7 +323,7 @@ const DynamicUniverseGrid = () => {
             <Card key={universe.id} className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer transform hover:-translate-y-2 flex flex-col h-full">
               <div className="relative">
                 <div className={`h-3 ${universe.color}`}></div>
-                <div className="relative h-48 bg-gray-100 overflow-hidden">
+                <div className="relative aspect-[4/3] bg-gray-100 overflow-hidden">
                   {isEditMode ? (
                     <EditableImage
                       imageKey={`universe_card_${universe.id}_image`}
