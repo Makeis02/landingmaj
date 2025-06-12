@@ -319,12 +319,22 @@ const EditableCarousel = () => {
     }
   };
 
+  // Filtrer les slides actifs
+  const activeSlides = slides.filter(slide => isEditMode || slide.is_active);
+  
+  // Mettre à jour currentSlide si nécessaire quand un slide est désactivé
+  useEffect(() => {
+    if (!isEditMode && currentSlide >= activeSlides.length) {
+      setCurrentSlide(Math.max(0, activeSlides.length - 1));
+    }
+  }, [activeSlides.length, currentSlide, isEditMode]);
+
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
+    setCurrentSlide((prev) => (prev + 1) % activeSlides.length);
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    setCurrentSlide((prev) => (prev - 1 + activeSlides.length) % activeSlides.length);
   };
 
   const toggleSlideActive = async (index: number) => {
@@ -389,7 +399,7 @@ const EditableCarousel = () => {
       <section className="relative h-[500px] overflow-hidden">
         {/* Images du carousel */}
         <div className="relative h-full">
-          {slides.filter(slide => isEditMode || slide.is_active).map((slide, index) => (
+          {activeSlides.map((slide, index) => (
             <div
               key={index}
               className={`absolute inset-0 transition-opacity duration-500 ${
@@ -637,35 +647,39 @@ const EditableCarousel = () => {
           </div>
         )}
 
-        {/* Contrôles de navigation */}
-        <button
-          onClick={prevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-300"
-        >
-          <ChevronLeft className="w-6 h-6" />
-        </button>
-
-        <button
-          onClick={nextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-300"
-        >
-          <ChevronRight className="w-6 h-6" />
-        </button>
-
-        {/* Indicateurs */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2">
-          {slides.map((_, index) => (
+        {/* Contrôles de navigation - seulement s'il y a plus d'un slide actif */}
+        {activeSlides.length > 1 && (
+          <>
             <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                index === currentSlide
-                  ? 'bg-white'
-                  : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-              }`}
-            />
-          ))}
-        </div>
+              onClick={prevSlide}
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-300"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+
+            <button
+              onClick={nextSlide}
+              className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full flex items-center justify-center text-white transition-all duration-300"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Indicateurs */}
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-2">
+              {activeSlides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    index === currentSlide
+                      ? 'bg-white'
+                      : 'bg-white bg-opacity-50 hover:bg-opacity-75'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Boutons d'édition rapide (en mode édition) */}
         {isEditMode && (
