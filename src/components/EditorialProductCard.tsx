@@ -705,42 +705,24 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       const keyName = `editorial_card_${cardIndex}_image`;
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
 
-      // Vérifier d'abord si l'entrée existe dans site_content_images
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour vérifier l'existence...`);
-      const { data: existing, error: checkError } = await supabase
+      const { error } = await supabase
         .from('site_content_images')
-        .select('id')
-        .eq('key_name', keyName)
-        .maybeSingle();
+        .upsert({ 
+          key_name: keyName, 
+          image_url: newUrl 
+        }, {
+          onConflict: 'key_name'
+        });
 
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Résultat SELECT:`, { existing, checkError });
-
-      let result;
-      if (existing) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Entrée existante (ID: ${existing.id}). Exécution UPDATE avec image_url: ${newUrl}`);
-        result = await supabase
-          .from('site_content_images')
-          .update({ image_url: newUrl })
-          .eq('key_name', keyName);
-      } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune entrée existante. Exécution INSERT avec image_url: ${newUrl}`);
-        result = await supabase
-          .from('site_content_images')
-          .insert([{ 
-            key_name: keyName, 
-            image_url: newUrl 
-          }]);
-      }
-
-      if (result.error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
+      if (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPSERT):`, error);
         toast({ 
           title: "Erreur", 
           description: "Échec de la sauvegarde de l'image", 
           variant: "destructive" 
         });
       } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération (UPDATE/INSERT) réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération UPSERT réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
         // Mettre à jour l'état local des images custom
         setCustomImages(prev => ({
           ...prev,
@@ -851,7 +833,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               imageKey={`editorial_card_${cardIndex}_image`}
               initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={handleImageUpdate} // ✅ Maintenant utilise la fonction de sauvegarde
+              onUpdate={handleImageUpdate}
             />
           </div>
         ) : (
@@ -986,29 +968,17 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
       const keyName = `editorial_card_${cardIndex}_image`;
       console.log(`📸 EditorialPackCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
 
-      const { data: existing, error: checkError } = await supabase
+      const { error } = await supabase
         .from('site_content_images')
-        .select('id')
-        .eq('key_name', keyName)
-        .maybeSingle();
+        .upsert({ 
+          key_name: keyName, 
+          image_url: newUrl 
+        }, {
+          onConflict: 'key_name'
+        });
 
-      let result;
-      if (existing) {
-        result = await supabase
-          .from('site_content_images')
-          .update({ image_url: newUrl })
-          .eq('key_name', keyName);
-      } else {
-        result = await supabase
-          .from('site_content_images')
-          .insert([{ 
-            key_name: keyName, 
-            image_url: newUrl 
-          }]);
-      }
-
-      if (result.error) {
-        console.error(`📸 EditorialPackCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
+      if (error) {
+        console.error(`📸 EditorialPackCard ${cardIndex}: ❌ Erreur Supabase (UPSERT):`, error);
         toast({ 
           title: "Erreur", 
           description: "Échec de la sauvegarde de l'image", 
