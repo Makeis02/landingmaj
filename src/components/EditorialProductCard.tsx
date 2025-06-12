@@ -60,6 +60,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPaths, setCategoryPaths] = useState<Record<string, string>>({});
   const [promoPrice, setPromoPrice] = useState<any>(null);
+  const [customImages, setCustomImages] = useState<Record<string, string>>({});
 
   // Fonction pour construire le chemin complet d'une catégorie
   const buildCategoryPath = (category: Category, allCategories: Category[]): string => {
@@ -248,6 +249,80 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     fetchPromo();
   }, [selectedProductId, allProducts]);
 
+  // Charger les images custom uploadées depuis Supabase
+  useEffect(() => {
+    const fetchCustomImages = async () => {
+      if (!selectedProductId) return;
+      const key = `product_${selectedProductId}_image_0`;
+      const { data, error } = await supabase
+        .from('site_content_images')
+        .select('key_name, image_url')
+        .eq('key_name', key);
+
+      if (error) {
+        console.error('Erreur lors du chargement des images custom:', error);
+        return;
+      }
+
+      if (data && data.length > 0) {
+        setCustomImages(prev => ({
+          ...prev,
+          [selectedProductId]: data[0].image_url
+        }));
+        setProductImage(data[0].image_url);
+      }
+    };
+
+    fetchCustomImages();
+  }, [selectedProductId]);
+
+  // Fonction de mise à jour de l'image
+  const handleImageUpdate = async (newUrl: string) => {
+    if (!selectedProductId) return;
+    
+    try {
+      const key = `product_${selectedProductId}_image_0`;
+      
+      // Vérifier si l'image existe déjà
+      const { data: existing } = await supabase
+        .from('site_content_images')
+        .select('id')
+        .eq('key_name', key)
+        .maybeSingle();
+
+      let result;
+      if (existing) {
+        // Mettre à jour l'image existante
+        result = await supabase
+          .from('site_content_images')
+          .update({ image_url: newUrl })
+          .eq('key_name', key);
+      } else {
+        // Créer une nouvelle entrée
+        result = await supabase
+          .from('site_content_images')
+          .insert([{ 
+            key_name: key, 
+            image_url: newUrl 
+          }]);
+      }
+
+      if (result.error) {
+        console.error('Erreur lors de la sauvegarde de l\'image:', result.error);
+        return;
+      }
+
+      // Mettre à jour l'état local
+      setCustomImages(prev => ({
+        ...prev,
+        [selectedProductId]: newUrl
+      }));
+      setProductImage(newUrl);
+    } catch (error) {
+      console.error('Erreur inattendue lors de la mise à jour de l\'image:', error);
+    }
+  };
+
   // 🎯 NOUVELLE FONCTION : Gestion complète de l'ajout au panier avec promotions
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
@@ -426,11 +501,22 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
                 <PromoBadge />
               </div>
             )}
-            <img 
-              src={productImage || '/placeholder.svg'} 
-              alt={selectedProduct?.title}
-              className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
-            />
+            {isEditMode ? (
+              <div className="absolute inset-0 w-full h-full flex items-center justify-center">
+                <EditableImage
+                  imageKey={`product_${selectedProductId}_image_0`}
+                  initialUrl={customImages[selectedProductId] || productImage || '/placeholder.svg'}
+                  className="w-full h-full object-cover"
+                  onUpdate={handleImageUpdate}
+                />
+              </div>
+            ) : (
+              <img
+                src={customImages[selectedProductId] || productImage || '/placeholder.svg'}
+                alt={selectedProduct?.title}
+                className="w-full h-full object-cover"
+              />
+            )}
             <div className="absolute top-2 right-2 z-10">
               <Heart className="h-6 w-6 text-[#2596be] opacity-80 hover:opacity-100 transition" />
             </div>
