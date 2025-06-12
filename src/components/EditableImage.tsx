@@ -3,6 +3,7 @@ import { useEditStore } from "@/stores/useEditStore";
 import { UploadButton } from "./ui/upload-button";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
 
 interface EditableImageProps {
   imageKey: string;
@@ -30,9 +31,38 @@ export const EditableImage = ({
   
   const { isUploading, isAuthenticated, handleImageUpload } = useImageUpload({
     imageKey,
-    onUpdate: (newUrl) => {
+    onUpdate: async (newUrl) => {
       console.log("onUpdate callback received new URL:", newUrl);
       setImageUrl(newUrl);
+      
+      // Sauvegarder l'URL dans editable_content
+      try {
+        const { error } = await supabase
+          .from('editable_content')
+          .upsert({
+            content_key: imageKey,
+            content: newUrl
+          });
+        
+        if (error) {
+          console.error("Error saving image URL:", error);
+          toast({
+            title: "Erreur",
+            description: "L'image a été uploadée mais n'a pas pu être sauvegardée",
+            variant: "destructive",
+          });
+        } else {
+          console.log("Image URL saved successfully in editable_content");
+        }
+      } catch (error) {
+        console.error("Error in onUpdate:", error);
+        toast({
+          title: "Erreur",
+          description: "Une erreur est survenue lors de la sauvegarde de l'image",
+          variant: "destructive",
+        });
+      }
+
       if (onUpdate) {
         console.log("Calling parent onUpdate with new URL");
         onUpdate(newUrl);
