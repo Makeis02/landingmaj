@@ -646,73 +646,110 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
   const handleImageUpdate = async (newUrl: string) => {
     console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL: ${newUrl}`);
-    setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
     
     try {
-      // Utiliser upsert au lieu de insert pour gérer les conflits
-      const { data, error } = await supabase
+      // 1. Sauvegarder dans site_content_images
+      const imageKey = `editorial_card_${cardIndex}_image`;
+      const { error: imageError } = await supabase
+        .from('site_content_images')
+        .upsert(
+          { 
+            key_name: imageKey,
+            image_url: newUrl,
+            updated_at: new Date().toISOString()
+          },
+          { 
+            onConflict: 'key_name',
+            ignoreDuplicates: false
+          }
+        );
+
+      if (imageError) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde dans site_content_images:`, imageError);
+        throw imageError;
+      }
+
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée dans site_content_images`);
+
+      // 2. Sauvegarder dans editable_content
+      const { error: contentError } = await supabase
         .from('editable_content')
         .upsert(
           { 
-            content_key: `editorial_card_${cardIndex}_image`, 
-            content: newUrl 
+            content_key: imageKey,
+            content: newUrl,
+            updated_at: new Date().toISOString()
           },
           { 
             onConflict: 'content_key',
             ignoreDuplicates: false
           }
         );
-      
-      if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde de l'image:`, error);
-        toast({ 
-          title: "Erreur", 
-          description: "Échec de la sauvegarde de l'image", 
-          variant: "destructive" 
-        });
-        return;
+
+      if (contentError) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase lors de la sauvegarde dans editable_content:`, contentError);
+        throw contentError;
       }
 
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Image sauvegardée avec succès dans editable_content.`);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ URL sauvegardée dans editable_content`);
+
+      // 3. Mettre à jour l'état local après confirmation des deux sauvegardes
+      setImageUrl(newUrl);
+      setCustomImages(prev => ({ ...prev, [cardIndex]: newUrl }));
+
       toast({ 
         title: "Image mise à jour", 
         description: "L'image a été sauvegardée avec succès." 
       });
 
-      // Mettre à jour l'état local après confirmation de la sauvegarde
-      setImageUrl(newUrl);
     } catch (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue:`, error);
+      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur lors de la sauvegarde:`, error);
       toast({ 
         title: "Erreur", 
-        description: "Une erreur inattendue s'est produite", 
+        description: "Échec de la sauvegarde de l'image", 
         variant: "destructive" 
       });
     }
   };
 
-  // Charger l'image depuis Supabase editable_content
+  // Charger l'image depuis Supabase
   useEffect(() => {
     const fetchImage = async () => {
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content.`);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image.`);
       try {
-        const { data, error } = await supabase
+        // 1. Essayer de récupérer depuis site_content_images
+        const { data: imageData, error: imageError } = await supabase
+          .from('site_content_images')
+          .select('image_url')
+          .eq('key_name', `editorial_card_${cardIndex}_image`)
+          .single();
+
+        if (imageError && imageError.code !== 'PGRST116') {
+          console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch depuis site_content_images:`, imageError);
+        }
+
+        // 2. Essayer de récupérer depuis editable_content
+        const { data: contentData, error: contentError } = await supabase
           .from('editable_content')
           .select('content')
           .eq('content_key', `editorial_card_${cardIndex}_image`)
           .single();
 
-        if (error) {
-          console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
-          return;
+        if (contentError && contentError.code !== 'PGRST116') {
+          console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch depuis editable_content:`, contentError);
         }
 
-        if (data && data.content) {
-          setImageUrl(data.content);
-          console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée depuis editable_content: ${data.content}`);
+        // 3. Utiliser l'URL la plus récente
+        const imageUrl = imageData?.image_url || contentData?.content;
+        
+        if (imageUrl) {
+          console.log(`📸 EditorialCategoryCard ${cardIndex}: Image trouvée: ${imageUrl}`);
+          setImageUrl(imageUrl);
+          setCustomImages(prev => ({ ...prev, [cardIndex]: imageUrl }));
         } else {
-          console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content, utilisant l'URL par défaut.`);
+          console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée, utilisation de l'URL par défaut`);
         }
+
       } catch (error) {
         console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur inattendue lors du fetch de l'image:`, error);
       }
@@ -792,7 +829,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               imageKey={`editorial_card_${cardIndex}_image`}
               initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={handleImageUpdate} // ✅ Maintenant utilise la fonction de sauvegarde
+              onUpdate={handleImageUpdate}
             />
           </div>
         ) : (
