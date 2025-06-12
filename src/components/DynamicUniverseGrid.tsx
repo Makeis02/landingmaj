@@ -5,6 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEditStore } from '@/stores/useEditStore';
 import { EditableImage } from '@/components/EditableImage';
+import { EditableText } from "@/components/EditableText";
 
 interface Category {
   id: string;
@@ -348,9 +349,24 @@ const DynamicUniverseGrid = () => {
                   <h3 className="font-bold text-xl mb-3 transition-colors group-hover:text-[#0074b3]">
                     {universe.title}
                   </h3>
-                  <p className="text-gray-600 text-base leading-relaxed mb-4">
-                    {universe.description}
-                  </p>
+                  {isEditMode ? (
+                    <EditableText
+                      contentKey={`universe_description_${universe.id}`}
+                      initialContent={universe.description}
+                      className="text-gray-600 text-base leading-relaxed mb-4"
+                      onUpdate={(newText) => {
+                        // Mettre à jour l'état local
+                        const updatedUniverses = universes.map(u => 
+                          u.id === universe.id ? { ...u, description: newText } : u
+                        );
+                        setUniverses(updatedUniverses);
+                      }}
+                    />
+                  ) : (
+                    <p className="text-gray-600 text-base leading-relaxed mb-4">
+                      {universe.description}
+                    </p>
+                  )}
                 </div>
                 <div className="mt-auto flex items-end">
                   <Button 
