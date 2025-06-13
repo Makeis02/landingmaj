@@ -576,6 +576,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   const gradient = gradients[cardIndex % gradients.length];
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
   const [customImages, setCustomImages] = useState<Record<number, string>>({});
+  const [tempSelectedCategoryId, setTempSelectedCategoryId] = useState<string | null>(null);
 
   console.log(`📸 EditorialCategoryCard ${cardIndex}: Rendu du composant. isEditMode: ${isEditMode}`);
 
@@ -693,6 +694,27 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     toast({ title: 'Catégorie sélectionnée', description: 'La catégorie a été associée à la carte.' });
     setShowSelect(false);
     console.log(`📸 EditorialCategoryCard ${cardIndex}: Catégorie ${categoryId} sauvegardée.`);
+  };
+
+  // Gérer l'ouverture de la modale
+  const handleOpenSelectModal = () => {
+    setTempSelectedCategoryId(selectedCategoryId);
+    setShowSelect(true);
+  };
+
+  // Gérer la validation de la sélection
+  const handleConfirmSelection = () => {
+    if (tempSelectedCategoryId) {
+      saveSelection(tempSelectedCategoryId);
+    } else {
+      toast({ title: 'Aucune catégorie sélectionnée', description: 'Veuillez choisir une catégorie.', variant: 'destructive' });
+    }
+  };
+
+  // Gérer l'annulation de la sélection
+  const handleCancelSelection = () => {
+    setShowSelect(false);
+    setTempSelectedCategoryId(null);
   };
 
   // 🚀 NOUVELLE FONCTION: Gérer la mise à jour de l'image et la persistance
@@ -850,7 +872,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               imageKey={`editorial_card_${cardIndex}_image`}
               initialUrl={imageUrl}
               className="w-full h-full object-cover"
-              onUpdate={handleImageUpdate} // ✅ Maintenant utilise la fonction de sauvegarde
+              onUpdate={handleImageUpdate}
             />
           </div>
         ) : (
@@ -891,7 +913,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
                 <p className="text-gray-600">Choisissez la catégorie à afficher dans cette carte</p>
               </div>
               <div className="p-6 overflow-y-auto max-h-[60vh]">
-                <Select value={selectedCategoryId || ''} onValueChange={setSelectedCategoryId}>
+                <Select value={tempSelectedCategoryId || ''} onValueChange={setTempSelectedCategoryId}>
                   <SelectTrigger className="w-full mb-4">
                     <SelectValue placeholder="Choisir une catégorie..." />
                   </SelectTrigger>
@@ -902,9 +924,12 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
                   </SelectContent>
                 </Select>
               </div>
-              <div className="p-6 border-t flex justify-end">
-                <Button variant="outline" onClick={() => setShowSelect(false)}>
+              <div className="p-6 border-t flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCancelSelection}>
                   Annuler
+                </Button>
+                <Button onClick={handleConfirmSelection} disabled={!tempSelectedCategoryId}>
+                  Valider
                 </Button>
               </div>
             </div>
