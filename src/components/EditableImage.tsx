@@ -35,36 +35,17 @@ export const EditableImage = ({
       console.log("onUpdate callback received new URL:", newUrl);
       setImageUrl(newUrl);
       
-      // Sauvegarder l'URL dans editable_content
+      // Sauvegarder l'URL dans editable_content en utilisant upsert avec onConflict
       try {
-        // D'abord vérifier si l'entrée existe
-        const { data: existingEntry, error: checkError } = await supabase
+        const { error } = await supabase
           .from('editable_content')
-          .select('id')
-          .eq('content_key', imageKey)
-          .maybeSingle();
-
-        if (checkError) {
-          console.error("Error checking existing entry:", checkError);
-          throw checkError;
-        }
-
-        let result;
-        if (existingEntry) {
-          // Si l'entrée existe, faire un update
-          result = await supabase
-            .from('editable_content')
-            .update({ content: newUrl })
-            .eq('content_key', imageKey);
-        } else {
-          // Si l'entrée n'existe pas, faire un insert
-          result = await supabase
-            .from('editable_content')
-            .insert({ content_key: imageKey, content: newUrl });
-        }
+          .upsert(
+            { content_key: imageKey, content: newUrl },
+            { onConflict: 'content_key' } // Indique à upsert d'utiliser content_key pour détecter les conflits
+          );
         
-        if (result.error) {
-          console.error("Error saving image URL:", result.error);
+        if (error) {
+          console.error("Error saving image URL:", error);
           toast({
             title: "Erreur",
             description: "L'image a été uploadée mais n'a pas pu être sauvegardée",
@@ -81,7 +62,7 @@ export const EditableImage = ({
         console.error("Error in onUpdate:", error);
         toast({
           title: "Erreur",
-          description: "Une erreur est survenue lors de la sauvegarde de l'image",
+          description: "Une erreur inattendue est survenue lors de la sauvegarde de l'image",
           variant: "destructive",
         });
       }

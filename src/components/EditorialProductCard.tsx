@@ -722,65 +722,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     console.log(`📸 EditorialCategoryCard ${cardIndex}: 🟢 onUpdate de EditableImage déclenché. Nouvelle URL reçue: ${newUrl}`);
     setImageUrl(newUrl); // Met à jour l'état local pour l'affichage immédiat
     
-    try {
-      const keyName = `editorial_card_${cardIndex}_image`;
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Tentative de sauvegarde pour key_name: ${keyName}`);
-
-      // Vérifier d'abord si l'entrée existe dans site_content_images
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Exécution SELECT pour vérifier l'existence...`);
-      const { data: existing, error: checkError } = await supabase
-        .from('site_content_images')
-        .select('id')
-        .eq('key_name', keyName)
-        .maybeSingle();
-
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Résultat SELECT:`, { existing, checkError });
-
-      let result;
-      if (existing) {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Entrée existante (ID: ${existing.id}). Exécution UPDATE avec image_url: ${newUrl}`);
-        result = await supabase
-          .from('site_content_images')
-          .update({ image_url: newUrl })
-          .eq('key_name', keyName);
-      } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune entrée existante. Exécution INSERT avec image_url: ${newUrl}`);
-        result = await supabase
-          .from('site_content_images')
-          .insert([{ 
-            key_name: keyName, 
-            image_url: newUrl 
-          }]);
-      }
-
-      if (result.error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur Supabase (UPDATE/INSERT):`, result.error);
-        toast({ 
-          title: "Erreur", 
-          description: "Échec de la sauvegarde de l'image", 
-          variant: "destructive" 
-        });
-      } else {
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: ✅ Opération (UPDATE/INSERT) réussie pour key_name: ${keyName}. Nouvelle URL: ${newUrl}`);
-        // Mettre à jour l'état local des images custom
-        setCustomImages(prev => ({
-          ...prev,
-          [cardIndex]: newUrl
-        }));
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: État local customImages mis à jour. Nouvelle valeur: ${customImages[cardIndex]}`);
-        toast({ 
-          title: "Image mise à jour", 
-          description: "L'image a été sauvegardée avec succès." 
-        });
-      }
-    } catch (error) {
-      console.error(`📸 EditorialCategoryCard ${cardIndex}: ❌ Erreur inattendue dans handleImageUpdate:`, error);
-      toast({ 
-        title: "Erreur", 
-        description: "Une erreur inattendue s'est produite", 
-        variant: "destructive" 
-      });
-    }
+    // La logique de sauvegarde vers Supabase est maintenant gérée par EditableImage
   };
 
   // Charger les images custom uploadées depuis Supabase
@@ -985,9 +927,6 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
 
   const handleImageUpdate = async (newUrl: string) => {
     setImageUrl(newUrl);
-    await supabase
-      .from('editable_content')
-      .upsert({ content_key: `editorial_card_${cardIndex}_image`, content: newUrl });
   };
 
   return (
