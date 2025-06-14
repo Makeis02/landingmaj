@@ -757,7 +757,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               <div className="w-full h-full bg-gray-200 animate-pulse" />
             ) : (
               <img 
-                src={editorialData.image} 
+                src={imageUrl}
                 alt={editorialData.title}
                 className="w-full h-full object-cover md:group-hover:scale-110 transition-transform duration-500"
               />
@@ -770,10 +770,10 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               {editorialData.category}
             </Badge>
           </div>
-          <h3 className="font-bold text-lg mb-4 transition-colors md:group-hover:text-[#0074b3] leading-tight">
+          <h3 className="font-bold text-lg mb-4 transition-colors group-hover:text-[#0074b3] leading-tight">
             {editorialData.title}
           </h3>
-          <Button variant="outline" className="md:group-hover:bg-[#0074b3] md:group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
+          <Button variant="outline" className="group-hover:bg-[#0074b3] group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
             {editorialData.cta}
           </Button>
         </CardContent>
@@ -807,9 +807,9 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       </div>
       {/* Colonne contenu avec fond dégradé bleu */}
       <div className={`flex-1 flex flex-col justify-center px-6 py-6 bg-gradient-to-br ${gradient} relative`}>
-        {/* Badge - Toujours visible */}
+        {/* Badge */}
         <Badge className="absolute top-6 left-6 bg-white/90 text-[#0074b3] font-bold text-xs px-3 py-1 rounded-full shadow-md">
-          {selectedCategory?.name || editorialData.category}
+          {editorialData.category}
         </Badge>
         <div className="pl-0 pt-10 pb-2">
           <h3 className="font-bold text-2xl text-white mb-2 drop-shadow-lg">{selectedCategory?.name || editorialData.title}</h3>
@@ -946,7 +946,7 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
       </div>
       {/* Colonne contenu avec fond dégradé bleu */}
       <div className={`flex-1 flex flex-col justify-center px-6 py-6 bg-gradient-to-br ${gradient} relative`}>
-        {/* Badge - Toujours visible */}
+        {/* Badge */}
         <Badge className="absolute top-6 left-6 bg-white/90 text-[#0074b3] font-bold text-xs px-3 py-1 rounded-full shadow-md">
           {editorialData.category}
         </Badge>
