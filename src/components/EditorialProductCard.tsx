@@ -602,12 +602,12 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // Charger toutes les catégories
   useEffect(() => {
     console.log(`📸 EditorialCategoryCard ${cardIndex}: useEffect pour charger toutes les catégories.`);
-    if (!isEditMode && !isAdmin) return;
+    // La logique de chargement des catégories doit s'exécuter quelle que soit le mode d'édition pour l'affichage public.
     fetchCategories().then(data => {
       setAllCategories(data);
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Toutes les catégories chargées.`, data);
     });
-  }, [isEditMode, isAdmin]);
+  }, []); // Retiré [isEditMode, isAdmin] pour un chargement toujours actif
 
   // Charger la catégorie sélectionnée depuis editable_content
   useEffect(() => {
@@ -633,7 +633,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
       setIsLoading(false);
     };
     fetchSelected();
-  }, [cardIndex, isEditMode]);
+  }, [cardIndex]); // Retiré [isEditMode] car le chargement doit être indépendant du mode d'édition
 
   // Charger la catégorie sélectionnée dans la liste
   useEffect(() => {
@@ -641,12 +641,17 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     if (!selectedCategoryId || allCategories.length === 0) {
       setSelectedCategory(null);
       console.log(`📸 EditorialCategoryCard ${cardIndex}: selectedCategoryId ou allCategories vide.`);
+      // Si en mode public et pas de catégorie sélectionnée, on peut vouloir afficher un fallback ou un état vide
+      if (!isEditMode) {
+        setIsLoading(false); // S'assurer que l'état de chargement est désactivé même sans catégorie sélectionnée en public
+      }
       return;
     }
     const cat = allCategories.find(c => c.id === selectedCategoryId);
     setSelectedCategory(cat || null);
     console.log(`📸 EditorialCategoryCard ${cardIndex}: selectedCategory mis à jour:`, cat);
-  }, [selectedCategoryId, allCategories]);
+    setIsLoading(false); // Désactiver le loading une fois la catégorie trouvée et définie
+  }, [selectedCategoryId, allCategories, isEditMode]);
 
   // Filtrer les catégories feuilles (pas de children)
   useEffect(() => {
@@ -661,23 +666,29 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         console.log(`📸 EditorialCategoryCard ${cardIndex}: Catégories feuilles chargées.`, data.filter((cat: Category) => !data.some((child: Category) => child.parent_id === cat.id)));
       }
     };
-    fetchCategories();
-  }, []);
+    // Ce chargement n'est nécessaire qu'en mode édition pour la sélection
+    if (isEditMode) {
+      fetchCategories();
+    } else {
+      setLeafCategories([]); // Vider si pas en mode édition
+    }
+  }, [isEditMode, cardIndex]); // Dépend de isEditMode
 
   // Charger l'image depuis Supabase editable_content (source unique pour l'image)
   useEffect(() => {
     const fetchImage = async () => {
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content pour la clé: editorial_card_${cardIndex}_image`);
+      setIsLoading(true);
       const { data, error } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', `editorial_card_${cardIndex}_image`)
-        .maybeSingle(); // Utilisez maybeSingle pour éviter les erreurs si aucune entrée n'est trouvée
+        .maybeSingle();
 
       if (error) {
         console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
-        // Si erreur, on utilise l'image par défaut
         setImageUrl(editorialData.image || '/placeholder.svg');
+        setIsLoading(false);
         return;
       }
       
@@ -687,12 +698,13 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         setImageUrl(data.content);
         console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée et définie: ${data.content}`);
       } else {
-        setImageUrl(editorialData.image || '/placeholder.svg'); // Utilise l'image par défaut si aucune image custom n'est trouvée
+        setImageUrl(editorialData.image || '/placeholder.svg');
         console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content pour cette clé, utilisant l'URL par défaut.`);
       }
+      setIsLoading(false);
     };
     fetchImage();
-  }, [cardIndex, editorialData.image]); // Dépend de editorialData.image pour la réinitialisation si nécessaire
+  }, [cardIndex, editorialData.image]);
 
   // Sauvegarder la sélection dans editable_content
   const saveSelection = async (categoryId: string) => {
