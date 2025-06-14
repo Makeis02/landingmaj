@@ -51,7 +51,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<ExtendedStripeProduct | null>(null);
   const [productImage, setProductImage] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSelect, setShowSelect] = useState(false);
   const [variantPriceRange, setVariantPriceRange] = useState<{min: number, max: number} | null>(null);
   const [averageRating, setAverageRating] = useState<number>(0);
@@ -386,27 +386,28 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   // Affichage carte éditoriale classique
   if (isSpecialCard || (!selectedProduct && !isEditMode)) {
     return (
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer">
-        <div className="relative">
-          <div className={`h-2 ${editorialData.categoryColor}`}></div>
-          <div className="relative h-48 overflow-hidden">
+      <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
+        <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
+          {isLoading ? (
+            <div className="w-full h-full bg-gray-200 animate-pulse" />
+          ) : (
             <img 
               src={editorialData.image} 
               alt={editorialData.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-300"
             />
-          </div>
+          )}
         </div>
-        <CardContent className="p-6">
+        <CardContent className="flex-1 p-6">
           <div className="mb-3">
             <Badge className={`${editorialData.categoryColor} text-white text-xs font-medium px-3 py-1 rounded-full`}>
               {editorialData.category}
             </Badge>
           </div>
-          <h3 className="font-bold text-lg mb-4 transition-colors group-hover:text-[#0074b3] leading-tight">
+          <h3 className="font-bold text-lg mb-4 transition-colors md:group-hover:text-[#0074b3] leading-tight">
             {editorialData.title}
           </h3>
-          <Button variant="outline" className="group-hover:bg-[#0074b3] group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
+          <Button variant="outline" className="md:group-hover:bg-[#0074b3] md:group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
             {editorialData.cta}
           </Button>
         </CardContent>
@@ -416,17 +417,18 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
 
   // Affichage carte produit avec structure éditoriale
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer">
-      <div className="relative">
-        <div className={`h-2 ${editorialData.categoryColor}`}></div>
+    <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
+      <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
         <a href={`/produits/${slugify(selectedProduct?.title || '', { lower: true })}?id=${selectedProduct?.id}`} className="block">
-          <div className="relative h-48 overflow-hidden flex items-center justify-center bg-white cursor-pointer group-hover:scale-105 transition-transform duration-300">
+          <div className="relative h-full overflow-hidden flex items-center justify-center bg-white cursor-pointer md:group-hover:scale-105 transition-transform duration-300">
             {hasPromo && (
               <div className="absolute top-2 left-2 z-10">
                 <PromoBadge />
               </div>
             )}
-            {isEditMode ? (
+            {isLoading ? (
+              <div className="w-full h-full bg-gray-200 animate-pulse" />
+            ) : isEditMode ? (
               <EditableImage
                 imageKey={`product_${selectedProductId}_image_0`}
                 initialUrl={productImage || '/placeholder.svg'}
@@ -446,13 +448,13 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
           </div>
         </a>
       </div>
-      <CardContent className="p-6">
+      <CardContent className="flex-1 p-6">
         <div className="mb-3">
           <Badge className={`${editorialData.categoryColor} text-white text-xs font-medium px-3 py-1 rounded-full`}>
             {editorialData.category}
           </Badge>
         </div>
-        <h3 className="font-bold text-lg mb-1 transition-colors group-hover:text-[#0074b3] leading-tight line-clamp-1">
+        <h3 className="font-bold text-lg mb-1 transition-colors md:group-hover:text-[#0074b3] leading-tight line-clamp-1">
           {selectedProduct?.title}
         </h3>
         {/* Avis étoiles + nombre d'avis */}
@@ -493,7 +495,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
           <Button
             asChild
             variant="outline"
-            className="group-hover:bg-[#0074b3] group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3] w-full font-bold"
+            className="md:group-hover:bg-[#0074b3] md:group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3] w-full font-bold"
           >
             <a href={`/produits/${slugify(selectedProduct?.title || '', { lower: true })}?id=${selectedProduct?.id}`}>
               Voir le produit
@@ -502,7 +504,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         ) : (
           <Button
             variant="outline"
-            className="group-hover:bg-[#0074b3] group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3] w-full font-bold"
+            className="md:group-hover:bg-[#0074b3] md:group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3] w-full font-bold"
             onClick={handleAddToCart}
           >
             Ajouter au panier
@@ -579,7 +581,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isCategoryLoading, setIsCategoryLoading] = useState(true);
   const [showSelect, setShowSelect] = useState(false);
   const [leafCategories, setLeafCategories] = useState<Category[]>([]);
   const gradient = gradients[cardIndex % gradients.length];
@@ -602,7 +604,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   useEffect(() => {
     const fetchSelected = async () => {
       console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de la catégorie sélectionnée.`);
-      setIsLoading(true);
+      setIsCategoryLoading(true);
       const key = `editorial_card_${cardIndex}_category_id`;
       const { data, error } = await supabase
         .from('editable_content')
@@ -619,7 +621,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         setSelectedCategoryId(null);
         console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune catégorie sélectionnée trouvée.`);
       }
-      setIsLoading(false);
+      setIsCategoryLoading(false);
     };
     fetchSelected();
   }, [cardIndex, isEditMode]);
@@ -743,27 +745,28 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // Affichage carte éditoriale classique si pas de catégorie sélectionnée
   if (!selectedCategory && !isEditMode) {
     return (
-      <Card className="overflow-hidden hover:shadow-xl transition-all duration-500 group cursor-pointer">
-        <div className="relative">
-          <div className={`h-2 ${editorialData.categoryColor}`}></div>
-          <div className="relative h-48 overflow-hidden">
+      <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
+        <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
+          {isCategoryLoading ? (
+            <div className="w-full h-full bg-gray-200 animate-pulse" />
+          ) : (
             <img 
               src={editorialData.image} 
               alt={editorialData.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className="w-full h-full object-cover md:group-hover:scale-105 transition-transform duration-300"
             />
-          </div>
+          )}
         </div>
-        <CardContent className="p-6">
+        <CardContent className="flex-1 p-6">
           <div className="mb-3">
             <Badge className={`${editorialData.categoryColor} text-white text-xs font-medium px-3 py-1 rounded-full`}>
               {editorialData.category}
             </Badge>
           </div>
-          <h3 className="font-bold text-lg mb-4 transition-colors group-hover:text-[#0074b3] leading-tight">
+          <h3 className="font-bold text-lg mb-4 transition-colors md:group-hover:text-[#0074b3] leading-tight">
             {editorialData.title}
           </h3>
-          <Button variant="outline" className="group-hover:bg-[#0074b3] group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
+          <Button variant="outline" className="md:group-hover:bg-[#0074b3] md:group-hover:text-white transition-colors rounded-xl border-[#0074b3] text-[#0074b3]">
             {editorialData.cta}
           </Button>
         </CardContent>
@@ -773,10 +776,12 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
 
   // Affichage carte catégorie avec structure éditoriale
   return (
-    <Card className="flex flex-row h-full overflow-hidden rounded-2xl shadow-md">
+    <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
       {/* Colonne image */}
-      <div className="relative w-32 h-full bg-white border-r border-gray-200 flex-shrink-0">
-        {isEditMode ? (
+      <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
+        {isCategoryLoading ? (
+          <div className="w-full h-full bg-gray-200 animate-pulse" />
+        ) : isEditMode ? (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
             <EditableImage
               imageKey={`editorial_card_${cardIndex}_image`}
@@ -806,10 +811,10 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
             className="bg-white text-[#0074b3] font-bold rounded-xl px-6 py-2 mt-2 shadow hover:bg-blue-100 hover:text-[#005a8c] transition"
             asChild
           >
-            <a href={selectedCategory ? `/categories/${selectedCategory.slug}` : '#'}>Voir la catégorie</a>
+            <a href={selectedCategory ? `/categories/${selectedCategory.slug}` : '#'} rel="noopener noreferrer">Voir la catégorie</a>
           </Button>
           {isEditMode && (
-            <Button variant="outline" className="mt-4 w-full" onClick={() => setShowSelect(true)}>
+            <Button variant="outline" className="mt-4 w-full" onClick={handleOpenSelectModal}>
               Modifier la catégorie affichée
             </Button>
           )}
@@ -867,32 +872,29 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
   const [link, setLink] = useState(editorialData.link || '');
   const [isEditingLink, setIsEditingLink] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
+  const [isPackLoading, setIsPackLoading] = useState(true);
 
   useEffect(() => {
     const fetchImage = async () => {
       console.log(`📸 EditorialPackCard ${cardIndex}: Début du fetch de l'image depuis editable_content pour la clé: editorial_card_${cardIndex}_image`);
+      setIsPackLoading(true);
       const { data, error } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', `editorial_card_${cardIndex}_image`)
-        .maybeSingle(); // Utiliser maybeSingle pour éviter les erreurs si aucune entrée n'est trouvée
+        .maybeSingle();
 
       if (error) {
         console.error(`📸 EditorialPackCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
-        // Si erreur, on utilise l'image par défaut
         setImageUrl(editorialData.image || '/placeholder.svg');
-        return;
-      }
-      
-      console.log(`📸 EditorialPackCard ${cardIndex}: Données récupérées pour l'image:`, data);
-
-      if (data && data.content) {
+      } else if (data?.content) {
         setImageUrl(data.content);
         console.log(`📸 EditorialPackCard ${cardIndex}: Image récupérée et définie: ${data.content}`);
       } else {
-        setImageUrl(editorialData.image || '/placeholder.svg'); // Utilise l'image par défaut si aucune image custom n'est trouvée
+        setImageUrl(editorialData.image || '/placeholder.svg');
         console.log(`📸 EditorialPackCard ${cardIndex}: Aucune image trouvée dans editable_content pour cette clé, utilisant l'URL par défaut.`);
       }
+      setIsPackLoading(false);
     };
     fetchImage();
   }, [cardIndex, editorialData.image]);
@@ -915,10 +917,12 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
   };
 
   return (
-    <Card className="flex flex-row h-full overflow-hidden rounded-2xl shadow-md">
+    <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
       {/* Colonne image */}
-      <div className="relative w-32 h-full bg-white border-r border-gray-200 flex-shrink-0">
-        {isEditMode ? (
+      <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
+        {isPackLoading ? (
+          <div className="w-full h-full bg-gray-200 animate-pulse" />
+        ) : isEditMode ? (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
             <EditableImage
               imageKey={`editorial_card_${cardIndex}_image`}
