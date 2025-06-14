@@ -432,14 +432,14 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
               <EditableImage
                 imageKey={`product_${selectedProductId}_image_0`}
                 initialUrl={productImage || '/placeholder.svg'}
-                className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                className="object-contain w-full max-w-[90%] bg-white rounded"
                 onUpdate={(newUrl) => setProductImage(newUrl)}
               />
             ) : (
               <img 
                 src={productImage || '/placeholder.svg'} 
                 alt={selectedProduct?.title}
-                className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                className="object-contain w-full max-w-[90%] bg-white rounded"
               />
             )}
             <div className="absolute top-2 right-2 z-10">
