@@ -420,7 +420,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     <Card className="flex flex-col sm:flex-row w-full rounded-xl shadow-md transition-all duration-300 overflow-hidden">
       <div className="relative w-full h-40 sm:h-full sm:w-32 bg-white border-b sm:border-b-0 sm:border-r border-gray-200 flex-shrink-0">
         <a href={`/produits/${slugify(selectedProduct?.title || '', { lower: true })}?id=${selectedProduct?.id}`} className="block">
-          <div className="relative h-full overflow-hidden flex items-center justify-center bg-white cursor-pointer md:group-hover:scale-105 transition-transform duration-300">
+          <div className="relative h-[180px] flex items-center justify-center bg-white p-4">
             {hasPromo && (
               <div className="absolute top-2 left-2 z-10">
                 <PromoBadge />
@@ -432,14 +432,14 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
               <EditableImage
                 imageKey={`product_${selectedProductId}_image_0`}
                 initialUrl={productImage || '/placeholder.svg'}
-                className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                className="max-h-full max-w-full object-contain"
                 onUpdate={(newUrl) => setProductImage(newUrl)}
               />
             ) : (
               <img 
                 src={productImage || '/placeholder.svg'} 
                 alt={selectedProduct?.title}
-                className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                className="max-h-full max-w-full object-contain"
               />
             )}
             <div className="absolute top-2 right-2 z-10">
