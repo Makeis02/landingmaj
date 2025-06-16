@@ -681,7 +681,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     };
 
     fetchImage();
-  }, [cardIndex]); // Dépend uniquement de cardIndex pour s'exécuter au montage et si l'index change
+  }, [cardIndex]); // Dépend uniquement de cardIndex pour se déclencher au bon moment
 
   // Sauvegarder la sélection dans editable_content
   const saveSelection = async (categoryId: string) => {
