@@ -389,6 +389,24 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
+};
+
 const EaudouceNourriturePage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -1196,7 +1214,7 @@ const EaudouceNourriturePage = () => {
               }`}
             >
               <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🐟</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
                 <span>Eau douce</span>
               </a>
             </Button>
@@ -1211,7 +1229,7 @@ const EaudouceNourriturePage = () => {
               }`}
             >
               <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🌊</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
                 <span>Eau de mer</span>
               </a>
             </Button>
@@ -1226,11 +1244,12 @@ const EaudouceNourriturePage = () => {
               }`}
             >
               <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🔄</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
                 <span>Universel</span>
               </a>
             </Button>
           </div>
+          
           
           {/* Breadcrumb navigation removed as requested */}
           </div>

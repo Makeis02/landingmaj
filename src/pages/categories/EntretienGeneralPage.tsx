@@ -389,6 +389,24 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
+};
+
 const EntretienGeneralPage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -443,6 +461,8 @@ const EntretienGeneralPage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
+  // Nouvelle état pour les catégories de navigation en haut
+  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -568,6 +588,30 @@ const EntretienGeneralPage = () => {
         }));
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
+                mainNavCats = categoriesData.filter(cat =>
+                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
+                );
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -1186,50 +1230,24 @@ const EntretienGeneralPage = () => {
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            <Button
-              asChild
-              variant={isEauDouce ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauDouce
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudoucedecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🐟</div>
-                <span>Eau douce</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isEauMer ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauMer
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudemerdecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🌊</div>
-                <span>Eau de mer</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isUniversel ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isUniversel
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🔄</div>
-                <span>Universel</span>
-              </a>
-            </Button>
+            {headerNavCategories.map((navCat) => (
+              <Button
+                key={navCat.id}
+                asChild
+                // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
+                variant={navCat.slug === currentSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === currentSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
+                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                  <span>{navCat.name}</span>
+                </a>
+              </Button>
+            ))}
           </div>
           
           {/* Breadcrumb navigation removed as requested */}
