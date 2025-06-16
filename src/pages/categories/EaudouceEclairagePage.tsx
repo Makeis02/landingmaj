@@ -590,27 +590,10 @@ const EaudouceEclairagePage = () => {
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
         // Logique pour déterminer les catégories de navigation du header
-        let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir tous les enfants du grand-parent
-                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
-                }
-            } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
-            }
-        }
+        // Forcing specific categories for header navigation as per user's request to match EauDouceEntretienPage screenshot
+        const desiredHeaderSlugs = ["eaudouce", "eaudemer", "entretiengeneral", "produitsspecifiques"]; // Assuming these are the exact slugs
+        let mainNavCats = categoriesData.filter(cat => desiredHeaderSlugs.includes(cat.slug));
+        
         setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
