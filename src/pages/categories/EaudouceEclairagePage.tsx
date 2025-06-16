@@ -1270,7 +1270,9 @@ const EaudouceEclairagePage = () => {
               >
                 <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
                   <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
-                  <span>{navCat.name}</span>
+                  <span>
+                    {navCat.slug === 'eclairage-spectre-complet' ? 'Spectre complet' : navCat.name}
+                  </span>
                 </a>
               </Button>
             ))}
