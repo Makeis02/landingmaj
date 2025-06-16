@@ -1186,50 +1186,23 @@ const EauDouceEntretienPage = () => {
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            <Button
-              asChild
-              variant={isEauDouce ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauDouce
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudoucedecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🐟</div>
-                <span>Eau douce</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isEauMer ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauMer
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudemerdecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🌊</div>
-                <span>Eau de mer</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isUniversel ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isUniversel
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🔄</div>
-                <span>Universel</span>
-              </a>
-            </Button>
+            {subCategories.map((subCat) => (
+              <Button
+                key={subCat.id}
+                asChild
+                variant={selectedSubCategories.includes(subCat.id) ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  selectedSubCategories.includes(subCat.id)
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                <a href={`/categories/${currentSlug}?souscategorie=${subCat.slug}`} className="flex flex-col items-center justify-center">
+                  <div className="text-2xl mb-1">🐠</div>
+                  <span>{subCat.name}</span>
+                </a>
+              </Button>
+            ))}
           </div>
           
           {/* Breadcrumb navigation removed as requested */}
