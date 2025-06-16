@@ -460,19 +460,6 @@ const EaudouceEclairagePage = () => {
     }
   }, [productDescriptions, debugLoaded]);
 
-  // Détecter la taille de l'écran pour la description mobile
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768); // Ex: 768px pour les écrans md: de Tailwind
-    };
-
-    if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
-      handleResize(); // Appeler une fois au montage
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, []);
-
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
   
@@ -590,10 +577,27 @@ const EaudouceEclairagePage = () => {
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
         // Logique pour déterminer les catégories de navigation du header
-        // Forcing specific categories for header navigation as per user's request to match EauDouceEntretienPage screenshot
-        const desiredHeaderSlugs = ["eaudouce", "eaudemer", "entretiengeneral", "produitsspecifiques"]; // Assuming these are the exact slugs
-        let mainNavCats = categoriesData.filter(cat => desiredHeaderSlugs.includes(cat.slug));
-        
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
+                mainNavCats = categoriesData.filter(cat =>
+                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
+                );
+            }
+        }
         setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
@@ -1166,22 +1170,18 @@ const EaudouceEclairagePage = () => {
     }
   };
 
-  const getEmojiForCategory = (slug: string) => {
-    const normalized = slug.toLowerCase();
-    if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
-    if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
-    if (normalized.includes("universel")) return "🔄";
-    if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
-    if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
-    if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-    if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
-    if (normalized.includes("eclairage")) return "💡";
-    if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
-    if (normalized.includes("packs")) return "📦";
-    if (normalized.includes("decoration")) return "🐚";
-    // Ajoutez plus de mappings si nécessaire
-    return "✨"; // Emoji par défaut
-  };
+  // Détecter la taille de l'écran pour la description mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // Ex: 768px pour les écrans md: de Tailwind
+    };
+
+    if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
+      handleResize(); // Appeler une fois au montage
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -2242,3 +2242,21 @@ function DebugPriceIdPanel({ product }) {
     </div>
   );
 }
+
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
+};
