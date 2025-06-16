@@ -673,10 +673,10 @@ const EaudouceNourriturePage = () => {
         const categoriesData = await fetchCategories();
         setCategories(categoriesData);
 
-        // Trouver la catégorie parente (nourriture)
-        const parentCategory = categoriesData.find(cat => cat.slug === "nourriture");
+        // Trouver la catégorie parente (eau douce)
+        const parentCategory = categoriesData.find(cat => cat.slug === "eau-douce");
         if (!parentCategory) {
-          throw new Error("Catégorie parente 'nourriture' non trouvée");
+          throw new Error("Catégorie parente 'eau-douce' non trouvée");
         }
 
         // Trouver les sous-catégories de la catégorie parente
@@ -692,15 +692,19 @@ const EaudouceNourriturePage = () => {
                 // Si la catégorie actuelle a un parent, trouver son grand-parent
                 const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
                 if (grandParent) {
-                    // Obtenir toutes les catégories de même niveau que la catégorie actuelle
-                    const siblings = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = siblings;
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
                 }
             } else {
-                // Si la catégorie actuelle n'a pas de parent, elle est au niveau racine
-                // Obtenir toutes les catégories de même niveau
-                const rootCategories = categoriesData.filter(cat => !cat.parent_id);
-                mainNavCats = rootCategories;
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
+                mainNavCats = categoriesData.filter(cat =>
+                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
+                );
             }
         }
         setHeaderNavCategories(mainNavCats);

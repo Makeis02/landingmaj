@@ -443,27 +443,7 @@ const EaudemerNourriturePage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  // Nouvelle état pour les catégories de navigation en haut
-  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
-  // Nouvelle état pour gérer l'affichage complet de la description mobile
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  // État pour détecter si l'utilisateur est sur un appareil mobile
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Détection de la taille de l'écran pour le mode mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    
-    return () => {
-      window.removeEventListener('resize', checkIfMobile);
-    };
-  }, []);
-
+  
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
     if (!debugLoaded && Object.keys(productDescriptions).length > 0) {
@@ -545,44 +525,6 @@ const EaudemerNourriturePage = () => {
     const loadProductsAndCategories = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Charger les catégories
-        const categoriesData = await fetchCategories();
-        setCategories(categoriesData);
-
-        // Trouver la catégorie parente (eau de mer)
-        const parentCategory = categoriesData.find(cat => cat.slug === "eau-de-mer");
-        if (!parentCategory) {
-          throw new Error("Catégorie parente 'eau-de-mer' non trouvée");
-        }
-
-        // Trouver les sous-catégories de la catégorie parente
-        const childCategories = findSubCategories(categoriesData, parentCategory.id);
-        const cleanedChildCategories = childCategories.filter(cat => cat.slug !== "eau-de-mer");
-        setSubCategories(cleanedChildCategories);
-        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
-        
-        // Logique pour déterminer les catégories de navigation du header
-        let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir toutes les catégories de même niveau que la catégorie actuelle
-                    const siblings = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = siblings;
-                }
-            } else {
-                // Si la catégorie actuelle n'a pas de parent, elle est au niveau racine
-                // Obtenir toutes les catégories de même niveau
-                const rootCategories = categoriesData.filter(cat => !cat.parent_id);
-                mainNavCats = rootCategories;
-            }
-        }
-        setHeaderNavCategories(mainNavCats);
-
         // Charger tous les produits Stripe
         const allProducts = await fetchStripeProducts();
         const extendedProducts = Array.isArray(allProducts) 
@@ -738,8 +680,7 @@ const EaudemerNourriturePage = () => {
         setFilteredProducts(filtered);
         setError(null);
       } catch (err) {
-        console.error("Erreur lors du chargement des produits. Veuillez réessayer plus tard.", err);
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
       } finally {
         setIsLoading(false);
       }
@@ -1198,85 +1139,6 @@ const EaudemerNourriturePage = () => {
     }
   };
 
-  // Fonction pour obtenir un emoji basé sur le slug de la catégorie
-  const getEmojiForCategory = (slug: string) => {
-    const normalized = slug.toLowerCase();
-    if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
-    if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
-    if (normalized.includes("universel")) return "🔄";
-    if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
-    if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
-    if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-    if (normalized.includes("chauffage") || normalized.includes("thermostat")) return "🌡️";
-    if (normalized.includes("eclairage") || normalized.includes("lampe")) return "💡";
-    if (normalized.includes("nourriture") || normalized.includes("alimentation")) return "🍽️";
-    if (normalized.includes("decoration") || normalized.includes("deco")) return "🎨";
-    if (normalized.includes("accessoires") || normalized.includes("equipement")) return "🔧";
-    if (normalized.includes("aquarium") || normalized.includes("bassin")) return "🏺";
-    if (normalized.includes("test") || normalized.includes("mesure")) return "📊";
-    if (normalized.includes("medicament") || normalized.includes("traitement")) return "💊";
-    if (normalized.includes("sel") || normalized.includes("sel marin")) return "🧂";
-    if (normalized.includes("roche") || normalized.includes("pierre")) return "🪨";
-    if (normalized.includes("sable") || normalized.includes("substrat")) return "🏖️";
-    if (normalized.includes("plante") || normalized.includes("vegetal")) return "🌿";
-    if (normalized.includes("corail") || normalized.includes("recif")) return "🪸";
-    if (normalized.includes("invertebre") || normalized.includes("crevette")) return "🦐";
-    if (normalized.includes("poisson") || normalized.includes("fish")) return "🐠";
-    if (normalized.includes("reptile") || normalized.includes("terrarium")) return "🦎";
-    if (normalized.includes("rongeur") || normalized.includes("hamster")) return "🐹";
-    if (normalized.includes("oiseau") || normalized.includes("perroquet")) return "🦜";
-    if (normalized.includes("chat") || normalized.includes("felin")) return "🐱";
-    if (normalized.includes("chien") || normalized.includes("canin")) return "🐕";
-    if (normalized.includes("aquatique") || normalized.includes("marin")) return "🌊";
-    if (normalized.includes("terrestre") || normalized.includes("terrestre")) return "🌍";
-    if (normalized.includes("aerial") || normalized.includes("aerien")) return "🦅";
-    if (normalized.includes("reptile") || normalized.includes("reptilien")) return "🦎";
-    if (normalized.includes("amphibien") || normalized.includes("grenouille")) return "🐸";
-    if (normalized.includes("insecte") || normalized.includes("arthropode")) return "🦗";
-    if (normalized.includes("mammifere") || normalized.includes("mammal")) return "🐾";
-    if (normalized.includes("oiseau") || normalized.includes("avian")) return "🦜";
-    if (normalized.includes("poisson") || normalized.includes("fish")) return "🐠";
-    if (normalized.includes("reptile") || normalized.includes("reptile")) return "🦎";
-    if (normalized.includes("amphibien") || normalized.includes("amphibian")) return "🐸";
-    if (normalized.includes("invertebre") || normalized.includes("invertebrate")) return "🦐";
-    if (normalized.includes("plante") || normalized.includes("plant")) return "🌿";
-    if (normalized.includes("corail") || normalized.includes("coral")) return "🪸";
-    if (normalized.includes("algue") || normalized.includes("algae")) return "🌱";
-    if (normalized.includes("bacterie") || normalized.includes("bacteria")) return "🦠";
-    if (normalized.includes("champignon") || normalized.includes("fungus")) return "🍄";
-    if (normalized.includes("virus") || normalized.includes("viral")) return "🦠";
-    if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-    if (normalized.includes("predateur") || normalized.includes("predator")) return "🦁";
-    if (normalized.includes("proie") || normalized.includes("prey")) return "🐰";
-    if (normalized.includes("herbivore") || normalized.includes("herbivorous")) return "🦒";
-    if (normalized.includes("carnivore") || normalized.includes("carnivorous")) return "🦁";
-    if (normalized.includes("omnivore") || normalized.includes("omnivorous")) return "🐻";
-    if (normalized.includes("detritivore") || normalized.includes("detritivorous")) return "🦠";
-    if (normalized.includes("filtreur") || normalized.includes("filter feeder")) return "🦐";
-    if (normalized.includes("scavenger") || normalized.includes("scavenging")) return "🦝";
-    if (normalized.includes("decomposeur") || normalized.includes("decomposer")) return "🦠";
-    if (normalized.includes("symbiote") || normalized.includes("symbiotic")) return "🤝";
-    if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-    if (normalized.includes("commensal") || normalized.includes("commensalistic")) return "🤝";
-    if (normalized.includes("mutualiste") || normalized.includes("mutualistic")) return "🤝";
-    if (normalized.includes("competiteur") || normalized.includes("competitive")) return "🥊";
-    if (normalized.includes("predateur") || normalized.includes("predatory")) return "🦁";
-    if (normalized.includes("proie") || normalized.includes("prey")) return "🐰";
-    if (normalized.includes("herbivore") || normalized.includes("herbivorous")) return "🦒";
-    if (normalized.includes("carnivore") || normalized.includes("carnivorous")) return "🦁";
-    if (normalized.includes("omnivore") || normalized.includes("omnivorous")) return "🐻";
-    if (normalized.includes("detritivore") || normalized.includes("detritivorous")) return "🦠";
-    if (normalized.includes("filtreur") || normalized.includes("filter feeder")) return "🦐";
-    if (normalized.includes("scavenger") || normalized.includes("scavenging")) return "🦝";
-    if (normalized.includes("decomposeur") || normalized.includes("decomposer")) return "🦠";
-    if (normalized.includes("symbiote") || normalized.includes("symbiotic")) return "🤝";
-    if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-    if (normalized.includes("commensal") || normalized.includes("commensalistic")) return "🤝";
-    if (normalized.includes("mutualiste") || normalized.includes("mutualistic")) return "🤝";
-    if (normalized.includes("competiteur") || normalized.includes("competitive")) return "🥊";
-    return "🏷️"; // Emoji par défaut
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -1315,39 +1177,59 @@ const EaudemerNourriturePage = () => {
             />
           </h1>
           <p className="max-w-2xl mx-auto mb-8">
-            <div className={`text-gray-300 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
-              <EditableText
-                contentKey={`category_${currentSlug}_description`}
-                initialContent={categoryDescription}
-                onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
-              />
-            </div>
-            {isMobile && (
-              <button
-                onClick={() => setShowFullDescription(!showFullDescription)}
-                className="text-primary hover:text-primary/80 mt-2"
-              >
-                {showFullDescription ? 'Voir moins' : 'Lire la suite'}
-              </button>
-            )}
+            <EditableText
+              contentKey={`category_${currentSlug}_description`}
+              initialContent={categoryDescription}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+            />
           </p>
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {headerNavCategories.map((navCat) => (
-              <Button
-                key={navCat.id}
-                variant={navCat.slug === slug ? "default" : "outline"}
-                className="flex items-center gap-2"
-              >
-                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
-                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
-                  <span>
-                    {navCat.slug === 'nourriture-spectre-complet' ? 'Spectre complet' : navCat.name}
-                  </span>
-                </a>
-              </Button>
-            ))}
+          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
+            <Button
+              asChild
+              variant={isEauDouce ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauDouce
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudoucedecoration" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">🐟</div>
+                <span>Eau douce</span>
+              </a>
+            </Button>
+            
+            <Button
+              asChild
+              variant={isEauMer ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauMer
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudemerdecoration" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">🌊</div>
+                <span>Eau de mer</span>
+              </a>
+            </Button>
+            
+            <Button
+              asChild
+              variant={isUniversel ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isUniversel
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">🔄</div>
+                <span>Universel</span>
+              </a>
+            </Button>
           </div>
           
           {/* Breadcrumb navigation removed as requested */}
