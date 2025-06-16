@@ -389,28 +389,6 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
-// Fonction pour obtenir un emoji basé sur le slug de la catégorie
-const getEmojiForCategory = (slug: string) => {
-  const normalized = slug.toLowerCase();
-  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
-  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
-  if (normalized.includes("universel")) return "🔄";
-  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
-  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
-  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
-  if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
-  if (normalized.includes("sols-substrats")) return "🏞️";
-  if (normalized.includes("co2")) return "💨";
-  if (normalized.includes("tests-analyses")) return "🔬";
-  if (normalized.includes("decoration")) return "🏺";
-  if (normalized.includes("meubles-supports")) return "🛋️";
-  if (normalized.includes("aquariums")) return " tanks";
-  // Ajouter d'autres cas si nécessaire
-  return "✨"; // Emoji par défaut
-};
-
 const EclairageSpectreCompletPage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -465,12 +443,6 @@ const EclairageSpectreCompletPage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  // Nouvelle état pour les catégories de navigation en haut
-  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
-  // Nouvelle état pour gérer l'affichage complet de la description mobile
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  // État pour détecter si l'utilisateur est sur un appareil mobile
-  const [isMobile, setIsMobile] = useState(false);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -480,19 +452,6 @@ const EclairageSpectreCompletPage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
-
-  // Détecter la taille de l'écran pour la description mobile
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768); // Ex: 768px pour les écrans md: de Tailwind
-    };
-
-    if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
-      handleResize(); // Appeler une fois au montage
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-    }
-  }, []);
 
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
@@ -518,12 +477,11 @@ const EclairageSpectreCompletPage = () => {
   const { toast } = useToast();
   
   // État pour stocker le contenu éditable
-  const [categoryTitle, setCategoryTitle] = useState<string>("Éclairage Spectre Complet");
+  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
   const [categoryDescription, setCategoryDescription] = useState<string>(
-    "Explorez notre sélection d'éclairages à spectre complet, idéaux pour la croissance des plantes aquatiques et la mise en valeur des couleurs de vos poissons."
+    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
   );
   const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
-  
   
   // Obtenir les informations de la catégorie
   const categoryInfo = {
@@ -610,30 +568,6 @@ const EclairageSpectreCompletPage = () => {
         }));
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
-        
-        // Logique pour déterminer les catégories de navigation du header
-        let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir tous les enfants du grand-parent
-                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
-                }
-            } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
-            }
-        }
-        setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -1242,21 +1176,13 @@ const EclairageSpectreCompletPage = () => {
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
             />
           </h1>
-          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
+          <p className="max-w-2xl mx-auto mb-8">
             <EditableText
               contentKey={`category_${currentSlug}_description`}
               initialContent={categoryDescription}
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
             />
           </p>
-          {isMobile && categoryDescription.length > 0 && (
-            <button
-              onClick={() => setShowFullDescription(!showFullDescription)}
-              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
-            >
-              {showFullDescription ? "Lire moins" : "Lire la suite"}
-            </button>
-          )}
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
@@ -1270,7 +1196,7 @@ const EclairageSpectreCompletPage = () => {
               }`}
             >
               <a href="/categories/eaudoucedecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
+                <div className="text-2xl mb-1">🐟</div>
                 <span>Eau douce</span>
               </a>
             </Button>
@@ -1285,7 +1211,7 @@ const EclairageSpectreCompletPage = () => {
               }`}
             >
               <a href="/categories/eaudemerdecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
+                <div className="text-2xl mb-1">🌊</div>
                 <span>Eau de mer</span>
               </a>
             </Button>
@@ -1300,7 +1226,7 @@ const EclairageSpectreCompletPage = () => {
               }`}
             >
               <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
+                <div className="text-2xl mb-1">🔄</div>
                 <span>Universel</span>
               </a>
             </Button>
