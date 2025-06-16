@@ -477,7 +477,7 @@ const EaudouceNourriturePage = () => {
     }
   }, [productDescriptions, debugLoaded]);
 
-  // Détection de la taille de l'écran pour l'affichage mobile
+  // Détection de la taille de l'écran pour le mode mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -559,25 +559,56 @@ const EaudouceNourriturePage = () => {
     const loadProductsAndCategories = async () => {
       try {
         setIsLoading(true);
-        // Charger tous les produits Stripe
-        const allProducts = await fetchStripeProducts();
-        const extendedProducts = Array.isArray(allProducts) 
-          ? allProducts.map(product => ({
-              ...product,
-              onSale: false,
-              description: "",
-              averageRating: 0,
-              reviewCount: 0,
-              hasVariant: false,
-              image: product.image || "/placeholder.svg",
-            }))
-          : [];
-        setProducts(extendedProducts);
-        if (extendedProducts.length === 0) {
-          setError("Aucun produit disponible.");
-          setIsLoading(false);
+        
+        // Charger les données en parallèle
+        const [productsData, categoriesData] = await Promise.all([
+          fetchStripeProducts(),
+          fetchCategories()
+        ]);
+
+        // Configuration des catégories
+        const parentCategory = categoriesData.find(cat => cat.slug === 'nourriture');
+        if (!parentCategory) {
+          console.error("❌ Catégorie parente 'nourriture' non trouvée");
           return;
         }
+
+        // Configuration des sous-catégories
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        const cleanedChildCategories = childCategories.filter(cat => cat.slug !== 'nourriture');
+        setSubCategories(cleanedChildCategories);
+
+        // Configuration des catégories de navigation
+        let mainNavCats: Category[] = [];
+        if (parentCategory.parent_id) {
+          const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+          if (grandParent) {
+            mainNavCats = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+          }
+        } else {
+          mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.id);
+        }
+        setHeaderNavCategories(mainNavCats);
+
+        // Configuration des produits
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        const extendedProducts = Array.isArray(productsData) 
+          ? productsData.map(product => ({
+              ...product,
+              hasVariant: false,
+              isInStock: true,
+              stock: 0,
+              priceRange: [0, 0],
+              variantPriceRange: { min: 0, max: 0 },
+              hasDiscount: false
+            }))
+          : [];
+
+        setProducts(extendedProducts);
+        if (extendedProducts.length === 0) {
+          console.warn("⚠️ Aucun produit trouvé");
+        }
+
         // Charger les catégories liées pour ces produits
         const productIds = extendedProducts.map(p => p.id.toString());
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
@@ -603,24 +634,6 @@ const EaudouceNourriturePage = () => {
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
-        // Logique pour déterminer les catégories de navigation du header
-        let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir tous les enfants du grand-parent
-                    const siblings = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = [grandParent, ...siblings];
-                }
-            } else {
-                // Si la catégorie actuelle est une catégorie principale
-                mainNavCats = [parentCategory, ...cleanedChildCategories];
-            }
-        }
-        setHeaderNavCategories(mainNavCats);
-
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
         let updatedWithImages = extendedProducts.map(p => ({
@@ -1194,138 +1207,48 @@ const EaudouceNourriturePage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <FloatingHeader />
-      
-      <div>
-      {/* Hero Banner */}
-      <div 
-        className="relative bg-cover bg-center py-16"
-      >
-        {isEditMode ? (
-          <div className="absolute inset-0 z-0 flex items-center justify-center">
-            <EditableImage
-              imageKey={`category_${currentSlug}_banner_image`}
-              initialUrl={categoryBannerImage}
-              className="w-full max-h-[320px] h-[320px] object-cover rounded-lg shadow"
-              onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${currentSlug}_banner_image`)}
-            />
-            <div className="absolute inset-0 bg-black/50 rounded-lg"></div>
-          </div>
-        ) : (
-          <div 
-            className="absolute inset-0 bg-cover bg-center" 
-            style={{ 
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${categoryInfo.bannerImage})` 
-            }}
-          ></div>
-        )}
-        
-        <div className="container mx-auto text-center text-white relative z-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            <EditableText
-              contentKey={`category_${currentSlug}_title`}
-              initialContent={categoryTitle}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
-            />
-          </h1>
-          <p className="max-w-2xl mx-auto mb-8">
-            <EditableText
-              contentKey={`category_${currentSlug}_description`}
-              initialContent={categoryDescription}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
-            />
-          </p>
-          
-          {/* Navigation Eau Douce / Eau de Mer / Universel */}
-          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            <Button
-              asChild
-              variant={isEauDouce ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauDouce
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
-                <span>Eau douce</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isEauMer ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauMer
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
-                <span>Eau de mer</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isUniversel ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isUniversel
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
-                <span>Universel</span>
-              </a>
-            </Button>
-          </div>
-          
-          
-          {/* Breadcrumb navigation removed as requested */}
-          </div>
-        </div>
-      </div>
-      
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {/* Navigation des catégories */}
-        <div className="flex flex-wrap gap-2 mb-8">
+      {/* Navigation des catégories */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex flex-wrap gap-2 justify-center">
           {headerNavCategories.map((navCat) => (
             <Button
               key={navCat.id}
-              variant={navCat.slug === currentSlug ? "default" : "outline"}
-              className="flex items-center gap-2"
+              variant="outline"
+              className={`flex flex-col items-center justify-center min-w-[120px] h-auto py-2 px-4 ${
+                navCat.slug === 'nourriture' ? 'bg-primary text-primary-foreground' : ''
+              }`}
             >
               <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
                 <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
                 <span>
-                  {navCat.slug === 'nourriture-spectre-complet' ? 'Spectre complet' : navCat.name}
+                  {navCat.slug === 'nourriture' ? 'Nourriture' : navCat.name}
                 </span>
               </a>
             </Button>
           ))}
         </div>
-
+      </div>
+      {/* Contenu principal */}
+      <main className="flex-grow container mx-auto px-4 py-8">
         {/* Description de la catégorie */}
-        {parentCategory && (
-          <div className="mb-8">
-            <div className={`text-gray-600 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
-              {categories[parentCategory.slug]?.description || "Description non disponible"}
-            </div>
-            {isMobile && categories[parentCategory.slug]?.description && categories[parentCategory.slug].description.length > 200 && (
-              <button
-                onClick={() => setShowFullDescription(!showFullDescription)}
-                className="text-blue-600 hover:text-blue-800 mt-2"
-              >
-                {showFullDescription ? 'Voir moins' : 'Lire la suite'}
-              </button>
-            )}
+        <div className="mb-8">
+          <div className={`${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
+            <EditableText
+              contentKey={`category_${currentSlug}_description`}
+              initialContent={categoryDescription}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+            />
           </div>
-        )}
-        
+          {isMobile && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-primary hover:text-primary/80 mt-2 text-sm font-medium"
+            >
+              {showFullDescription ? 'Voir moins' : 'Lire la suite'}
+            </button>
+          )}
+        </div>
+
         {/* Nouvelle section de débogage des filtres */}
         {isEditMode && (
           <div className="mb-6">
