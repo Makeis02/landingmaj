@@ -583,53 +583,40 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   const [showSelect, setShowSelect] = useState(false);
   const [leafCategories, setLeafCategories] = useState<Category[]>([]);
   const gradient = gradients[cardIndex % gradients.length];
-  const [imageUrl, setImageUrl] = useState<string>('/placeholder.svg');
+  const [imageUrl, setImageUrl] = useState<string>(editorialData.image || '/placeholder.svg');
   const [tempSelectedCategoryId, setTempSelectedCategoryId] = useState<string | null>(null);
 
   console.log(`📸 EditorialCategoryCard ${cardIndex}: Rendu du composant. isEditMode: ${isEditMode}`);
 
   // Charger toutes les catégories
   useEffect(() => {
-    if (!isEditMode && !isAdmin) return;
+    console.log(`📸 EditorialCategoryCard ${cardIndex}: useEffect pour charger toutes les catégories.`);
     fetchCategories().then(data => {
       setAllCategories(data);
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Toutes les catégories chargées.`, data);
     });
-  }, [isEditMode, isAdmin]);
-
-  // Charger l'image depuis Supabase - SÉPARÉ du chargement des catégories
-  useEffect(() => {
-    const fetchImage = async () => {
-      const { data } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', `editorial_card_${cardIndex}_image`)
-        .maybeSingle();
-
-      if (data?.content) {
-        setImageUrl(data.content);
-      } else {
-        setImageUrl('/placeholder.svg');
-      }
-    };
-
-    fetchImage();
-  }, [cardIndex]);
+  }, []);
 
   // Charger la catégorie sélectionnée depuis editable_content
   useEffect(() => {
     const fetchSelected = async () => {
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de la catégorie sélectionnée.`);
       setIsLoading(true);
       const key = `editorial_card_${cardIndex}_category_id`;
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', key)
         .maybeSingle();
-      
+      if (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch selected category:`, error);
+      }
       if (data?.content) {
         setSelectedCategoryId(data.content);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Catégorie sélectionnée récupérée: ${data.content}`);
       } else {
         setSelectedCategoryId(null);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune catégorie sélectionnée trouvée.`);
       }
       setIsLoading(false);
     };
@@ -664,6 +651,36 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
     };
     fetchCategories();
   }, []);
+
+  // Charger l'image depuis Supabase editable_content (source unique pour l'image)
+  useEffect(() => {
+    const fetchImage = async () => {
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content pour la clé: editorial_card_${cardIndex}_image`);
+      const { data, error } = await supabase
+        .from('editable_content')
+        .select('content')
+        .eq('content_key', `editorial_card_${cardIndex}_image`)
+        .maybeSingle(); // Utilisez maybeSingle pour éviter les erreurs si aucune entrée n'est trouvée
+
+      if (error) {
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
+        // Si erreur, on utilise l'image par défaut
+        setImageUrl(editorialData.image || '/placeholder.svg');
+        return;
+      }
+      
+      console.log(`📸 EditorialCategoryCard ${cardIndex}: Données récupérées pour l'image:`, data);
+
+      if (data && data.content) {
+        setImageUrl(data.content);
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée et définie: ${data.content}`);
+      } else {
+        setImageUrl(editorialData.image || '/placeholder.svg'); // Utilise l'image par défaut si aucune image custom n'est trouvée
+        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content pour cette clé, utilisant l'URL par défaut.`);
+      }
+    };
+    fetchImage();
+  }, [cardIndex, editorialData.image]); // Dépend de editorialData.image pour la réinitialisation si nécessaire
 
   // Sauvegarder la sélection dans editable_content
   const saveSelection = async (categoryId: string) => {
@@ -769,7 +786,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
           </div>
         ) : (
           <img
-            src={imageUrl || '/placeholder.svg'}
+            src={imageUrl}
             alt={editorialData.title}
             className="w-full h-full object-cover"
           />
