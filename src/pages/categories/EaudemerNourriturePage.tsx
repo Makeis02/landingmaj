@@ -37,7 +37,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
-import { getCategoryPath, findRootCategory, findSiblingCategories } from "@/lib/utils/categoryUtils";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -444,7 +443,6 @@ const EaudemerNourriturePage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -523,41 +521,10 @@ const EaudemerNourriturePage = () => {
 
   // Charger les produits et les catégories liées
   useEffect(() => {
+    console.log("🚀 Début du chargement des produits pour le slug:", currentSlug);
     const loadProductsAndCategories = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Charger les catégories
-        const categoriesData = await fetchCategories();
-        setCategories(categoriesData);
-        setAllCategories(categoriesData);
-
-        // Trouver la catégorie courante
-        const currentCategory = categoriesData.find(cat => cat.slug === currentSlug);
-        if (!currentCategory) {
-          throw new Error(`Catégorie non trouvée pour le slug: ${currentSlug}`);
-        }
-
-        // Trouver le chemin jusqu'à la racine
-        const pathToRoot = getCategoryPath(currentCategory, categoriesData);
-        const rootCategory = findRootCategory(currentCategory, categoriesData);
-        
-        // Trouver les catégories du même niveau
-        const siblingCategories = findSiblingCategories(currentCategory, categoriesData);
-        
-        // Mettre à jour les états
-        setParentCategory(rootCategory);
-        setHeaderNavCategories(siblingCategories);
-
-        // Trouver les sous-catégories
-        const childCategories = findSubCategories(categoriesData, currentCategory.id);
-        const cleanedChildCategories = childCategories.map(cat => ({
-          ...cat,
-          slug: cat.slug.split("?")[0],
-        }));
-        setSubCategories(cleanedChildCategories);
-
         // Charger tous les produits Stripe
         const allProducts = await fetchStripeProducts();
         const extendedProducts = Array.isArray(allProducts) 
@@ -583,6 +550,24 @@ const EaudemerNourriturePage = () => {
         setLinkedCategories(categoriesByProduct);
         const brandsByProduct = await fetchBrandsForProducts(productIds);
         setLinkedBrands(brandsByProduct);
+        const categoriesData = await fetchCategories();
+        setAllCategories(categoriesData);
+        const parentCategory = categoriesData.find(
+          (cat) => cat.slug === currentSlug
+        );
+        if (!parentCategory) {
+          setError("Catégorie non trouvée.");
+          setIsLoading(false);
+          return;
+        }
+        setParentCategory(parentCategory);
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        const cleanedChildCategories = childCategories.map((cat) => ({
+          ...cat,
+          slug: cat.slug.split("?")[0],
+        }));
+        setSubCategories(cleanedChildCategories);
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -695,13 +680,11 @@ const EaudemerNourriturePage = () => {
         setFilteredProducts(filtered);
         setError(null);
       } catch (err) {
-        console.error("Erreur lors du chargement:", err);
-        setError(err instanceof Error ? err.message : "Une erreur est survenue");
+        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
       } finally {
         setIsLoading(false);
       }
     };
-
     loadProductsAndCategories();
   }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
