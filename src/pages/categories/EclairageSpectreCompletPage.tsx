@@ -443,7 +443,6 @@ const EclairageSpectreCompletPage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  
   // Nouvelle état pour les catégories de navigation en haut
   const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
   // Nouvelle état pour gérer l'affichage complet de la description mobile
@@ -598,17 +597,17 @@ const EclairageSpectreCompletPage = () => {
                 if (grandParent) {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
+                    mainNavCats = childrenOfGrandparent;
+                } else {
+                    // Si la catégorie actuelle a un parent mais pas de grand-parent direct, 
+                    // cela signifie qu'elle est une enfant de premier niveau.
+                    // Dans ce cas, les catégories de navigation devraient être les enfants de son parent.
+                    mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
                 }
             } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
+                // Si la catégorie actuelle n'a pas de parent, c'est une catégorie racine.
+                // On affiche alors ses propres enfants pour la navigation.
+                mainNavCats = cleanedChildCategories;
             }
         }
         setHeaderNavCategories(mainNavCats);
@@ -1236,7 +1235,7 @@ const EclairageSpectreCompletPage = () => {
             </button>
           )}
           
-          {/* Navigation des catégories parentes / soeurs */}
+          {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
             <Button
@@ -1252,7 +1251,9 @@ const EclairageSpectreCompletPage = () => {
             >
                 <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
                   <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
-                  <span>{navCat.name}</span>
+                  <span>
+                    {navCat.slug === 'eclairage-spectre-complet' ? 'Spectre complet' : navCat.name}
+                  </span>
               </a>
             </Button>
             ))}
@@ -2254,9 +2255,10 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
   if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
   if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
-  if (normalized.includes("packs")) return "📦";
-  if (normalized.includes("decoration")) return "🐚";
-  // Ajoutez plus de mappings si nécessaire
-  return "✨"; // Emoji par défaut
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍲";
+  if (normalized.includes("sante") || normalized.includes("maladie")) return "💊";
+  if (normalized.includes("decoration")) return "✨";
+  if (normalized.includes("sol")) return "🏜️";
+  if (normalized.includes("aquarium")) return "🏠";
+  return "🏷️"; // Emoji par défaut
 };

@@ -1256,22 +1256,22 @@ const EntretienGeneralPage = () => {
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
-              <Button
+            <Button
                 key={navCat.id}
-                asChild
+              asChild
                 // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
                 variant={navCat.slug === currentSlug ? "default" : "outline"}
-                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
                   navCat.slug === currentSlug
-                    ? "bg-primary hover:bg-primary/90"
-                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-                }`}
-              >
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
                 <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
                   <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
                   <span>{navCat.name}</span>
-                </a>
-              </Button>
+              </a>
+            </Button>
             ))}
           </div>
           
