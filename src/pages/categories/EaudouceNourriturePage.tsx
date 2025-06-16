@@ -37,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
+import { getCategoryPath, findRootCategory, findSiblingCategories } from "@/lib/utils/categoryUtils";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -481,6 +482,7 @@ const EaudouceNourriturePage = () => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 800]);
   const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showStockOnly, setShowStockOnly] = useState(false);
   const [showPromosOnly, setShowPromosOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -488,8 +490,11 @@ const EaudouceNourriturePage = () => {
   const [editableContent, setEditableContent] = useState<Record<string, string>>({});
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
+  // Nouvelle état pour les catégories de navigation en haut
   const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
+  // Nouvelle état pour gérer l'affichage complet de la description mobile
   const [showFullDescription, setShowFullDescription] = useState(false);
+  // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
@@ -668,42 +673,32 @@ const EaudouceNourriturePage = () => {
         // Charger les catégories
         const categoriesData = await fetchCategories();
         setCategories(categoriesData);
+        setAllCategories(categoriesData);
 
-        // Trouver la catégorie parente (eau douce)
-        const parentCategory = categoriesData.find(cat => cat.slug === "eau-douce");
-        if (!parentCategory) {
-          throw new Error("Catégorie parente 'eau-douce' non trouvée");
+        // Trouver la catégorie courante
+        const currentCategory = categoriesData.find(cat => cat.slug === currentSlug);
+        if (!currentCategory) {
+          throw new Error(`Catégorie non trouvée pour le slug: ${currentSlug}`);
         }
 
-        // Trouver les sous-catégories de la catégorie parente
-        const childCategories = findSubCategories(categoriesData, parentCategory.id);
-        const cleanedChildCategories = childCategories.filter(cat => cat.slug !== "eau-douce");
-        setSubCategories(cleanedChildCategories);
-        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        // Trouver le chemin jusqu'à la racine
+        const pathToRoot = getCategoryPath(currentCategory, categoriesData);
+        const rootCategory = findRootCategory(currentCategory, categoriesData);
         
-        // Logique pour déterminer les catégories de navigation du header
-        let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir tous les enfants du grand-parent
-                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
-                }
-            } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
-            }
-        }
-        setHeaderNavCategories(mainNavCats);
+        // Trouver les catégories du même niveau
+        const siblingCategories = findSiblingCategories(currentCategory, categoriesData);
+        
+        // Mettre à jour les états
+        setParentCategory(rootCategory);
+        setHeaderNavCategories(siblingCategories);
+
+        // Trouver les sous-catégories
+        const childCategories = findSubCategories(categoriesData, currentCategory.id);
+        const cleanedChildCategories = childCategories.map(cat => ({
+          ...cat,
+          slug: cat.slug.split("?")[0],
+        }));
+        setSubCategories(cleanedChildCategories);
 
         // Charger tous les produits Stripe
         const allProducts = await fetchStripeProducts();
@@ -730,24 +725,24 @@ const EaudouceNourriturePage = () => {
         setLinkedCategories(categoriesByProduct);
         const brandsByProduct = await fetchBrandsForProducts(productIds);
         setLinkedBrands(brandsByProduct);
-        const fetchedCategories = await fetchCategories();
-        setAllCategories(fetchedCategories);
-        const foundParentCategory = fetchedCategories.find(
+        const categoriesData = await fetchCategories();
+        setAllCategories(categoriesData);
+        const parentCategory = categoriesData.find(
           (cat) => cat.slug === currentSlug
         );
-        if (!foundParentCategory) {
+        if (!parentCategory) {
           setError("Catégorie non trouvée.");
           setIsLoading(false);
           return;
         }
-        setParentCategory(foundParentCategory);
-        const foundChildCategories = findSubCategories(fetchedCategories, foundParentCategory.id);
-        const cleanedFoundChildCategories = foundChildCategories.map((cat) => ({
+        setParentCategory(parentCategory);
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        const cleanedChildCategories = childCategories.map((cat) => ({
           ...cat,
           slug: cat.slug.split("?")[0],
         }));
-        setSubCategories(cleanedFoundChildCategories);
-        const foundCategoryIds = [foundParentCategory.id, ...cleanedFoundChildCategories.map(cat => cat.id)].filter(Boolean);
+        setSubCategories(cleanedChildCategories);
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -1376,17 +1371,22 @@ const EaudouceNourriturePage = () => {
           </p>
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
-          <div className="flex flex-wrap gap-2 mb-6">
+          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
               <Button
                 key={navCat.id}
-                variant={navCat.slug === slug ? "default" : "outline"}
-                className="flex items-center gap-2"
+                asChild
+                variant={navCat.slug === currentSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === currentSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
               >
                 <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
                   <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
                   <span>
-                    {navCat.slug === 'nourriture-spectre-complet' ? 'Spectre complet' : navCat.name}
+                    {navCat.slug === 'eclairage-spectre-complet' ? 'Spectre complet' : navCat.name}
                   </span>
                 </a>
               </Button>
