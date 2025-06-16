@@ -656,7 +656,6 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
   // Charger l'image depuis Supabase editable_content (source unique pour l'image)
   useEffect(() => {
     const fetchImage = async () => {
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Début du fetch de l'image depuis editable_content pour la clé: editorial_card_${cardIndex}_image`);
       const { data, error } = await supabase
         .from('editable_content')
         .select('content')
@@ -664,24 +663,20 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
         .maybeSingle();
 
       if (error) {
-        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image from editable_content:`, error);
+        console.error(`📸 EditorialCategoryCard ${cardIndex}: Erreur fetch image:`, error);
         setImageUrl('/placeholder.svg');
         return;
       }
       
-      console.log(`📸 EditorialCategoryCard ${cardIndex}: Données récupérées pour l'image:`, data);
-
       if (data?.content) {
         setImageUrl(data.content);
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Image récupérée et définie: ${data.content}`);
       } else {
         setImageUrl('/placeholder.svg');
-        console.log(`📸 EditorialCategoryCard ${cardIndex}: Aucune image trouvée dans editable_content, utilisant placeholder.`);
       }
     };
 
     fetchImage();
-  }, [cardIndex]); // Dépend uniquement de cardIndex pour se déclencher au bon moment
+  }, [cardIndex]); // Dépend uniquement de cardIndex pour s'exécuter au montage et si l'index change
 
   // Sauvegarder la sélection dans editable_content
   const saveSelection = async (categoryId: string) => {
