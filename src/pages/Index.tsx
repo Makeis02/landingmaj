@@ -158,10 +158,16 @@ const Index = () => {
     fetchLoyaltyContent();
   }, []);
 
+  // Fonction de validation d'email (identique à celle de LuckyWheelPopup)
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
-    if (!email || !email.includes('@') || !email.includes('.')) {
+    if (!email || !validateEmail(email)) {
       toast({
         title: "Email invalide",
         description: "Veuillez entrer une adresse email valide",
