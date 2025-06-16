@@ -398,12 +398,13 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
   if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🌡️";
-  if (normalized.includes("decorations") || normalized.includes("décoration")) return "🎨";
-  if (normalized.includes("nourriture") || normalized.includes("alimentation")) return "🍽️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
   if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("packs") || normalized.includes("abonnement")) return "📦";
-  return "🏷️"; // Emoji par défaut
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
 };
 
 const EaudouceNourriturePage = () => {
@@ -466,7 +467,7 @@ const EaudouceNourriturePage = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
     if (!debugLoaded && Object.keys(productDescriptions).length > 0) {
@@ -476,7 +477,7 @@ const EaudouceNourriturePage = () => {
     }
   }, [productDescriptions, debugLoaded]);
 
-  // Détection de la taille de l'écran pour le mode mobile
+  // Détection de la taille de l'écran pour l'affichage mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -1290,6 +1291,41 @@ const EaudouceNourriturePage = () => {
       </div>
       
       <main className="flex-grow container mx-auto px-4 py-8">
+        {/* Navigation des catégories */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {headerNavCategories.map((navCat) => (
+            <Button
+              key={navCat.id}
+              variant={navCat.slug === currentSlug ? "default" : "outline"}
+              className="flex items-center gap-2"
+            >
+              <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                <span>
+                  {navCat.slug === 'nourriture-spectre-complet' ? 'Spectre complet' : navCat.name}
+                </span>
+              </a>
+            </Button>
+          ))}
+        </div>
+
+        {/* Description de la catégorie */}
+        {parentCategory && (
+          <div className="mb-8">
+            <div className={`text-gray-600 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
+              {categories[parentCategory.slug]?.description || "Description non disponible"}
+            </div>
+            {isMobile && categories[parentCategory.slug]?.description && categories[parentCategory.slug].description.length > 200 && (
+              <button
+                onClick={() => setShowFullDescription(!showFullDescription)}
+                className="text-blue-600 hover:text-blue-800 mt-2"
+              >
+                {showFullDescription ? 'Voir moins' : 'Lire la suite'}
+              </button>
+            )}
+          </div>
+        )}
+        
         {/* Nouvelle section de débogage des filtres */}
         {isEditMode && (
           <div className="mb-6">
