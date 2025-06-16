@@ -398,136 +398,70 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
   if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-  if (normalized.includes("chauffage") || normalized.includes("thermostat")) return "🌡️";
-  if (normalized.includes("eclairage") || normalized.includes("lampe")) return "💡";
-  if (normalized.includes("nourriture") || normalized.includes("alimentation")) return "🍽️";
-  if (normalized.includes("decoration") || normalized.includes("deco")) return "🎨";
-  if (normalized.includes("accessoires") || normalized.includes("equipement")) return "🔧";
-  if (normalized.includes("aquarium") || normalized.includes("bassin")) return "🏺";
-  if (normalized.includes("test") || normalized.includes("mesure")) return "📊";
-  if (normalized.includes("medicament") || normalized.includes("traitement")) return "💊";
-  if (normalized.includes("sel") || normalized.includes("sel marin")) return "🧂";
-  if (normalized.includes("roche") || normalized.includes("pierre")) return "🪨";
-  if (normalized.includes("sable") || normalized.includes("substrat")) return "🏖️";
-  if (normalized.includes("plante") || normalized.includes("vegetal")) return "🌿";
-  if (normalized.includes("corail") || normalized.includes("recif")) return "🪸";
-  if (normalized.includes("invertebre") || normalized.includes("crevette")) return "🦐";
-  if (normalized.includes("poisson") || normalized.includes("fish")) return "🐠";
-  if (normalized.includes("reptile") || normalized.includes("terrarium")) return "🦎";
-  if (normalized.includes("rongeur") || normalized.includes("hamster")) return "🐹";
-  if (normalized.includes("oiseau") || normalized.includes("perroquet")) return "🦜";
-  if (normalized.includes("chat") || normalized.includes("felin")) return "🐱";
-  if (normalized.includes("chien") || normalized.includes("canin")) return "🐕";
-  if (normalized.includes("aquatique") || normalized.includes("marin")) return "🌊";
-  if (normalized.includes("terrestre") || normalized.includes("terrestre")) return "🌍";
-  if (normalized.includes("aerial") || normalized.includes("aerien")) return "🦅";
-  if (normalized.includes("reptile") || normalized.includes("reptilien")) return "🦎";
-  if (normalized.includes("amphibien") || normalized.includes("grenouille")) return "🐸";
-  if (normalized.includes("insecte") || normalized.includes("arthropode")) return "🦗";
-  if (normalized.includes("mammifere") || normalized.includes("mammal")) return "🐾";
-  if (normalized.includes("oiseau") || normalized.includes("avian")) return "🦜";
-  if (normalized.includes("poisson") || normalized.includes("fish")) return "🐠";
-  if (normalized.includes("reptile") || normalized.includes("reptile")) return "🦎";
-  if (normalized.includes("amphibien") || normalized.includes("amphibian")) return "🐸";
-  if (normalized.includes("invertebre") || normalized.includes("invertebrate")) return "🦐";
-  if (normalized.includes("plante") || normalized.includes("plant")) return "🌿";
-  if (normalized.includes("corail") || normalized.includes("coral")) return "🪸";
-  if (normalized.includes("algue") || normalized.includes("algae")) return "🌱";
-  if (normalized.includes("bacterie") || normalized.includes("bacteria")) return "🦠";
-  if (normalized.includes("champignon") || normalized.includes("fungus")) return "🍄";
-  if (normalized.includes("virus") || normalized.includes("viral")) return "🦠";
-  if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-  if (normalized.includes("predateur") || normalized.includes("predator")) return "🦁";
-  if (normalized.includes("proie") || normalized.includes("prey")) return "🐰";
-  if (normalized.includes("herbivore") || normalized.includes("herbivorous")) return "🦒";
-  if (normalized.includes("carnivore") || normalized.includes("carnivorous")) return "🦁";
-  if (normalized.includes("omnivore") || normalized.includes("omnivorous")) return "🐻";
-  if (normalized.includes("detritivore") || normalized.includes("detritivorous")) return "🦠";
-  if (normalized.includes("filtreur") || normalized.includes("filter feeder")) return "🦐";
-  if (normalized.includes("scavenger") || normalized.includes("scavenging")) return "🦝";
-  if (normalized.includes("decomposeur") || normalized.includes("decomposer")) return "🦠";
-  if (normalized.includes("symbiote") || normalized.includes("symbiotic")) return "🤝";
-  if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-  if (normalized.includes("commensal") || normalized.includes("commensalistic")) return "🤝";
-  if (normalized.includes("mutualiste") || normalized.includes("mutualistic")) return "🤝";
-  if (normalized.includes("competiteur") || normalized.includes("competitive")) return "🥊";
-  if (normalized.includes("predateur") || normalized.includes("predatory")) return "🦁";
-  if (normalized.includes("proie") || normalized.includes("prey")) return "🐰";
-  if (normalized.includes("herbivore") || normalized.includes("herbivorous")) return "🦒";
-  if (normalized.includes("carnivore") || normalized.includes("carnivorous")) return "🦁";
-  if (normalized.includes("omnivore") || normalized.includes("omnivorous")) return "🐻";
-  if (normalized.includes("detritivore") || normalized.includes("detritivorous")) return "🦠";
-  if (normalized.includes("filtreur") || normalized.includes("filter feeder")) return "🦐";
-  if (normalized.includes("scavenger") || normalized.includes("scavenging")) return "🦝";
-  if (normalized.includes("decomposeur") || normalized.includes("decomposer")) return "🦠";
-  if (normalized.includes("symbiote") || normalized.includes("symbiotic")) return "🤝";
-  if (normalized.includes("parasite") || normalized.includes("parasitic")) return "🦠";
-  if (normalized.includes("commensal") || normalized.includes("commensalistic")) return "🤝";
-  if (normalized.includes("mutualiste") || normalized.includes("mutualistic")) return "🤝";
-  if (normalized.includes("competiteur") || normalized.includes("competitive")) return "🥊";
-  return "🏷️"; // Emoji par défaut
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
 };
 
 const EaudouceNourriturePage = () => {
-  const { slug: currentSlug } = useParams();
-  const [searchParams] = useSearchParams();
-  const souscategorieParam = searchParams.get("souscategorie");
-  const hasAppliedInitialSubCategory = useRef(false);
-  const initialSubCategorySlug = souscategorieParam;
+  // handleAddToCart sera défini plus bas après les hooks
+  // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
+  const rawSlug = useParams<{ slug: string }>()?.slug || "eaudoucenourriture";
+  const currentSlug = rawSlug.split("?")[0]; // on enlève les éventuels paramètres
+  
+  // Ajoute ceci :
+  const normalizedSlug = currentSlug.trim().toLowerCase().replace(/\W+/g, "");
 
-  // États pour les produits et leurs relations
+  console.log("🔎 currentSlug =", currentSlug);
+  console.log("🧽 normalizedSlug =", normalizedSlug);
+
+  // Et modifie les conditions comme ceci :
+  const isEauDouce = normalizedSlug.includes("eaudouce");
+  const isEauMer = normalizedSlug.includes("eaudemer");
+  const isUniversel = normalizedSlug.includes("universel");
+
+  console.log("💧 isEauDouce:", isEauDouce);
+  console.log("🌊 isEauMer:", isEauMer);
+  console.log("🔁 isUniversel:", isUniversel);
+  
+  // Test logs
+  console.log("🧪 Normalized slug = ", normalizedSlug);
+  console.log("🧪 isEauDouce:", isEauDouce);
+  console.log("🧪 isEauMer:", isEauMer); 
+  console.log("🧪 isUniversel:", isUniversel);
+  
+  const [searchParams] = useSearchParams();
+  const initialSubCategorySlug = searchParams.get("souscategorie");
+  console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
+   
+  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
+  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [inStock, setInStock] = useState(true);
+  const [promoOnly, setPromoOnly] = useState(false);
+  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
+  
+  // États pour les produits Stripe
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<ExtendedStripeProduct[]>([]);
   const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
   const [linkedBrands, setLinkedBrands] = useState<Record<string, string | null>>({});
-  const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
-
-  // États pour les catégories
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<ExtendedStripeProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [parentCategory, setParentCategory] = useState<Category | null>(null);
   const [subCategories, setSubCategories] = useState<Category[]>([]);
-  const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
-  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
-
-  // États pour les marques
   const [brands, setBrands] = useState<Brand[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
   const [brandsError, setBrandsError] = useState<string | null>(null);
   const [brandsLoading, setBrandsLoading] = useState(false);
-
-  // États pour les filtres et l'interface
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 800]);
-  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
-  const [showStockOnly, setShowStockOnly] = useState(false);
-  const [showPromosOnly, setShowPromosOnly] = useState(false);
-  const [inStock, setInStock] = useState(true);
-  const [promoOnly, setPromoOnly] = useState(false);
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-  // États pour le chargement et les erreurs
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-
-  // États pour le contenu éditable
-  const [editableContent, setEditableContent] = useState<Record<string, string>>({});
-
-  // Détection de la taille de l'écran pour le mode mobile
-  useEffect(() => {
-    const checkIfMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkIfMobile();
-    window.addEventListener('resize', checkIfMobile);
-    return () => window.removeEventListener('resize', checkIfMobile);
-  }, []);
-
+  
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
     if (!debugLoaded && Object.keys(productDescriptions).length > 0) {
@@ -537,224 +471,240 @@ const EaudouceNourriturePage = () => {
     }
   }, [productDescriptions, debugLoaded]);
 
-  const loadProductsAndCategories = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
+  // Add this near the other state declarations
+  const hasAppliedInitialSubCategory = useRef(false);
+  
+  // Pagination states
+  const ITEMS_PER_PAGE = 12; // Ajuste selon ton design
+  const [currentPage, setCurrentPage] = useState(1);
 
-      // Charger les produits Stripe
-      const stripeProductsList = await fetchStripeProducts();
-      const productIdsList = stripeProductsList.map((p) => getCleanProductId(p.id));
-      
-      // Charger les catégories liées aux produits
-      const categoriesByProductMap = await fetchCategoriesForProducts(productIdsList);
-      setLinkedCategories(categoriesByProductMap);
-      
-      // Charger les marques liées aux produits
-      const brandsByProductMap = await fetchBrandsForProducts(productIdsList);
-      setLinkedBrands(brandsByProductMap);
-      
-      // Charger les catégories
-      const categoriesDataList = await fetchCategories();
-      setAllCategories(categoriesDataList);
-      
-      // Trouver la catégorie parente
-      const parentCategoryData = categoriesDataList.find(
-        (cat) => cat.slug === currentSlug
-      );
-      if (!parentCategoryData) {
-        throw new Error(`Catégorie parente '${currentSlug}' non trouvée`);
-      }
-      setParentCategory(parentCategoryData);
-      
-      // Trouver les sous-catégories
-      const childCategoriesList = findSubCategories(categoriesDataList, parentCategoryData.id);
-      const cleanedChildCategoriesList = childCategoriesList.map((cat) => ({
-        ...cat,
-        slug: cat.slug.split("?")[0],
-      }));
-      setSubCategories(cleanedChildCategoriesList);
-      
-      const categoryIdsList = [parentCategoryData.id, ...cleanedChildCategoriesList.map(cat => cat.id)].filter(Boolean);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
-      // Logique pour déterminer les catégories de navigation du header
-      let mainNavCats: Category[] = [];
-      if (parentCategoryData) {
-        if (parentCategoryData.parent_id) {
-          // Si la catégorie actuelle a un parent, trouver son grand-parent
-          const grandParent = categoriesDataList.find(cat => cat.id === parentCategoryData.parent_id);
-          if (grandParent) {
-            // Obtenir toutes les catégories de même niveau que la catégorie actuelle
-            mainNavCats = categoriesDataList.filter(cat => cat.parent_id === grandParent.id);
-          }
-        } else {
-          // Si la catégorie actuelle n'a pas de parent, utiliser ses propres enfants
-          mainNavCats = cleanedChildCategoriesList;
-        }
-      }
-      setHeaderNavCategories(mainNavCats);
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
-      // Charger tous les produits Stripe
-      const allProducts = await fetchStripeProducts();
-      const extendedProducts = Array.isArray(allProducts) 
-        ? allProducts.map(product => ({
-            ...product,
-            onSale: false,
-            description: "",
-            averageRating: 0,
-            reviewCount: 0,
-            hasVariant: false,
-            image: product.image || "/placeholder.svg",
-          }))
-        : [];
-      setProducts(extendedProducts);
-      if (extendedProducts.length === 0) {
-        setError("Aucun produit disponible.");
-        setIsLoading(false);
-        return;
-      }
-      // Charger les catégories liées pour ces produits
-      const productIds = extendedProducts.map(p => p.id.toString());
-      const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-      setLinkedCategories(categoriesByProduct);
-      const brandsByProduct = await fetchBrandsForProducts(productIds);
-      setLinkedBrands(brandsByProduct);
-      const categoriesData = await fetchCategories();
-      setAllCategories(categoriesData);
-      const parentCategory = categoriesData.find(
-        (cat) => cat.slug === currentSlug
-      );
-      if (!parentCategory) {
-        setError("Catégorie non trouvée.");
-        setIsLoading(false);
-        return;
-      }
-      setParentCategory(parentCategory);
-      const childCategories = findSubCategories(categoriesData, parentCategory.id);
-      const cleanedChildCategories = childCategories.map((cat) => ({
-        ...cat,
-        slug: cat.slug.split("?")[0],
-      }));
-      setSubCategories(cleanedChildCategories);
-      const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
-      
-      // 🔥 Ajoute les images principales Supabase
-      const imageMap = await fetchMainImages(extendedProducts);
-      let updatedWithImages = extendedProducts.map(p => ({
-        ...p,
-        image: imageMap[getCleanProductId(p.id)] || p.image || "/placeholder.svg"
-      }));
-      // 🔥 Ajoute la note moyenne et le nombre d'avis
-      const reviewStats = await fetchReviewStats(productIds);
-      let updatedWithRatings = updatedWithImages.map(p => {
-        const id = getCleanProductId(p.id);
-        return {
-          ...p,
-          averageRating: reviewStats[id]?.avg || 0,
-          reviewCount: reviewStats[id]?.count || 0,
-        };
-      });
-      // 🔥 Ajoute la détection de variantes
-      const variantMap = await fetchVariantsPresence(productIds);
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts]);
 
-      // 🔄 Récupère les price_maps directement depuis Supabase
-      const priceKeys = productIds.map(id => `product_${getCleanProductId(id)}_variant_0_price_map`);
-      const { data: priceData, error: priceMapError } = await supabase
-        .from("editable_content")
-        .select("content_key, content")
-        .in("content_key", priceKeys);
-
-      // Crée un mapping des prix min/max par produit
-      const priceMap = {};
-      if (!priceMapError && priceData) {
-        priceData.forEach(({ content_key, content }) => {
-          const id = content_key.replace(/^product_/, "").replace(/_variant_0_price_map$/, "");
-          try {
-            const parsed = JSON.parse(content);
-            const prices = Object.values(parsed).map(v => parseFloat(String(v)));
-            if (prices.length > 0) {
-              const min = Math.min(...prices);
-              const max = Math.max(...prices);
-              priceMap[id] = { min, max };
-              console.log(`💰 Prix variantes pour ${id}: ${min} - ${max} €`);
-            }
-          } catch (e) {
-            console.warn("Erreur parsing price_map pour", id);
-          }
-        });
-      }
-      
-      // 💰 Récupère et stocke les price_maps des variantes (localStorage)
-      await fetchVariantPriceMaps(productIds);
-      const stockMap = await fetchAllProductStocks(productIds);
-      const finalProducts = updatedWithRatings.map(p => {
-        const id = getCleanProductId(p.id);
-        const stocks = stockMap[id] || [];
-        // Un produit est en stock si au moins un stock > 0
-        const isInStock = stocks.some(s => s > 0);
-        // Calculer le stock total
-        const totalStock = stocks.reduce((acc, s) => acc + s, 0);
-        const variantPrices = priceMap[id];
-
-        return {
-          ...p,
-          hasVariant: variantPrices && variantPrices.min !== variantPrices.max,
-          isInStock,
-          stock: totalStock, // Ajouter le stock total
-          variantPriceRange: variantPrices || null // Ajouter le price range des variantes
-        };
-      });
-
-      // Log de débogage final pour confirmer les valeurs d'isInStock
-      console.log("🧪 isInStock par produit (debug final):", finalProducts.map(p => ({
-        id: p.id,
-        title: p.title,
-        stock: p.stock,
-        isInStock: p.isInStock,
-        variantPriceRange: p.variantPriceRange
-      })));
-
-      // 🎯 Enrichir les produits avec la détection des promotions
-      const productsWithPromotions = await enrichProductsWithPromotions(finalProducts);
-
-      // 🔁 Finalisation de produits avec isInStock, variantPriceRange ET promotions
-      setProducts(productsWithPromotions);
-
-      // ✅ Appliquer filtrage MAINTENANT, après setProducts
-      const filtered = productsWithPromotions.filter((product) => {
-        const productId = product.id;
-        const linked = categoriesByProduct[productId] || [];
-        const productBrandId = brandsByProduct[productId];
-        
-        const matchSubCategory = selectedSubCategories.length === 0
-          ? linked.some((catId) => categoryIds.includes(catId))
-          : linked.some((catId) => selectedSubCategories.includes(catId));
-        
-        const matchBrand = selectedBrandIds.length === 0
-          ? true
-          : productBrandId && selectedBrandIds.includes(productBrandId);
-        
-        const matchPrice = 
-          product.price >= priceRange[0] &&
-          product.price <= priceRange[1];
-
-        const matchStock = !inStock || product.isInStock;
-
-        // 🎯 Corrigé: utiliser hasDiscount au lieu de onSale pour le filtre promotions
-        const matchPromo = !promoOnly || (product.hasDiscount === true);
-        
-        return matchSubCategory && matchBrand && matchPrice && matchStock && matchPromo;
-      });
-
-      setFilteredProducts(filtered);
-      setError(null);
-    } catch (err) {
-      console.error("Erreur lors du chargement des produits et catégories:", err);
-      setError(err instanceof Error ? err.message : "Une erreur est survenue");
-    } finally {
-      setIsLoading(false);
-    }
+  // État pour le mode édition et toast notifications
+  const { isEditMode } = useEditStore();
+  const { toast } = useToast();
+  
+  // État pour stocker le contenu éditable
+  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryDescription, setCategoryDescription] = useState<string>(
+    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+  );
+  const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
+  
+  // Obtenir les informations de la catégorie
+  const categoryInfo = {
+    title: categoryTitle,
+    description: categoryDescription,
+    bannerImage: categoryBannerImage
   };
+
+  // Log au montage du composant
+  useEffect(() => {
+    console.log("🔁 CategoryPage monté - slug =", currentSlug);
+  }, []);
+  
+  // Debug useEffect pour confirmer le chargement avec les paramètres URL
+  useEffect(() => {
+    console.log("📍 CategoryPage chargé avec slug =", currentSlug, "et souscategorie =", initialSubCategorySlug);
+  }, [currentSlug, initialSubCategorySlug]);
+
+  // Charger les marques depuis Supabase
+  useEffect(() => {
+    const loadBrands = async () => {
+      try {
+        setBrandsLoading(true);
+        const brandsData = await fetchBrands();
+        setBrands(brandsData);
+        setBrandsError(null);
+      } catch (err) {
+        console.error("Erreur lors du chargement des marques:", err);
+        setBrandsError("Impossible de charger les marques.");
+      } finally {
+        setBrandsLoading(false);
+      }
+    };
+
+    loadBrands();
+  }, []);
+
+  // Charger les produits et les catégories liées
+  useEffect(() => {
+    console.log("🚀 Début du chargement des produits pour le slug:", currentSlug);
+    const loadProductsAndCategories = async () => {
+      try {
+        setIsLoading(true);
+        // Charger tous les produits Stripe
+        const allProducts = await fetchStripeProducts();
+        const extendedProducts = Array.isArray(allProducts) 
+          ? allProducts.map(product => ({
+              ...product,
+              onSale: false,
+              description: "",
+              averageRating: 0,
+              reviewCount: 0,
+              hasVariant: false,
+              image: product.image || "/placeholder.svg",
+            }))
+          : [];
+        setProducts(extendedProducts);
+        if (extendedProducts.length === 0) {
+          setError("Aucun produit disponible.");
+          setIsLoading(false);
+          return;
+        }
+        // Charger les catégories liées pour ces produits
+        const productIds = extendedProducts.map(p => p.id.toString());
+        const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        setLinkedCategories(categoriesByProduct);
+        const brandsByProduct = await fetchBrandsForProducts(productIds);
+        setLinkedBrands(brandsByProduct);
+        const categoriesData = await fetchCategories();
+        setAllCategories(categoriesData);
+        const parentCategory = categoriesData.find(
+          (cat) => cat.slug === currentSlug
+        );
+        if (!parentCategory) {
+          setError("Catégorie non trouvée.");
+          setIsLoading(false);
+          return;
+        }
+        setParentCategory(parentCategory);
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        const cleanedChildCategories = childCategories.map((cat) => ({
+          ...cat,
+          slug: cat.slug.split("?")[0],
+        }));
+        setSubCategories(cleanedChildCategories);
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        
+        // 🔥 Ajoute les images principales Supabase
+        const imageMap = await fetchMainImages(extendedProducts);
+        let updatedWithImages = extendedProducts.map(p => ({
+          ...p,
+          image: imageMap[getCleanProductId(p.id)] || p.image || "/placeholder.svg"
+        }));
+        // 🔥 Ajoute la note moyenne et le nombre d'avis
+        const reviewStats = await fetchReviewStats(productIds);
+        let updatedWithRatings = updatedWithImages.map(p => {
+          const id = getCleanProductId(p.id);
+          return {
+            ...p,
+            averageRating: reviewStats[id]?.avg || 0,
+            reviewCount: reviewStats[id]?.count || 0,
+          };
+        });
+        // 🔥 Ajoute la détection de variantes
+        const variantMap = await fetchVariantsPresence(productIds);
+
+        // 🔄 Récupère les price_maps directement depuis Supabase
+        const priceKeys = productIds.map(id => `product_${getCleanProductId(id)}_variant_0_price_map`);
+        const { data: priceData, error: priceMapError } = await supabase
+          .from("editable_content")
+          .select("content_key, content")
+          .in("content_key", priceKeys);
+
+        // Crée un mapping des prix min/max par produit
+        const priceMap = {};
+        if (!priceMapError && priceData) {
+          priceData.forEach(({ content_key, content }) => {
+            const id = content_key.replace(/^product_/, "").replace(/_variant_0_price_map$/, "");
+            try {
+              const parsed = JSON.parse(content);
+              const prices = Object.values(parsed).map(v => parseFloat(String(v)));
+              if (prices.length > 0) {
+                const min = Math.min(...prices);
+                const max = Math.max(...prices);
+                priceMap[id] = { min, max };
+                console.log(`💰 Prix variantes pour ${id}: ${min} - ${max} €`);
+              }
+            } catch (e) {
+              console.warn("Erreur parsing price_map pour", id);
+            }
+          });
+        }
+        
+        // 💰 Récupère et stocke les price_maps des variantes (localStorage)
+        await fetchVariantPriceMaps(productIds);
+        const stockMap = await fetchAllProductStocks(productIds);
+        const finalProducts = updatedWithRatings.map(p => {
+          const id = getCleanProductId(p.id);
+          const stocks = stockMap[id] || [];
+          // Un produit est en stock si au moins un stock > 0
+          const isInStock = stocks.some(s => s > 0);
+          // Calculer le stock total
+          const totalStock = stocks.reduce((acc, s) => acc + s, 0);
+          const variantPrices = priceMap[id];
+
+          return {
+            ...p,
+            hasVariant: variantPrices && variantPrices.min !== variantPrices.max,
+            isInStock,
+            stock: totalStock, // Ajouter le stock total
+            variantPriceRange: variantPrices || null // Ajouter le price range des variantes
+          };
+        });
+
+        // Log de débogage final pour confirmer les valeurs d'isInStock
+        console.log("🧪 isInStock par produit (debug final):", finalProducts.map(p => ({
+          id: p.id,
+          title: p.title,
+          stock: p.stock,
+          isInStock: p.isInStock,
+          variantPriceRange: p.variantPriceRange
+        })));
+
+        // 🎯 Enrichir les produits avec la détection des promotions
+        const productsWithPromotions = await enrichProductsWithPromotions(finalProducts);
+
+        // 🔁 Finalisation de produits avec isInStock, variantPriceRange ET promotions
+        setProducts(productsWithPromotions);
+
+        // ✅ Appliquer filtrage MAINTENANT, après setProducts
+        const filtered = productsWithPromotions.filter((product) => {
+          const productId = product.id;
+          const linked = categoriesByProduct[productId] || [];
+          const productBrandId = brandsByProduct[productId];
+          
+          const matchSubCategory = selectedSubCategories.length === 0
+            ? linked.some((catId) => categoryIds.includes(catId))
+            : linked.some((catId) => selectedSubCategories.includes(catId));
+          
+          const matchBrand = selectedBrandIds.length === 0
+            ? true
+            : productBrandId && selectedBrandIds.includes(productBrandId);
+          
+          const matchPrice = 
+            product.price >= priceRange[0] &&
+            product.price <= priceRange[1];
+
+          const matchStock = !inStock || product.isInStock;
+
+          // 🎯 Corrigé: utiliser hasDiscount au lieu de onSale pour le filtre promotions
+          const matchPromo = !promoOnly || (product.hasDiscount === true);
+          
+          return matchSubCategory && matchBrand && matchPrice && matchStock && matchPromo;
+        });
+
+        setFilteredProducts(filtered);
+        setError(null);
+      } catch (err) {
+        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadProductsAndCategories();
+  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   // Récupérer les descriptions des produits
   useEffect(() => {
@@ -874,7 +824,7 @@ const EaudouceNourriturePage = () => {
   // Effet pour appliquer le debounce au changement de prix
   useEffect(() => {
     const timeout = setTimeout(() => {
-      setPriceRange([priceInput[0], priceInput[1]] as [number, number]);
+      setPriceRange(priceInput);
     }, 500); // 500ms après l'arrêt
 
     return () => clearTimeout(timeout);
@@ -1245,39 +1195,59 @@ const EaudouceNourriturePage = () => {
             />
           </h1>
           <p className="max-w-2xl mx-auto mb-8">
-            <div className={`text-gray-300 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
-              <EditableText
-                contentKey={`category_${currentSlug}_description`}
-                initialContent={categoryDescription}
-                onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
-              />
-            </div>
-            {isMobile && (
-              <button
-                onClick={() => setShowFullDescription(!showFullDescription)}
-                className="text-primary hover:text-primary/80 mt-2"
-              >
-                {showFullDescription ? 'Voir moins' : 'Lire la suite'}
-              </button>
-            )}
+            <EditableText
+              contentKey={`category_${currentSlug}_description`}
+              initialContent={categoryDescription}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+            />
           </p>
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            {headerNavCategories.map((navCat) => (
-              <Button
-                key={navCat.id}
-                variant={navCat.slug === slug ? "default" : "outline"}
-                className="flex items-center gap-2"
-              >
-                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
-                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
-                  <span>
-                    {navCat.slug === 'nourriture-spectre-complet' ? 'Spectre complet' : navCat.name}
-                  </span>
-                </a>
-              </Button>
-            ))}
+          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
+            <Button
+              asChild
+              variant={isEauDouce ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauDouce
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
+                <span>Eau douce</span>
+              </a>
+            </Button>
+            
+            <Button
+              asChild
+              variant={isEauMer ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isEauMer
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
+                <span>Eau de mer</span>
+              </a>
+            </Button>
+            
+            <Button
+              asChild
+              variant={isUniversel ? "default" : "outline"}
+              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                isUniversel
+                  ? "bg-primary hover:bg-primary/90"
+                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+              }`}
+            >
+              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
+                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
+                <span>Universel</span>
+              </a>
+            </Button>
           </div>
           
           

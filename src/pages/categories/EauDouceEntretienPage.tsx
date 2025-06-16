@@ -7,7 +7,7 @@ declare global {
 }
 
 import { useState, useEffect, useRef } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -37,7 +37,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
-import { getRootCategory, getSiblingCategories } from "@/lib/utils/category-utils";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -391,12 +390,12 @@ const fetchVariantPriceMaps = async (productIds) => {
 };
 
 const EauDouceEntretienPage = () => {
-  const { slug: currentSlug } = useParams();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
   const rawSlug = useParams<{ slug: string }>()?.slug || "eaudouceentretien";
+  const currentSlug = rawSlug.split("?")[0]; // on enlève les éventuels paramètres
+  
+  // Ajoute ceci :
   const normalizedSlug = currentSlug.trim().toLowerCase().replace(/\W+/g, "");
 
   console.log("🔎 currentSlug =", currentSlug);
@@ -417,6 +416,7 @@ const EauDouceEntretienPage = () => {
   console.log("🧪 isEauMer:", isEauMer); 
   console.log("🧪 isUniversel:", isUniversel);
   
+  const [searchParams] = useSearchParams();
   const initialSubCategorySlug = searchParams.get("souscategorie");
   console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
    
@@ -449,7 +449,6 @@ const EauDouceEntretienPage = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
-  const [siblingCategories, setSiblingCategories] = useState<Category[]>([]);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -545,54 +544,6 @@ const EauDouceEntretienPage = () => {
     const loadProductsAndCategories = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Récupérer toutes les catégories
-        const categoriesData = await fetchCategories();
-        console.log("📚 Toutes les catégories récupérées:", categoriesData);
-        setAllCategories(categoriesData);
-
-        // Trouver la catégorie courante par son slug
-        const currentCategory = categoriesData.find(
-          (cat) => cat.slug === currentSlug
-        );
-        
-        console.log("🎯 Catégorie courante trouvée via slug:", currentCategory);
-        
-        if (!currentCategory) {
-          console.error("❌ Catégorie non trouvée pour ce slug:", currentSlug);
-          console.log("🔍 Slugs disponibles:", categoriesData.map(cat => cat.slug));
-          setError("Catégorie non trouvée.");
-          setIsLoading(false);
-          return;
-        }
-
-        // Trouver la catégorie racine et les catégories frères
-        const rootCategory = getRootCategory(currentCategory, categoriesData);
-        const siblings = getSiblingCategories(currentCategory, categoriesData);
-        
-        console.log("🌳 Catégorie racine:", rootCategory);
-        console.log("👥 Catégories frères:", siblings);
-        
-        setParentCategory(rootCategory);
-        setSiblingCategories(siblings);
-        
-        // Trouver les sous-catégories
-        const childCategories = findSubCategories(categoriesData, currentCategory.id);
-        console.log("🌿 Sous-catégories trouvées:", childCategories);
-        
-        // Nettoyage des slugs de sous-catégorie
-        const cleanedChildCategories = childCategories.map((cat) => ({
-          ...cat,
-          slug: cat.slug.split("?")[0],
-        }));
-        console.log("✅ Slugs nettoyés :", cleanedChildCategories.map(c => c.slug));
-        setSubCategories(cleanedChildCategories);
-        
-        // Récupérer les IDs des catégories pour le filtrage des produits
-        const categoryIds = [currentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
-        console.log("🔑 IDs des catégories:", categoryIds);
-
         // Charger tous les produits Stripe
         const allProducts = await fetchStripeProducts();
         const extendedProducts = Array.isArray(allProducts) 
@@ -618,6 +569,48 @@ const EauDouceEntretienPage = () => {
         setLinkedCategories(categoriesByProduct);
         const brandsByProduct = await fetchBrandsForProducts(productIds);
         setLinkedBrands(brandsByProduct);
+        const categoriesData = await fetchCategories();
+        setAllCategories(categoriesData);
+        const parentCategory = categoriesData.find(
+          (cat) => cat.slug === currentSlug
+        );
+        if (!parentCategory) {
+          setError("Catégorie non trouvée.");
+          setIsLoading(false);
+          return;
+        }
+        setParentCategory(parentCategory);
+        const childCategories = findSubCategories(categoriesData, parentCategory.id);
+        const cleanedChildCategories = childCategories.map((cat) => ({
+          ...cat,
+          slug: cat.slug.split("?")[0],
+        }));
+        setSubCategories(cleanedChildCategories);
+        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
+                mainNavCats = categoriesData.filter(cat =>
+                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
+                );
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -730,8 +723,7 @@ const EauDouceEntretienPage = () => {
         setFilteredProducts(filtered);
         setError(null);
       } catch (err) {
-        console.error("❌ Erreur lors du chargement:", err);
-        setError("Une erreur est survenue lors du chargement des données.");
+        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
       } finally {
         setIsLoading(false);
       }
@@ -1243,27 +1235,26 @@ const EauDouceEntretienPage = () => {
             </button>
           )}
           
-          {/* Navigation entre les catégories principales */}
-          <div className="mb-8">
-            <Tabs
-              value={currentSlug}
-              onValueChange={(slug) => {
-                navigate(`/categories/${slug}`);
-              }}
-              className="w-full"
-            >
-              <TabsList className="grid w-full grid-cols-3">
-                {siblingCategories.map(cat => (
-                  <TabsTrigger 
-                    key={cat.id} 
-                    value={cat.slug}
-                    className={`flex items-center gap-2 ${cat.slug === currentSlug ? 'active' : ''}`}
-                  >
-                    <span>{getEmojiForCategory(cat.slug)} {cat.name}</span>
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
+          {/* Navigation des catégories parentes / soeurs */}
+          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
+            {headerNavCategories.map((navCat) => (
+              <Button
+                key={navCat.id}
+                asChild
+                // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
+                variant={navCat.slug === currentSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === currentSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
+                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                  <span>{navCat.name}</span>
+                </a>
+              </Button>
+            ))}
           </div>
           
           {/* Breadcrumb navigation removed as requested */}
