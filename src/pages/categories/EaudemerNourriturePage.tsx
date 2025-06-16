@@ -389,6 +389,23 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🌡️";
+  if (normalized.includes("decorations") || normalized.includes("décoration")) return "🎨";
+  if (normalized.includes("nourriture") || normalized.includes("alimentation")) return "🍽️";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("packs") || normalized.includes("abonnement")) return "📦";
+  return "🏷️"; // Emoji par défaut
+};
+
 const EaudemerNourriturePage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -443,7 +460,13 @@ const EaudemerNourriturePage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  
+  // Nouvelle état pour les catégories de navigation en haut
+  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
+  // Nouvelle état pour gérer l'affichage complet de la description mobile
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  // État pour détecter si l'utilisateur est sur un appareil mobile
+  const [isMobile, setIsMobile] = useState(false);
+
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
     if (!debugLoaded && Object.keys(productDescriptions).length > 0) {
@@ -452,6 +475,16 @@ const EaudemerNourriturePage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
+
+  // Détection de la taille de l'écran pour le mode mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
@@ -569,6 +602,24 @@ const EaudemerNourriturePage = () => {
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const siblings = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    mainNavCats = [grandParent, ...siblings];
+                }
+            } else {
+                // Si la catégorie actuelle est une catégorie principale
+                mainNavCats = [parentCategory, ...cleanedChildCategories];
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
+
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
         let updatedWithImages = extendedProducts.map(p => ({
@@ -1196,7 +1247,7 @@ const EaudemerNourriturePage = () => {
               }`}
             >
               <a href="/categories/eaudoucedecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🐟</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
                 <span>Eau douce</span>
               </a>
             </Button>
@@ -1211,7 +1262,7 @@ const EaudemerNourriturePage = () => {
               }`}
             >
               <a href="/categories/eaudemerdecoration" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🌊</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
                 <span>Eau de mer</span>
               </a>
             </Button>
@@ -1226,7 +1277,7 @@ const EaudemerNourriturePage = () => {
               }`}
             >
               <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🔄</div>
+                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
                 <span>Universel</span>
               </a>
             </Button>

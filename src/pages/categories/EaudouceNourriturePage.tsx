@@ -398,13 +398,12 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
   if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🌡️";
+  if (normalized.includes("decorations") || normalized.includes("décoration")) return "🎨";
+  if (normalized.includes("nourriture") || normalized.includes("alimentation")) return "🍽️";
   if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
-  if (normalized.includes("packs")) return "📦";
-  if (normalized.includes("decoration")) return "🐚";
-  // Ajoutez plus de mappings si nécessaire
-  return "✨"; // Emoji par défaut
+  if (normalized.includes("packs") || normalized.includes("abonnement")) return "📦";
+  return "🏷️"; // Emoji par défaut
 };
 
 const EaudouceNourriturePage = () => {
@@ -461,6 +460,12 @@ const EaudouceNourriturePage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
+  // Nouvelle état pour les catégories de navigation en haut
+  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
+  // Nouvelle état pour gérer l'affichage complet de la description mobile
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  // État pour détecter si l'utilisateur est sur un appareil mobile
+  const [isMobile, setIsMobile] = useState(false);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -470,6 +475,16 @@ const EaudouceNourriturePage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
+
+  // Détection de la taille de l'écran pour le mode mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
@@ -587,6 +602,24 @@ const EaudouceNourriturePage = () => {
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const siblings = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    mainNavCats = [grandParent, ...siblings];
+                }
+            } else {
+                // Si la catégorie actuelle est une catégorie principale
+                mainNavCats = [parentCategory, ...cleanedChildCategories];
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
+
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
         let updatedWithImages = extendedProducts.map(p => ({
