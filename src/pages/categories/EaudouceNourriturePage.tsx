@@ -481,7 +481,6 @@ const EaudouceNourriturePage = () => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 800]);
   const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showStockOnly, setShowStockOnly] = useState(false);
   const [showPromosOnly, setShowPromosOnly] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -489,11 +488,8 @@ const EaudouceNourriturePage = () => {
   const [editableContent, setEditableContent] = useState<Record<string, string>>({});
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
-  // Nouvelle état pour les catégories de navigation en haut
   const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
-  // Nouvelle état pour gérer l'affichage complet de la description mobile
   const [showFullDescription, setShowFullDescription] = useState(false);
-  // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
@@ -734,24 +730,24 @@ const EaudouceNourriturePage = () => {
         setLinkedCategories(categoriesByProduct);
         const brandsByProduct = await fetchBrandsForProducts(productIds);
         setLinkedBrands(brandsByProduct);
-        const categoriesData = await fetchCategories();
-        setAllCategories(categoriesData);
-        const parentCategory = categoriesData.find(
+        const fetchedCategories = await fetchCategories();
+        setAllCategories(fetchedCategories);
+        const foundParentCategory = fetchedCategories.find(
           (cat) => cat.slug === currentSlug
         );
-        if (!parentCategory) {
+        if (!foundParentCategory) {
           setError("Catégorie non trouvée.");
           setIsLoading(false);
           return;
         }
-        setParentCategory(parentCategory);
-        const childCategories = findSubCategories(categoriesData, parentCategory.id);
-        const cleanedChildCategories = childCategories.map((cat) => ({
+        setParentCategory(foundParentCategory);
+        const foundChildCategories = findSubCategories(fetchedCategories, foundParentCategory.id);
+        const cleanedFoundChildCategories = foundChildCategories.map((cat) => ({
           ...cat,
           slug: cat.slug.split("?")[0],
         }));
-        setSubCategories(cleanedChildCategories);
-        const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        setSubCategories(cleanedFoundChildCategories);
+        const foundCategoryIds = [foundParentCategory.id, ...cleanedFoundChildCategories.map(cat => cat.id)].filter(Boolean);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
