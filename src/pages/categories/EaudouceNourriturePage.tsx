@@ -479,7 +479,8 @@ const EaudouceNourriturePage = () => {
   const [selectedSubCategory, setSelectedSubCategory] = useState<Category | null>(null);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 300]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 800]);
+  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showStockOnly, setShowStockOnly] = useState(false);
   const [showPromosOnly, setShowPromosOnly] = useState(false);
@@ -494,6 +495,17 @@ const EaudouceNourriturePage = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [inStock, setInStock] = useState(true);
+  const [promoOnly, setPromoOnly] = useState(false);
+  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
+  const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
+  const [linkedBrands, setLinkedBrands] = useState<Record<string, string | null>>({});
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
+  const [parentCategory, setParentCategory] = useState<Category | null>(null);
+  const [brandsError, setBrandsError] = useState<string | null>(null);
+  const [brandsLoading, setBrandsLoading] = useState(false);
 
   // Détection de la taille de l'écran pour le mode mobile
   useEffect(() => {
@@ -538,14 +550,6 @@ const EaudouceNourriturePage = () => {
   const initialSubCategorySlug = searchParams.get("souscategorie");
   console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
    
-  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
-  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
-  const [inStock, setInStock] = useState(true);
-  const [promoOnly, setPromoOnly] = useState(false);
-  const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-  
   // États pour les produits Stripe
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
   const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
@@ -669,10 +673,10 @@ const EaudouceNourriturePage = () => {
         const categoriesData = await fetchCategories();
         setCategories(categoriesData);
 
-        // Trouver la catégorie parente (eau douce)
-        const parentCategory = categoriesData.find(cat => cat.slug === "eau-douce");
+        // Trouver la catégorie parente (nourriture)
+        const parentCategory = categoriesData.find(cat => cat.slug === "nourriture");
         if (!parentCategory) {
-          throw new Error("Catégorie parente 'eau-douce' non trouvée");
+          throw new Error("Catégorie parente 'nourriture' non trouvée");
         }
 
         // Trouver les sous-catégories de la catégorie parente
