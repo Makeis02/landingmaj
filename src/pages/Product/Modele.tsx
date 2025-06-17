@@ -115,7 +115,7 @@ const getApiBaseUrl = () => {
   }
   // En production, forcer Render
   if (import.meta.env.PROD) {
-    return "https://landingmaj.onrender.com";
+    return "https://landingmaj-production.up.railway.app";
   }
   if (typeof window !== 'undefined') {
     return window.location.origin;

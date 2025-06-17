@@ -15,7 +15,7 @@ export interface ShopifyProduct {
 // Configuration de l'URL de base en fonction de l'environnement
 const BASE_URL = import.meta.env.DEV
   ? 'http://localhost:3000' // En développement, API sur localhost:3000
-  : 'https://landingmaj.onrender.com'; // En production, même domaine
+  : 'https://landingmaj-production.up.railway.app'; // En production, même domaine
 
 /**
  * Récupère les produits depuis l'API Shopify via notre backend

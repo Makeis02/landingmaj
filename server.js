@@ -58,6 +58,7 @@ const allowedOrigins = [
   'http://192.168.1.14:8080',
   'https://majemsiteteste.netlify.app',
   'https://landingmaj.onrender.com'
+  'https://landingmaj-production.up.railway.app.'
 ];
 
 app.use(cors({
