@@ -414,6 +414,12 @@ const EaudouceNourriturePage = () => {
   const hasAppliedInitialSubCategory = useRef(false);
   const initialSubCategorySlug = souscategorieParam;
 
+  // Variables pour la navigation
+  const normalizedSlug = currentSlug?.trim().toLowerCase().replace(/\W+/g, "") || "";
+  const isEauDouce = normalizedSlug.includes("eaudouce");
+  const isEauMer = normalizedSlug.includes("eaudemer");
+  const isUniversel = normalizedSlug.includes("universel");
+
   // États pour les produits et leurs relations
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ExtendedStripeProduct[]>([]);
@@ -455,6 +461,20 @@ const EaudouceNourriturePage = () => {
 
   // États pour le contenu éditable
   const [editableContent, setEditableContent] = useState<Record<string, string>>({});
+
+  // États pour la pagination
+  const ITEMS_PER_PAGE = 12;
+  const [currentPage, setCurrentPage] = useState(1);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredProducts]);
 
   // État pour le mode édition et toast notifications
   const { isEditMode } = useEditStore();
@@ -1145,11 +1165,6 @@ const EaudouceNourriturePage = () => {
         : [...prev, brand.slug];
       return newBrands;
     });
-  };
-
-  // Fonction pour gérer le changement de prix
-  const handlePriceChange = (newValue: number[]) => {
-    setPriceInput(newValue);
   };
 
   // Fonction pour gérer le changement de filtre de stock
