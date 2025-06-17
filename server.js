@@ -81,23 +81,12 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 
-app.options('/api/stripe/products', cors({
-  origin: function (origin, callback) {
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:8080',
-      'http://192.168.1.14:8080',
-      'https://majemsiteteste.netlify.app',
-      'https://landingmaj.onrender.com'
-    ];
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn('⛔ Origine refusée (OPTIONS):', origin);
-    callback(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true
-}));
+app.options('/api/stripe/products', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', 'https://majemsiteteste.netlify.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.status(204).end();
+});
 
 // 1. Récupérer les produits Stripe
 app.get('/api/stripe/products', cors(), async (_, res) => {
