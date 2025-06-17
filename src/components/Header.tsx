@@ -293,13 +293,12 @@ const Header = () => {
         Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
       </div>
       )}
-      <div className="h-2" />
 
       {/* Header principal */}
       <header className="relative bg-white/80 backdrop-blur-md z-40 border-b border-gray-200">
         <div className="container mx-auto px-4">
           {/* 🔧 Header Mobile */}
-          <div className="flex items-center justify-between lg:hidden py-4">
+          <div className="flex items-center justify-between lg:hidden py-0">
             {/* Menu hamburger à gauche */}
             <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)}>
               <Menu className="h-6 w-6 text-gray-700" />
@@ -312,14 +311,14 @@ const Header = () => {
                   <img
                     src={logoUrl}
                     alt="Logo AquaShop"
-                    className="h-12 mx-auto object-contain"
+                    className="h-10 mx-auto object-contain"
                   />
                 ) : (
                 <span className="text-2xl font-bold text-ocean">AquaShop</span>
                 )}
               </Link>
               {isEditMode && (
-                <div className="mt-2">
+                <div className="">
                   <input
                     type="file"
                     accept="image/*"
@@ -393,7 +392,7 @@ const Header = () => {
                 )}
               </Link>
               {isEditMode && (
-                <div className="mt-2">
+                <div className="">
                   <input
                     type="file"
                     accept="image/*"
