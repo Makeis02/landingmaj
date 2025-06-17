@@ -625,13 +625,11 @@ const Header = () => {
                 .filter((cat) => !cat.parent_id)
                 .map((category) => (
                   <div key={category.id}>
-                    <NavLink
-                      to={`/categories/${category.slug}`}
+                    <span
                       className="block font-semibold text-lg text-ocean mb-1"
-                      onClick={() => setIsMenuOpen(false)}
                     >
                       {category.name}
-                    </NavLink>
+                    </span>
 
                     {/* Sous-catégories */}
                     <div className="ml-4 mb-2">

@@ -588,6 +588,23 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
 
   console.log(`📸 EditorialCategoryCard ${cardIndex}: Rendu du composant. isEditMode: ${isEditMode}`);
 
+  // Fonction pour obtenir l'URL de redirection correcte pour une catégorie
+  const getCategoryLinkUrl = (category: Category | null, allCats: Category[]): string => {
+    if (!category) return '#';
+
+    if (category.redirect_url?.startsWith("/?souscategorie=")) {
+      const parent = allCats.find(c => c.id === category.parent_id);
+      const grandParent = parent && allCats.find(c => c.id === parent.parent_id);
+      const parentSlug = grandParent ? grandParent.slug : parent?.slug;
+
+      if (parentSlug) {
+        const queryParams = category.redirect_url.substring(1);
+        return `/categories/${parentSlug}${queryParams}`;
+      }
+    }
+    return category.redirect_url || `/categories/${category.slug}`;
+  };
+
   // Charger toutes les catégories
   useEffect(() => {
     console.log(`📸 EditorialCategoryCard ${cardIndex}: useEffect pour charger toutes les catégories.`);
@@ -805,7 +822,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
             className="bg-white text-[#0074b3] font-bold rounded-xl px-6 py-2 mt-2 shadow hover:bg-blue-100 hover:text-[#005a8c] transition"
             asChild
           >
-            <a href={selectedCategory ? `/categories/${selectedCategory.slug}` : '#'}>Voir la catégorie</a>
+            <a href={getCategoryLinkUrl(selectedCategory, allCategories)}>Voir la catégorie</a>
           </Button>
           {isEditMode && (
             <Button variant="outline" className="mt-4 w-full" onClick={() => setShowSelect(true)}>

@@ -739,8 +739,8 @@ const AnnouncementBanner = () => {
               {loading && <p>Chargement des paramètres...</p>}
             </div>
 
-            <div>
-              <label htmlFor="backgroundColor">Choisissez la couleur de fond :</label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="backgroundColor">Couleur de fond :</label>
               <input
                 type="color"
                 id="backgroundColor"
@@ -750,9 +750,19 @@ const AnnouncementBanner = () => {
                   updateBackgroundColor(e.target.value);
                 }}
               />
+              <Input
+                type="text"
+                value={backgroundColor}
+                onChange={(e) => {
+                  setBackgroundColor(e.target.value);
+                  updateBackgroundColor(e.target.value);
+                }}
+                placeholder="#RRGGBB"
+                className="w-28"
+              />
             </div>
-            <div>
-              <label htmlFor="textColor">Choisissez la couleur du texte :</label>
+            <div className="flex items-center gap-2">
+              <label htmlFor="textColor">Couleur du texte :</label>
               <input
                 type="color"
                 id="textColor"
@@ -762,6 +772,16 @@ const AnnouncementBanner = () => {
                   setTextColor(newColor);
                   updateTextColor(newColor);
                 }}
+              />
+              <Input
+                type="text"
+                value={textColor}
+                onChange={(e) => {
+                  setTextColor(e.target.value);
+                  updateTextColor(e.target.value);
+                }}
+                placeholder="#RRGGBB"
+                className="w-28"
               />
             </div>
 

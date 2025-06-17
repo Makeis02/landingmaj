@@ -18,6 +18,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { subscribeToNewsletter } from "@/integrations/shopify/client";
 import { useMediaQuery } from 'react-responsive';
+import { Toggle } from "@/components/ui/toggle";
+import { Label } from "@/components/ui/label";
 
 const Index = () => {
   const { isEditMode: isEditing, isAdmin, checkAdminStatus } = useEditStore();
@@ -27,6 +29,7 @@ const Index = () => {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
   const [homepagePacksUrl, setHomepagePacksUrl] = useState("");
+  const [isLoyaltyFeatureActive, setIsLoyaltyFeatureActive] = useState<boolean>(false);
 
   // Vérifier le statut admin au chargement
   useEffect(() => {
@@ -147,12 +150,15 @@ const Index = () => {
       const { data } = await supabase
         .from('editable_content')
         .select('content_key, content')
-        .in('content_key', ['loyalty_section_title', 'loyalty_section_subtitle']);
+        .in('content_key', ['loyalty_section_title', 'loyalty_section_subtitle', 'is_loyalty_active']);
       if (data) {
         const title = data.find(d => d.content_key === 'loyalty_section_title');
         const subtitle = data.find(d => d.content_key === 'loyalty_section_subtitle');
+        const isActive = data.find(d => d.content_key === 'is_loyalty_active');
+
         if (title) setLoyaltyTitle(title.content);
         if (subtitle) setLoyaltySubtitle(subtitle.content);
+        if (isActive) setIsLoyaltyFeatureActive(isActive.content === 'true');
       }
     };
     fetchLoyaltyContent();
@@ -266,6 +272,34 @@ const Index = () => {
     }
   }
 
+  // Gestion de l'activation/désactivation de la fonctionnalité de fidélité
+  const toggleLoyaltyFeature = async () => {
+    const newStatus = !isLoyaltyFeatureActive;
+    setIsLoyaltyFeatureActive(newStatus);
+
+    try {
+      const { error } = await supabase
+        .from('editable_content')
+        .upsert(
+          { content_key: 'is_loyalty_active', content: newStatus.toString() },
+          { onConflict: 'content_key' }
+        );
+      if (error) throw error;
+      toast({
+        title: "Statut du programme de fidélité mis à jour",
+        description: newStatus ? "Le programme est maintenant actif." : "Le programme est maintenant en mode 'à venir'.",
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut de fidélité:", error);
+      setIsLoyaltyFeatureActive(!newStatus); // Revert en cas d'erreur
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut du programme de fidélité.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -350,11 +384,19 @@ const Index = () => {
         </section>
 
         {/* Loyalty Banner */}
-        <section className="py-12 bg-gradient-to-r from-purple-600 to-blue-600">
-          <div className="container mx-auto px-4 text-center">
-            <div className="flex items-center justify-center gap-4 text-white">
+        <section className="py-8 bg-gradient-to-r from-purple-600 to-blue-600 relative overflow-hidden">
+          {!isLoyaltyFeatureActive && (
+            <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white z-10">
+              <h3 className="text-2xl font-bold mb-3">Fonctionnalité à venir !</h3>
+              <Badge className="bg-white text-purple-700 px-3 py-1 text-sm rounded-full font-semibold">
+                Bientôt disponible
+              </Badge>
+            </div>
+          )}
+          <div className={`container mx-auto px-4 text-center ${!isLoyaltyFeatureActive ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-center gap-2 text-white">
               <Award className="w-8 h-8" />
-              <h3 className="text-2xl font-bold">
+              <h3 className="text-xl font-bold">
                 <EditableText
                   contentKey="loyalty_section_title"
                   initialContent={loyaltyTitle}
@@ -363,13 +405,24 @@ const Index = () => {
               </h3>
               <Award className="w-8 h-8" />
             </div>
-            <p className="text-blue-100 mt-2">
+            <p className="text-blue-100 mt-0.5">
               <EditableText
                 contentKey="loyalty_section_subtitle"
                 initialContent={loyaltySubtitle}
                 onUpdate={setLoyaltySubtitle}
               />
             </p>
+            {isEditing && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <Label htmlFor="loyalty-toggle" className="text-white">Activer le programme de fidélité :</Label>
+                <Toggle
+                  id="loyalty-toggle"
+                  pressed={isLoyaltyFeatureActive}
+                  onPressedChange={toggleLoyaltyFeature}
+                  className="bg-white data-[state=on]:bg-green-500 data-[state=off]:bg-gray-300"
+                />
+              </div>
+            )}
           </div>
         </section>
 
