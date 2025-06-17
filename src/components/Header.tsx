@@ -305,24 +305,26 @@ const Header = () => {
               <Menu className="h-6 w-6 text-gray-700" />
             </Button>
 
-            {/* Logo centré */}
-            <Link to="/" className="flex-grow text-center">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo AquaShop" 
-                  className="h-12 mx-auto object-contain" 
-                />
-              ) : (
-              <span className="text-2xl font-bold text-ocean">AquaShop</span>
-              )}
+            {/* Logo centré et Upload */}
+            <div className="flex-grow text-center flex flex-col items-center">
+              <Link to="/" >
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo AquaShop"
+                    className="h-20 mx-auto object-contain"
+                  />
+                ) : (
+                <span className="text-2xl font-bold text-ocean">AquaShop</span>
+                )}
+              </Link>
               {isEditMode && (
-                <div className="mt-2 relative z-10">
+                <div className="mt-2">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleLogoUpload}
-                    className="block w-full text-sm text-gray-500 relative z-20
+                    className="block w-full text-sm text-gray-500
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
@@ -332,7 +334,7 @@ const Header = () => {
                   {isUploading && <p className="text-xs mt-1 text-gray-500">Chargement...</p>}
                 </div>
               )}
-            </Link>
+            </div>
 
             {/* Icônes à droite */}
             <div className="flex items-center space-x-4 pr-1">
@@ -377,24 +379,26 @@ const Header = () => {
 
           {/* Desktop Header */}
           <div className="hidden lg:flex items-center justify-between gap-2 h-16">
-            {/* Logo */}
-            <Link to="/" className="text-2xl font-bold text-ocean mr-6">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo AquaShop" 
-                  className="h-12 object-contain" 
-                />
-              ) : (
-                <span className="text-2xl font-bold text-ocean">AquaShop</span>
-              )}
+            {/* Logo et Upload */}
+            <div className="flex items-center gap-2">
+              <Link to="/" className="text-2xl font-bold text-ocean">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo AquaShop"
+                    className="h-20 object-contain"
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-ocean">AquaShop</span>
+                )}
+              </Link>
               {isEditMode && (
-                <div className="mt-2 relative z-10">
+                <div className="mt-2">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleLogoUpload}
-                    className="block w-full text-sm text-gray-500 relative z-20
+                    className="block w-full text-sm text-gray-500
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
@@ -404,7 +408,7 @@ const Header = () => {
                   {isUploading && <p className="text-xs mt-1 text-gray-500">Chargement...</p>}
                 </div>
               )}
-            </Link>
+            </div>
 
             {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center space-x-4">
@@ -604,7 +608,7 @@ const Header = () => {
                   <img 
                     src={logoUrl} 
                     alt="Logo AquaShop" 
-                    className="h-10 object-contain" 
+                    className="h-20 object-contain" 
                   />
                 ) : (
                   <span className="text-xl font-bold text-ocean">AquaShop</span>
