@@ -411,7 +411,7 @@ const getEmojiForCategory = (slug: string) => {
 const EclairageSpectreCompletPage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
-  const rawSlug = useParams<{ slug: string }>()?.slug || "eclairagespectre";
+  const rawSlug = useParams<{ slug: string }>()?.slug || "eclairagespectrecomplet";
   const currentSlug = rawSlug.split("?")[0]; // on enlève les éventuels paramètres
   
   // Ajoute ceci :
@@ -516,9 +516,9 @@ const EclairageSpectreCompletPage = () => {
   const { toast } = useToast();
   
   // État pour stocker le contenu éditable
-  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryTitle, setCategoryTitle] = useState<string>("Éclairage à Spectre Complet");
   const [categoryDescription, setCategoryDescription] = useState<string>(
-    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+    "Explorez notre sélection d'éclairages à spectre complet pour une croissance optimale des plantes et des couleurs éclatantes dans votre aquarium."
   );
   const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
   
