@@ -389,6 +389,22 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍔";
+  if (normalized.includes("decoration") || normalized.includes("decorations")) return "🏺";
+  return "";
+};
+
 const EaudemerPompesPage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -443,6 +459,12 @@ const EaudemerPompesPage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
+  // Nouvelle état pour les catégories de navigation en haut
+  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
+  // Nouvelle état pour gérer l'affichage complet de la description mobile
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  // État pour détecter si l'utilisateur est sur un appareil mobile
+  const [isMobile, setIsMobile] = useState(false);
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -452,6 +474,19 @@ const EaudemerPompesPage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
+
+  // Détecter la taille de l'écran pour la description mobile
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // Ex: 768px pour les écrans md: de Tailwind
+    };
+
+    if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
+      handleResize(); // Appeler une fois au montage
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, []);
 
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
@@ -477,11 +512,12 @@ const EaudemerPompesPage = () => {
   const { toast } = useToast();
   
   // État pour stocker le contenu éditable
-  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryTitle, setCategoryTitle] = useState<string>("Pompes pour Aquarium d'Eau de Mer");
   const [categoryDescription, setCategoryDescription] = useState<string>(
-    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+    "Découvrez notre gamme de pompes et systèmes de filtration essentiels pour la clarté et la santé de votre aquarium d'eau de mer."
   );
   const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
+  
   
   // Obtenir les informations de la catégorie
   const categoryInfo = {
@@ -568,6 +604,30 @@ const EaudemerPompesPage = () => {
         }));
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
+        
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    mainNavCats = childrenOfGrandparent;
+                } else {
+                    // Si la catégorie actuelle a un parent mais pas de grand-parent direct, 
+                    // cela signifie qu'elle est une enfant de premier niveau.
+                    // Dans ce cas, les catégories de navigation devraient être les enfants de son parent.
+                    mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent, c'est une catégorie racine.
+                // On affiche alors ses propres enfants pour la navigation.
+                mainNavCats = cleanedChildCategories;
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
         
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
@@ -1176,44 +1236,41 @@ const EaudemerPompesPage = () => {
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
             />
           </h1>
-          <p className="max-w-2xl mx-auto mb-8">
+          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
             <EditableText
               contentKey={`category_${currentSlug}_description`}
               initialContent={categoryDescription}
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
             />
           </p>
+          {isMobile && categoryDescription.length > 0 && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
+            >
+              {showFullDescription ? "Lire moins" : "Lire la suite"}
+            </button>
+          )}
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            <Button
-              asChild
-              variant={isEauDouce ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauDouce
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🐟</div>
-                <span>Eau douce</span>
-              </a>
-            </Button>
-            <Button
-              asChild
-              variant={isEauMer ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauMer
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">🌊</div>
-                <span>Eau de mer</span>
-              </a>
-            </Button>
+            {headerNavCategories.map((navCat) => (
+              <Button
+                key={navCat.id}
+                asChild
+                variant={navCat.slug === currentSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === currentSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center no-underline !text-white">
+                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                  <span>{navCat.name}</span>
+                </a>
+              </Button>
+            ))}
           </div>
           
           {/* Breadcrumb navigation removed as requested */}
@@ -1609,190 +1666,190 @@ const EaudemerPompesPage = () => {
                     onValueChange={handlePriceChange}
                   />
                   <div className="flex justify-between mt-2 text-sm">
-                    <span>{priceInput[0]}€</span>
-                    <span>{priceInput[1]}€</span>
-                  </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Sous-catégories */}
-              {subCategories.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3">Sous-catégories</h3>
-                  <div className="space-y-2">
-                    {subCategories.map((subCat) => (
-                      <div key={subCat.id} className="flex items-center">
-                        <Checkbox
-                          id={`subcat-${subCat.id}`}
-                          checked={selectedSubCategories.includes(subCat.id)}
-                          onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
-                        />
-                        <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
-                          {subCat.name}
-                        </label>
+                        <span>{priceInput[0]}€</span>
+                        <span>{priceInput[1]}€</span>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              )}
-              
-              <Separator />
-              
-              {/* Marques */}
-              <div>
-                <h3 className="font-medium mb-3">Marques</h3>
-                <div className="space-y-2">
-                  {brandsLoading ? (
-                    <div className="text-center py-2">
-                      <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
-                      <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                  
+                  <Separator />
+                  
+                  {/* Sous-catégories */}
+                  {subCategories.length > 0 && (
+                    <div>
+                      <h3 className="font-medium mb-3">Sous-catégories</h3>
+                      <div className="space-y-2">
+                        {subCategories.map((subCat) => (
+                          <div key={subCat.id} className="flex items-center">
+                            <Checkbox
+                              id={`subcat-${subCat.id}`}
+                              checked={selectedSubCategories.includes(subCat.id)}
+                              onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                            />
+                            <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                              {subCat.name}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ) : brandsError ? (
-                    <div className="text-xs text-red-500 py-2">{brandsError}</div>
-                  ) : brands.length === 0 ? (
-                    <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
-                  ) : (
-                    brands.map((brand) => (
-                    <div key={brand.id} className="flex items-center">
-                      <Checkbox 
-                        id={`brand-${brand.id}`}
-                          checked={selectedBrandIds.includes(brand.id)}
-                        onCheckedChange={() => handleBrandToggle(brand.id)}
-                      />
-                      <label 
-                        htmlFor={`brand-${brand.id}`}
-                        className="ml-2 text-sm flex-grow"
-                      >
-                        {brand.name}
-                      </label>
-                    </div>
-                    ))
                   )}
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Disponibilité */}
-              <div>
-                <h3 className="font-medium mb-3">Disponibilité</h3>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="stock" className="text-sm">
-                    En stock uniquement
-                  </label>
-                  <Switch 
-                    id="stock"
-                    checked={inStock}
-                    onCheckedChange={setInStock}
-                  />
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Promotions */}
-              <div>
-                <h3 className="font-medium mb-3">Promotions</h3>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="promos" className="text-sm">
-                    Articles en promotion
-                  </label>
-                  <Switch 
-                    id="promos"
-                    checked={promoOnly}
-                    onCheckedChange={setPromoOnly}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Produits */}
-          <div className="flex-grow">
-            {/* En-tête de résultats */}
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-xl font-semibold">Tous les produits</h2>
-                <p className="text-gray-500 text-sm">{filteredProducts.length} produits trouvés</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <select className="text-sm border rounded p-2 bg-white">
-                  <option>Tri par défaut</option>
-                  <option>Prix croissant</option>
-                  <option>Prix décroissant</option>
-                  <option>Meilleures ventes</option>
-                  <option>Nouveautés</option>
-                </select>
-              </div>
-            </div>
-            
-            {/* Grille de produits */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {isLoading ? (
-                <div className="col-span-full flex justify-center items-center h-40">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                </div>
-              ) : error ? (
-                <div className="col-span-full bg-red-50 text-red-600 p-4 rounded-md">
-                  {error}
-                </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="col-span-full text-center py-8">
-                  <p className="text-lg text-gray-500">Aucun produit trouvé pour cette catégorie.</p>
-                </div>
-              ) : (
-                paginatedProducts.map((product) => {
-                  const promo = promoPrices[product.id];
-                  const isPromo = !!promo && promo.discount_percentage;
-                  return (
-                <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
-                  <div className="relative h-56 bg-white flex items-center justify-center">
-                    {(product.hasDiscount || product.onSale) && <PromoBadge />}
-                    <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>
-                      <img 
-                        src={product.image || "/placeholder.svg"} 
-                        alt={product.title} 
-                        className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
-                      />
-                    </RouterLink>
+                  
+                  <Separator />
+                  
+                  {/* Marques */}
+                  <div>
+                    <h3 className="font-medium mb-3">Marques</h3>
+                    <div className="space-y-2">
+                      {brandsLoading ? (
+                        <div className="text-center py-2">
+                          <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                          <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                        </div>
+                      ) : brandsError ? (
+                        <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                      ) : brands.length === 0 ? (
+                        <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                      ) : (
+                        brands.map((brand) => (
+                        <div key={brand.id} className="flex items-center">
+                          <Checkbox 
+                            id={`brand-${brand.id}`}
+                              checked={selectedBrandIds.includes(brand.id)}
+                            onCheckedChange={() => handleBrandToggle(brand.id)}
+                          />
+                          <label 
+                            htmlFor={`brand-${brand.id}`}
+                            className="ml-2 text-sm flex-grow"
+                          >
+                            {brand.name}
+                          </label>
+                        </div>
+                        ))
+                      )}
+                    </div>
                   </div>
-                  <CardContent className="flex flex-col flex-1 p-4">
-                    <h3 className="font-semibold text-base leading-snug mb-1 line-clamp-1">{product.title}</h3>
-                    <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
-                      {/* Affiche la description en texte brut, sans HTML */}
-                      {product.description
-                        ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
-                        : <span className="italic text-gray-400">Aucune description</span>}
+                  
+                  <Separator />
+                  
+                  {/* Disponibilité */}
+                  <div>
+                    <h3 className="font-medium mb-3">Disponibilité</h3>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="stock" className="text-sm">
+                        En stock uniquement
+                      </label>
+                      <Switch 
+                        id="stock"
+                        checked={inStock}
+                        onCheckedChange={setInStock}
+                      />
                     </div>
-                    <div className="flex items-center mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <svg
-                          key={i}
-                          className={`h-5 w-5 ${i < Math.round(product.averageRating || 0) ? 'text-[#0074b3] fill-[#0074b3]' : 'text-gray-200 fill-gray-200'}`}
-                          xmlns="http://www.w3.org/2000/svg"
-                          viewBox="0 0 20 20"
-                        >
-                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                        </svg>
-                      ))}
-                      <span className="text-xs ml-1 text-gray-500">
-                        ({product.reviewCount || 0})
-                      </span>
+                  </div>
+                  
+                  <Separator />
+                  
+                  {/* Promotions */}
+                  <div>
+                    <h3 className="font-medium mb-3">Promotions</h3>
+                    <div className="flex items-center justify-between">
+                      <label htmlFor="promos" className="text-sm">
+                        Articles en promotion
+                      </label>
+                      <Switch 
+                        id="promos"
+                        checked={promoOnly}
+                        onCheckedChange={setPromoOnly}
+                      />
                     </div>
-                        <div className="font-medium text-lg text-gray-900 mb-3 truncate min-h-[1.8em]">
-                          {product.variantPriceRange ? (
-                            `De ${product.variantPriceRange.min.toFixed(2)} € à ${product.variantPriceRange.max.toFixed(2)} €`
-                          ) : isPromo ? (
-                            <>
-                              <span className="text-gray-500 line-through mr-2">{promo.original_price.toFixed(2)}€</span>
-                              <span className="text-red-600 font-semibold">{promo.price.toFixed(2)}€</span>
-                              <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">-{promo.discount_percentage}%</span>
-                            </>
-                          ) : (
-                            `${product.price?.toFixed(2)} €`
-                          )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Produits */}
+              <div className="flex-grow">
+                {/* En-tête de résultats */}
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold">Tous les produits</h2>
+                    <p className="text-gray-500 text-sm">{filteredProducts.length} produits trouvés</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select className="text-sm border rounded p-2 bg-white">
+                      <option>Tri par défaut</option>
+                      <option>Prix croissant</option>
+                      <option>Prix décroissant</option>
+                      <option>Meilleures ventes</option>
+                      <option>Nouveautés</option>
+                    </select>
+                  </div>
+                </div>
+                
+                {/* Grille de produits */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {isLoading ? (
+                    <div className="col-span-full flex justify-center items-center h-40">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                    </div>
+                  ) : error ? (
+                    <div className="col-span-full bg-red-50 text-red-600 p-4 rounded-md">
+                      {error}
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="col-span-full text-center py-8">
+                      <p className="text-lg text-gray-500">Aucun produit trouvé pour cette catégorie.</p>
+                    </div>
+                  ) : (
+                    paginatedProducts.map((product) => {
+                      const promo = promoPrices[product.id];
+                      const isPromo = !!promo && promo.discount_percentage;
+                      return (
+                    <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+                      <div className="relative h-56 bg-white flex items-center justify-center">
+                        {(product.hasDiscount || product.onSale) && <PromoBadge />}
+                        <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>
+                          <img 
+                            src={product.image || "/placeholder.svg"} 
+                            alt={product.title} 
+                            className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                          />
+                        </RouterLink>
+                      </div>
+                      <CardContent className="flex flex-col flex-1 p-4">
+                        <h3 className="font-semibold text-base leading-snug mb-1 line-clamp-1">{product.title}</h3>
+                        <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
+                          {/* Affiche la description en texte brut, sans HTML */}
+                          {product.description
+                            ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
+                            : <span className="italic text-gray-400">Aucune description</span>}
+                        </div>
+                        <div className="flex items-center mb-2">
+                          {[...Array(5)].map((_, i) => (
+                            <svg
+                              key={i}
+                              className={`h-5 w-5 ${i < Math.round(product.averageRating || 0) ? 'text-[#0074b3] fill-[#0074b3]' : 'text-gray-200 fill-gray-200'}`}
+                              xmlns="http://www.w3.org/2000/svg"
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                          <span className="text-xs ml-1 text-gray-500">
+                            ({product.reviewCount || 0})
+                          </span>
+                        </div>
+                            <div className="font-medium text-lg text-gray-900 mb-3 truncate min-h-[1.8em]">
+                              {product.variantPriceRange ? (
+                                `De ${product.variantPriceRange.min.toFixed(2)} € à ${product.variantPriceRange.max.toFixed(2)} €`
+                              ) : isPromo ? (
+                                <>
+                                  <span className="text-gray-500 line-through mr-2">{promo.original_price.toFixed(2)}€</span>
+                                  <span className="text-red-600 font-semibold">{promo.price.toFixed(2)}€</span>
+                                  <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">-{promo.discount_percentage}%</span>
+                                </>
+                              ) : (
+                                `${product.price?.toFixed(2)} €`
+                              )}
                     </div>
                     <div className="mt-auto">
                       {product.hasVariant ? (
@@ -1910,7 +1967,7 @@ const EaudemerPompesPage = () => {
 // Petit composant pour gérer le lien
 function Link({ to, children, className = "" }) {
   return (
-    <a href={to} className={`text-white hover:underline ${className}`}>
+    <a href={to} className={`${className}`}>
       {children}
     </a>
   );
