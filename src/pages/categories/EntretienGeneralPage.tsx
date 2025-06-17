@@ -615,7 +615,10 @@ const EntretienGeneralPage = () => {
                 if (grandParent) {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = childrenOfGrandparent;
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
                 }
             } else {
                 // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),

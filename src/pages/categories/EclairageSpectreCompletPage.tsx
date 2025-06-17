@@ -400,11 +400,12 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
   if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
   if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
-  if (normalized.includes("packs")) return "📦";
-  if (normalized.includes("decoration")) return "🐚";
-  // Ajoutez plus de mappings si nécessaire
-  return "✨"; // Emoji par défaut
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍲";
+  if (normalized.includes("sante") || normalized.includes("maladie")) return "💊";
+  if (normalized.includes("decoration")) return "✨";
+  if (normalized.includes("sol")) return "🏜️";
+  if (normalized.includes("aquarium")) return "🏠";
+  return "🏷️"; // Emoji par défaut
 };
 
 const EclairageSpectreCompletPage = () => {
@@ -461,13 +462,13 @@ const EclairageSpectreCompletPage = () => {
   const [brandsLoading, setBrandsLoading] = useState(false);
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
+  
   // Nouvelle état pour les catégories de navigation en haut
   const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
   // Nouvelle état pour gérer l'affichage complet de la description mobile
   const [showFullDescription, setShowFullDescription] = useState(false);
   // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
-
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -477,7 +478,7 @@ const EclairageSpectreCompletPage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
-
+  
   // Détecter la taille de l'écran pour la description mobile
   useEffect(() => {
     const handleResize = () => {
@@ -490,7 +491,7 @@ const EclairageSpectreCompletPage = () => {
       return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
-
+  
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
   
@@ -617,15 +618,20 @@ const EclairageSpectreCompletPage = () => {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
                     mainNavCats = childrenOfGrandparent;
+                } else {
+                    // Si la catégorie actuelle a un parent mais pas de grand-parent direct, 
+                    // cela signifie qu'elle est une enfant de premier niveau.
+                    // Dans ce cas, les catégories de navigation devraient être les enfants de son parent.
+                    mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
                 }
             } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer ses propres enfants (sous-catégories).
+                // Si la catégorie actuelle n'a pas de parent, c'est une catégorie racine.
+                // On affiche alors ses propres enfants pour la navigation.
                 mainNavCats = cleanedChildCategories;
             }
         }
         setHeaderNavCategories(mainNavCats);
-
+        
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
         let updatedWithImages = extendedProducts.map(p => ({
@@ -862,11 +868,11 @@ const EclairageSpectreCompletPage = () => {
 
   // Effet pour appliquer le debounce au changement de prix
   useEffect(() => {
-    const debounceTimeout = setTimeout(() => {
-      setPriceRange(priceInput as [number, number]);
+    const timeout = setTimeout(() => {
+      setPriceRange(priceInput);
     }, 500); // 500ms après l'arrêt
 
-    return () => clearTimeout(debounceTimeout);
+    return () => clearTimeout(timeout);
   }, [priceInput]);
 
   // Gérer les changements de filtres
@@ -1233,15 +1239,23 @@ const EclairageSpectreCompletPage = () => {
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
             />
           </h1>
-          <p className="max-w-2xl mx-auto mb-8">
+          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
             <EditableText
               contentKey={`category_${currentSlug}_description`}
               initialContent={categoryDescription}
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
             />
           </p>
+          {isMobile && categoryDescription.length > 0 && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
+            >
+              {showFullDescription ? "Lire moins" : "Lire la suite"}
+            </button>
+          )}
           
-          {/* Navigation des catégories parentes / soeurs */}
+          {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
               <Button
