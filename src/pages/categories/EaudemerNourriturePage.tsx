@@ -1942,7 +1942,7 @@ const EaudemerNourriturePage = () => {
 // Petit composant pour gérer le lien
 function Link({ to, children, className = "" }) {
   return (
-    <a href={to} className={`text-white hover:underline ${className}`}>
+    <a href={to} className={`${className}`}>
       {children}
     </a>
   );
