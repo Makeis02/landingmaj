@@ -58,7 +58,6 @@ const allowedOrigins = [
   'http://192.168.1.14:8080',
   'https://majemsiteteste.netlify.app',
   'https://landingmaj.onrender.com'
-  'https://landingmaj-production.up.railway.app.'
 ];
 
 app.use(cors({
@@ -67,8 +66,18 @@ app.use(cors({
     console.warn('⛔ Origine refusée :', origin);
     callback(new Error('Not allowed by CORS'));
   },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
   credentials: true
 }));
+
+app.options('*', cors()); // Gère les requêtes OPTIONS pour toutes les routes
+
+// Middleware de log pour debug
+app.use((req, res, next) => {
+  console.log(`📡 ${req.method} ${req.path} from ${req.headers.origin}`);
+  next();
+});
 
 app.use(bodyParser.json());
 
