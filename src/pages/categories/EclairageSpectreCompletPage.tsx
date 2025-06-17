@@ -400,12 +400,11 @@ const getEmojiForCategory = (slug: string) => {
   if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
   if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
   if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍲";
-  if (normalized.includes("sante") || normalized.includes("maladie")) return "💊";
-  if (normalized.includes("decoration")) return "✨";
-  if (normalized.includes("sol")) return "🏜️";
-  if (normalized.includes("aquarium")) return "🏠";
-  return "🏷️"; // Emoji par défaut
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🦐";
+  if (normalized.includes("packs")) return "📦";
+  if (normalized.includes("decoration")) return "🐚";
+  // Ajoutez plus de mappings si nécessaire
+  return "✨"; // Emoji par défaut
 };
 
 const EclairageSpectreCompletPage = () => {
@@ -468,6 +467,7 @@ const EclairageSpectreCompletPage = () => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   // État pour détecter si l'utilisateur est sur un appareil mobile
   const [isMobile, setIsMobile] = useState(false);
+
   
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
@@ -609,9 +609,20 @@ const EclairageSpectreCompletPage = () => {
         
         // Logique pour déterminer les catégories de navigation du header
         let mainNavCats: Category[] = [];
-        const lightingParentCategory = categoriesData.find(cat => cat.slug === "eclairages"); // Trouver la catégorie "Éclairages"
-        if (lightingParentCategory) {
-          mainNavCats = categoriesData.filter(cat => cat.parent_id === lightingParentCategory.id);
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    mainNavCats = childrenOfGrandparent;
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer ses propres enfants (sous-catégories).
+                mainNavCats = cleanedChildCategories;
+            }
         }
         setHeaderNavCategories(mainNavCats);
 
@@ -851,11 +862,11 @@ const EclairageSpectreCompletPage = () => {
 
   // Effet pour appliquer le debounce au changement de prix
   useEffect(() => {
-    const timeout = setTimeout(() => {
-      setPriceRange(priceInput);
+    const debounceTimeout = setTimeout(() => {
+      setPriceRange(priceInput as [number, number]);
     }, 500); // 500ms après l'arrêt
 
-    return () => clearTimeout(timeout);
+    return () => clearTimeout(debounceTimeout);
   }, [priceInput]);
 
   // Gérer les changements de filtres
@@ -1230,7 +1241,7 @@ const EclairageSpectreCompletPage = () => {
             />
           </p>
           
-          {/* Navigation Eau Douce / Eau de Mer / Universel */}
+          {/* Navigation des catégories parentes / soeurs */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
               <Button

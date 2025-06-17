@@ -597,17 +597,12 @@ const EauDouceEntretienPage = () => {
                 if (grandParent) {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
+                    mainNavCats = childrenOfGrandparent;
                 }
             } else {
                 // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
+                // montrer ses propres enfants (sous-catégories).
+                mainNavCats = cleanedChildCategories;
             }
         }
         setHeaderNavCategories(mainNavCats);
