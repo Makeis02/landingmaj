@@ -389,6 +389,25 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
+// Fonction pour obtenir un emoji basé sur le slug de la catégorie
+const getEmojiForCategory = (slug: string) => {
+  const normalized = slug.toLowerCase();
+  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
+  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
+  if (normalized.includes("universel")) return "🔄";
+  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
+  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
+  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
+  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
+  if (normalized.includes("eclairage")) return "💡";
+  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍲";
+  if (normalized.includes("sante") || normalized.includes("maladie")) return "💊";
+  if (normalized.includes("decoration")) return "✨";
+  if (normalized.includes("sol")) return "🏜️";
+  if (normalized.includes("aquarium")) return "🏠";
+  return "🏷️"; // Emoji par défaut
+};
+
 const EaudemerNourriturePage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -1215,7 +1234,7 @@ const EaudemerNourriturePage = () => {
                 variant={navCat.slug === rawSlug ? "default" : "outline"}
                 asChild
               >
-                <Link href={`/categories/${navCat.slug}`}>
+                <Link to={`/categories/${navCat.slug}`}>
                   <span className="flex items-center gap-2">
                     {getEmojiForCategory(navCat.slug)} {navCat.name}
                   </span>
