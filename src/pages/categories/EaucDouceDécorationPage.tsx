@@ -1139,6 +1139,8 @@ const CategoryPage = () => {
     }
   };
 
+  const [expandedDesc, setExpandedDesc] = useState({});
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -1762,25 +1764,38 @@ const CategoryPage = () => {
                 paginatedProducts.map((product) => {
                   const promo = promoPrices[product.id];
                   const isPromo = !!promo && promo.discount_percentage;
+                  const isDescExpanded = expandedDesc[product.id];
                   return (
                 <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                   <div className="relative h-56 bg-white flex items-center justify-center">
                     {(product.hasDiscount || product.onSale) && <PromoBadge />}
                     <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>
-                    <img 
+                      <img 
                         src={product.image || "/placeholder.svg"} 
                         alt={product.title} 
                         className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
-                    />
+                      />
                     </RouterLink>
                   </div>
                   <CardContent className="flex flex-col flex-1 p-4">
                     <h3 className="font-semibold text-base leading-snug mb-1 line-clamp-1">{product.title}</h3>
-                    <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
-                      {/* Affiche la description en texte brut, sans HTML */}
-                      {product.description
-                        ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
-                        : <span className="italic text-gray-400">Aucune description</span>}
+                    {/* Description avec Lire la suite sur mobile */}
+                    <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
+                      <span className={`block md:line-clamp-2 ${isDescExpanded ? '' : 'line-clamp-2'} md:!line-clamp-2`}>
+                        {product.description
+                          ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
+                          : <span className="italic text-gray-400">Aucune description</span>}
+                      </span>
+                      {/* Bouton Lire la suite uniquement sur mobile et si description longue */}
+                      {product.description && product.description.length > 80 && (
+                        <button
+                          type="button"
+                          className="md:hidden text-primary underline text-xs mt-1 focus:outline-none"
+                          onClick={() => setExpandedDesc(prev => ({ ...prev, [product.id]: !isDescExpanded }))}
+                        >
+                          {isDescExpanded ? 'Réduire' : 'Lire la suite'}
+                        </button>
+                      )}
                     </div>
                     <div className="flex items-center mb-2">
                       {[...Array(5)].map((_, i) => (
