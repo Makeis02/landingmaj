@@ -312,7 +312,7 @@ const Header = () => {
                   <img
                     src={logoUrl}
                     alt="Logo AquaShop"
-                    className="h-10 mx-auto object-contain"
+                    className="h-12 mx-auto object-contain"
                   />
                 ) : (
                 <span className="text-2xl font-bold text-ocean">AquaShop</span>
@@ -386,7 +386,7 @@ const Header = () => {
                   <img
                     src={logoUrl}
                     alt="Logo AquaShop"
-                    className="h-20 object-contain"
+                    className="h-24 object-contain"
                   />
                 ) : (
                   <span className="text-2xl font-bold text-ocean">AquaShop</span>
