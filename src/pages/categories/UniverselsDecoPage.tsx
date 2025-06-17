@@ -420,23 +420,14 @@ const UniverselsDecoPage = () => {
   const initialSubCategorySlug = searchParams.get("souscategorie");
   console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
    
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
+  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [inStock, setInStock] = useState(true);
+  const [promoOnly, setPromoOnly] = useState(false);
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Détecter si l'utilisateur est sur mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
+  
   // États pour les produits Stripe
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
   const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
@@ -670,9 +661,9 @@ const UniverselsDecoPage = () => {
             ? linked.some((catId) => categoryIds.includes(catId))
             : linked.some((catId) => selectedSubCategories.includes(catId));
           
-          const matchBrand = selectedBrands.length === 0
+          const matchBrand = selectedBrandIds.length === 0
             ? true
-            : productBrandId && selectedBrands.includes(productBrandId);
+            : productBrandId && selectedBrandIds.includes(productBrandId);
           
           const matchPrice = 
             product.price >= priceRange[0] &&
@@ -695,7 +686,7 @@ const UniverselsDecoPage = () => {
       }
     };
     loadProductsAndCategories();
-  }, [currentSlug, selectedSubCategories, selectedBrands, priceRange, inStock, promoOnly]);
+  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   // Récupérer les descriptions des produits
   useEffect(() => {
@@ -823,7 +814,7 @@ const UniverselsDecoPage = () => {
 
   // Gérer les changements de filtres
   const handleBrandToggle = (brandId: string) => {
-    setSelectedBrands(prev => 
+    setSelectedBrandIds(prev => 
       prev.includes(brandId) 
         ? prev.filter(id => id !== brandId)
         : [...prev, brandId]
@@ -839,7 +830,7 @@ const UniverselsDecoPage = () => {
   };
 
   const toggleMobileFilters = () => {
-    setShowMobileFilters(!showMobileFilters);
+    setMobileFiltersOpen(!mobileFiltersOpen);
   };
 
   // Fonction pour mettre à jour le prix
@@ -1185,23 +1176,13 @@ const UniverselsDecoPage = () => {
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
             />
           </h1>
-          <div className="max-w-2xl mx-auto mb-8">
-            <div className={`${!showFullDescription && isMobile ? 'line-clamp-3' : ''}`}>
-              <EditableText
-                contentKey={`category_${currentSlug}_description`}
-                initialContent={categoryDescription}
-                onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
-              />
-            </div>
-            {isMobile && (
-              <button
-                onClick={() => setShowFullDescription(!showFullDescription)}
-                className="text-white hover:text-white/80 mt-2 font-medium"
-              >
-                {showFullDescription ? "Voir moins" : "Lire la suite"}
-              </button>
-            )}
-          </div>
+          <p className="max-w-2xl mx-auto mb-8">
+            <EditableText
+              contentKey={`category_${currentSlug}_description`}
+              initialContent={categoryDescription}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+            />
+          </p>
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
@@ -1294,7 +1275,7 @@ const UniverselsDecoPage = () => {
                       <li>Filtre "En stock uniquement": <span className="font-mono font-semibold">{inStock ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                       <li>Filtre prix: <span className="font-mono">{priceRange[0]}€ - {priceRange[1]}€</span></li>
                       <li>Catégories sélectionnées: <span className="font-mono">{selectedSubCategories.length}</span></li>
-                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrands.length}</span></li>
+                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrandIds.length}</span></li>
                       <li>Promos uniquement: <span className="font-mono">{promoOnly ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                     </ul>
                   </div>
@@ -1496,7 +1477,7 @@ const UniverselsDecoPage = () => {
           </div>
 
           {/* Filtres (mobile) */}
-          {showMobileFilters && (
+          {mobileFiltersOpen && (
             <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
               <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
                 <div className="flex justify-between items-center mb-4">
@@ -1512,8 +1493,8 @@ const UniverselsDecoPage = () => {
                     <h3 className="font-medium mb-3">Prix</h3>
                     <div className="px-2">
                       <Slider 
-                        defaultValue={[0, 1000]} 
-                        max={1000} 
+                        defaultValue={[0, 800]} 
+                        max={800} 
                         step={1} 
                         value={priceInput}
                         onValueChange={handlePriceChange}
@@ -1568,7 +1549,7 @@ const UniverselsDecoPage = () => {
                         <div key={brand.id} className="flex items-center">
                           <Checkbox 
                             id={`brand-mobile-${brand.id}`}
-                              checked={selectedBrands.includes(brand.id)}
+                              checked={selectedBrandIds.includes(brand.id)}
                             onCheckedChange={() => handleBrandToggle(brand.id)}
                           />
                           <label 
@@ -1637,8 +1618,8 @@ const UniverselsDecoPage = () => {
                 <h3 className="font-medium mb-3">Prix</h3>
                 <div className="px-2">
                   <Slider 
-                    defaultValue={[0, 1000]} 
-                    max={1000} 
+                    defaultValue={[0, 800]} 
+                    max={800} 
                     step={1} 
                     value={priceInput}
                     onValueChange={handlePriceChange}
@@ -1693,7 +1674,7 @@ const UniverselsDecoPage = () => {
                     <div key={brand.id} className="flex items-center">
                       <Checkbox 
                         id={`brand-${brand.id}`}
-                          checked={selectedBrands.includes(brand.id)}
+                          checked={selectedBrandIds.includes(brand.id)}
                         onCheckedChange={() => handleBrandToggle(brand.id)}
                       />
                       <label 

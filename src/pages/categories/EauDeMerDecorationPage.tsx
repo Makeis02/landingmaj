@@ -420,23 +420,14 @@ const EauDeMerDecorationPage = () => {
   const initialSubCategorySlug = searchParams.get("souscategorie");
   console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
    
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
+  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
+  const [inStock, setInStock] = useState(true);
+  const [promoOnly, setPromoOnly] = useState(false);
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  // Détecter si l'utilisateur est sur mobile
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
+  
   // États pour les produits Stripe
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
   const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
@@ -670,9 +661,9 @@ const EauDeMerDecorationPage = () => {
             ? linked.some((catId) => categoryIds.includes(catId))
             : linked.some((catId) => selectedSubCategories.includes(catId));
           
-          const matchBrand = selectedBrands.length === 0
+          const matchBrand = selectedBrandIds.length === 0
             ? true
-            : productBrandId && selectedBrands.includes(productBrandId);
+            : productBrandId && selectedBrandIds.includes(productBrandId);
           
           const matchPrice = 
             product.price >= priceRange[0] &&
@@ -695,7 +686,7 @@ const EauDeMerDecorationPage = () => {
       }
     };
     loadProductsAndCategories();
-  }, [currentSlug, selectedSubCategories, selectedBrands, priceRange, inStock, promoOnly]);
+  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   // Récupérer les descriptions des produits
   useEffect(() => {
@@ -823,7 +814,7 @@ const EauDeMerDecorationPage = () => {
 
   // Gérer les changements de filtres
   const handleBrandToggle = (brandId: string) => {
-    setSelectedBrands(prev => 
+    setSelectedBrandIds(prev => 
       prev.includes(brandId) 
         ? prev.filter(id => id !== brandId)
         : [...prev, brandId]
@@ -839,7 +830,7 @@ const EauDeMerDecorationPage = () => {
   };
 
   const toggleMobileFilters = () => {
-    setShowMobileFilters(!showMobileFilters);
+    setMobileFiltersOpen(!mobileFiltersOpen);
   };
 
   // Fonction pour mettre à jour le prix
@@ -1284,7 +1275,7 @@ const EauDeMerDecorationPage = () => {
                       <li>Filtre "En stock uniquement": <span className="font-mono font-semibold">{inStock ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                       <li>Filtre prix: <span className="font-mono">{priceRange[0]}€ - {priceRange[1]}€</span></li>
                       <li>Catégories sélectionnées: <span className="font-mono">{selectedSubCategories.length}</span></li>
-                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrands.length}</span></li>
+                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrandIds.length}</span></li>
                       <li>Promos uniquement: <span className="font-mono">{promoOnly ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                     </ul>
                   </div>
@@ -1486,7 +1477,7 @@ const EauDeMerDecorationPage = () => {
           </div>
 
           {/* Filtres (mobile) */}
-          {showMobileFilters && (
+          {mobileFiltersOpen && (
             <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
               <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
                 <div className="flex justify-between items-center mb-4">
@@ -1502,8 +1493,8 @@ const EauDeMerDecorationPage = () => {
                     <h3 className="font-medium mb-3">Prix</h3>
                     <div className="px-2">
                       <Slider 
-                        defaultValue={[0, 1000]} 
-                        max={1000} 
+                        defaultValue={[0, 800]} 
+                        max={800} 
                         step={1} 
                         value={priceInput}
                         onValueChange={handlePriceChange}
@@ -1558,7 +1549,7 @@ const EauDeMerDecorationPage = () => {
                         <div key={brand.id} className="flex items-center">
                           <Checkbox 
                             id={`brand-mobile-${brand.id}`}
-                              checked={selectedBrands.includes(brand.id)}
+                              checked={selectedBrandIds.includes(brand.id)}
                             onCheckedChange={() => handleBrandToggle(brand.id)}
                           />
                           <label 
@@ -1627,8 +1618,8 @@ const EauDeMerDecorationPage = () => {
                 <h3 className="font-medium mb-3">Prix</h3>
                 <div className="px-2">
                   <Slider 
-                    defaultValue={[0, 1000]} 
-                    max={1000} 
+                    defaultValue={[0, 800]} 
+                    max={800} 
                     step={1} 
                     value={priceInput}
                     onValueChange={handlePriceChange}
@@ -1683,7 +1674,7 @@ const EauDeMerDecorationPage = () => {
                     <div key={brand.id} className="flex items-center">
                       <Checkbox 
                         id={`brand-${brand.id}`}
-                          checked={selectedBrands.includes(brand.id)}
+                          checked={selectedBrandIds.includes(brand.id)}
                         onCheckedChange={() => handleBrandToggle(brand.id)}
                       />
                       <label 
