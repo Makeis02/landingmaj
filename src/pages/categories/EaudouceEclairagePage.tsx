@@ -609,25 +609,9 @@ const EaudouceEclairagePage = () => {
         
         // Logique pour déterminer les catégories de navigation du header
         let mainNavCats: Category[] = [];
-        if (parentCategory) {
-            if (parentCategory.parent_id) {
-                // Si la catégorie actuelle a un parent, trouver son grand-parent
-                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
-                if (grandParent) {
-                    // Obtenir tous les enfants du grand-parent
-                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = childrenOfGrandparent;
-                } else {
-                    // Si la catégorie actuelle a un parent mais pas de grand-parent direct, 
-                    // cela signifie qu'elle est une enfant de premier niveau.
-                    // Dans ce cas, les catégories de navigation devraient être les enfants de son parent.
-                    mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
-                }
-            } else {
-                // Si la catégorie actuelle n'a pas de parent, c'est une catégorie racine.
-                // On affiche alors ses propres enfants pour la navigation.
-                mainNavCats = cleanedChildCategories;
-            }
+        const lightingParentCategory = categoriesData.find(cat => cat.slug === "eclairages"); // Trouver la catégorie "Éclairages"
+        if (lightingParentCategory) {
+          mainNavCats = categoriesData.filter(cat => cat.parent_id === lightingParentCategory.id);
         }
         setHeaderNavCategories(mainNavCats);
 
