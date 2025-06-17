@@ -317,12 +317,12 @@ const Header = () => {
               <span className="text-2xl font-bold text-ocean">AquaShop</span>
               )}
               {isEditMode && (
-                <div className="mt-2">
+                <div className="mt-2 relative z-10">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleLogoUpload}
-                    className="block w-full text-sm text-gray-500
+                    className="block w-full text-sm text-gray-500 relative z-20
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
@@ -389,12 +389,12 @@ const Header = () => {
                 <span className="text-2xl font-bold text-ocean">AquaShop</span>
               )}
               {isEditMode && (
-                <div className="mt-2">
+                <div className="mt-2 relative z-10">
                   <input
                     type="file"
                     accept="image/*"
                     onChange={handleLogoUpload}
-                    className="block w-full text-sm text-gray-500
+                    className="block w-full text-sm text-gray-500 relative z-20
                       file:mr-4 file:py-2 file:px-4
                       file:rounded-md file:border-0
                       file:text-sm file:font-semibold
