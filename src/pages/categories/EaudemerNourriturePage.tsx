@@ -1233,6 +1233,11 @@ const EaudemerNourriturePage = () => {
                 key={navCat.id}
                 variant={navCat.slug === rawSlug ? "default" : "outline"}
                 asChild
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === rawSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
               >
                 <Link to={`/categories/${navCat.slug}`}>
                   <span className="flex items-center gap-2">
