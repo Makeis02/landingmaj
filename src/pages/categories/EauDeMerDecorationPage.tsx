@@ -420,14 +420,23 @@ const EauDeMerDecorationPage = () => {
   const initialSubCategorySlug = searchParams.get("souscategorie");
   console.log("📥 Paramètre 'souscategorie' de l'URL:", initialSubCategorySlug);
    
-  const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
-  const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
-  const [inStock, setInStock] = useState(true);
-  const [promoOnly, setPromoOnly] = useState(false);
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedSubCategories, setSelectedSubCategories] = useState<string[]>([]);
-  
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000]);
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Détecter si l'utilisateur est sur mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // États pour les produits Stripe
   const [products, setProducts] = useState<ExtendedStripeProduct[]>([]);
   const [linkedCategories, setLinkedCategories] = useState<Record<string, string[]>>({});
@@ -661,9 +670,9 @@ const EauDeMerDecorationPage = () => {
             ? linked.some((catId) => categoryIds.includes(catId))
             : linked.some((catId) => selectedSubCategories.includes(catId));
           
-          const matchBrand = selectedBrandIds.length === 0
+          const matchBrand = selectedBrands.length === 0
             ? true
-            : productBrandId && selectedBrandIds.includes(productBrandId);
+            : productBrandId && selectedBrands.includes(productBrandId);
           
           const matchPrice = 
             product.price >= priceRange[0] &&
@@ -686,7 +695,7 @@ const EauDeMerDecorationPage = () => {
       }
     };
     loadProductsAndCategories();
-  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
+  }, [currentSlug, selectedSubCategories, selectedBrands, priceRange, inStock, promoOnly]);
 
   // Récupérer les descriptions des produits
   useEffect(() => {
@@ -814,7 +823,7 @@ const EauDeMerDecorationPage = () => {
 
   // Gérer les changements de filtres
   const handleBrandToggle = (brandId: string) => {
-    setSelectedBrandIds(prev => 
+    setSelectedBrands(prev => 
       prev.includes(brandId) 
         ? prev.filter(id => id !== brandId)
         : [...prev, brandId]
@@ -830,7 +839,7 @@ const EauDeMerDecorationPage = () => {
   };
 
   const toggleMobileFilters = () => {
-    setMobileFiltersOpen(!mobileFiltersOpen);
+    setShowMobileFilters(!showMobileFilters);
   };
 
   // Fonction pour mettre à jour le prix
@@ -1139,8 +1148,6 @@ const EauDeMerDecorationPage = () => {
     }
   };
 
-  const [expandedDesc, setExpandedDesc] = useState({});
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -1277,7 +1284,7 @@ const EauDeMerDecorationPage = () => {
                       <li>Filtre "En stock uniquement": <span className="font-mono font-semibold">{inStock ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                       <li>Filtre prix: <span className="font-mono">{priceRange[0]}€ - {priceRange[1]}€</span></li>
                       <li>Catégories sélectionnées: <span className="font-mono">{selectedSubCategories.length}</span></li>
-                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrandIds.length}</span></li>
+                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrands.length}</span></li>
                       <li>Promos uniquement: <span className="font-mono">{promoOnly ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
                     </ul>
                   </div>
@@ -1479,7 +1486,7 @@ const EauDeMerDecorationPage = () => {
           </div>
 
           {/* Filtres (mobile) */}
-          {mobileFiltersOpen && (
+          {showMobileFilters && (
             <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
               <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
                 <div className="flex justify-between items-center mb-4">
@@ -1495,8 +1502,8 @@ const EauDeMerDecorationPage = () => {
                     <h3 className="font-medium mb-3">Prix</h3>
                     <div className="px-2">
                       <Slider 
-                        defaultValue={[0, 800]} 
-                        max={800} 
+                        defaultValue={[0, 1000]} 
+                        max={1000} 
                         step={1} 
                         value={priceInput}
                         onValueChange={handlePriceChange}
@@ -1551,7 +1558,7 @@ const EauDeMerDecorationPage = () => {
                         <div key={brand.id} className="flex items-center">
                           <Checkbox 
                             id={`brand-mobile-${brand.id}`}
-                              checked={selectedBrandIds.includes(brand.id)}
+                              checked={selectedBrands.includes(brand.id)}
                             onCheckedChange={() => handleBrandToggle(brand.id)}
                           />
                           <label 
@@ -1620,8 +1627,8 @@ const EauDeMerDecorationPage = () => {
                 <h3 className="font-medium mb-3">Prix</h3>
                 <div className="px-2">
                   <Slider 
-                    defaultValue={[0, 800]} 
-                    max={800} 
+                    defaultValue={[0, 1000]} 
+                    max={1000} 
                     step={1} 
                     value={priceInput}
                     onValueChange={handlePriceChange}
@@ -1676,7 +1683,7 @@ const EauDeMerDecorationPage = () => {
                     <div key={brand.id} className="flex items-center">
                       <Checkbox 
                         id={`brand-${brand.id}`}
-                          checked={selectedBrandIds.includes(brand.id)}
+                          checked={selectedBrands.includes(brand.id)}
                         onCheckedChange={() => handleBrandToggle(brand.id)}
                       />
                       <label 
@@ -1764,7 +1771,6 @@ const EauDeMerDecorationPage = () => {
                 paginatedProducts.map((product) => {
                   const promo = promoPrices[product.id];
                   const isPromo = !!promo && promo.discount_percentage;
-                  const isDescExpanded = expandedDesc[product.id];
                   return (
                     <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                       <div className="relative h-56 bg-white flex items-center justify-center">
@@ -1779,23 +1785,11 @@ const EauDeMerDecorationPage = () => {
                       </div>
                       <CardContent className="flex flex-col flex-1 p-4">
                         <h3 className="font-semibold text-base leading-snug mb-1 line-clamp-1">{product.title}</h3>
-                        {/* Description avec Lire la suite sur mobile */}
-                        <div className="text-xs text-gray-600 mb-2 min-h-[2.5em]">
-                          <span className={`block md:line-clamp-2 ${isDescExpanded ? '' : 'line-clamp-2'} md:!line-clamp-2`}>
-                            {product.description
-                              ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
-                              : <span className="italic text-gray-400">Aucune description</span>}
-                          </span>
-                          {/* Bouton Lire la suite uniquement sur mobile et si description longue */}
-                          {product.description && product.description.length > 80 && (
-                            <button
-                              type="button"
-                              className="md:hidden text-primary underline text-xs mt-1 focus:outline-none"
-                              onClick={() => setExpandedDesc(prev => ({ ...prev, [product.id]: !isDescExpanded }))}
-                            >
-                              {isDescExpanded ? 'Réduire' : 'Lire la suite'}
-                            </button>
-                          )}
+                        <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
+                          {/* Affiche la description en texte brut, sans HTML */}
+                          {product.description
+                            ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
+                            : <span className="italic text-gray-400">Aucune description</span>}
                         </div>
                         <div className="flex items-center mb-2">
                           {[...Array(5)].map((_, i) => (
