@@ -389,21 +389,6 @@ const fetchVariantPriceMaps = async (productIds) => {
   return data.length;
 };
 
-// Fonction pour obtenir un emoji basé sur le slug de la catégorie
-const getEmojiForCategory = (slug: string) => {
-  const normalized = slug.toLowerCase();
-  if (normalized.includes("eau-douce") || normalized.includes("eaudouce")) return "🐟";
-  if (normalized.includes("eau-de-mer") || normalized.includes("eaudemer")) return "🌊";
-  if (normalized.includes("universel")) return "🔄";
-  if (normalized.includes("entretien") || normalized.includes("maintenance") || normalized.includes("nettoyage")) return "🧹";
-  if (normalized.includes("produits-specifiques") || normalized.includes("produitsspecifiques")) return "🧪";
-  if (normalized.includes("pompes") || normalized.includes("filtration")) return "⚙️";
-  if (normalized.includes("chauffage") || normalized.includes("ventilation")) return "🔥";
-  if (normalized.includes("eclairage")) return "💡";
-  if (normalized.includes("alimentation") || normalized.includes("nourriture")) return "🍽️";
-  return "📦";
-};
-
 const EaudemerNourriturePage = () => {
   // handleAddToCart sera défini plus bas après les hooks
   // Nettoyage et normalisation du slug pour éviter les problèmes de comparaison
@@ -459,13 +444,6 @@ const EaudemerNourriturePage = () => {
   const [productDescriptions, setProductDescriptions] = useState<Record<string, string>>({});
   const [debugLoaded, setDebugLoaded] = useState<boolean>(false);
   
-  // Nouvelle état pour les catégories de navigation en haut
-  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
-  // Nouvelle état pour gérer l'affichage complet de la description mobile
-  const [showFullDescription, setShowFullDescription] = useState(false);
-  // État pour détecter si l'utilisateur est sur un appareil mobile
-  const [isMobile, setIsMobile] = useState(false);
-  
   // Pour le débogage, afficher les descriptions dans la console à chaque rendu
   useEffect(() => {
     if (!debugLoaded && Object.keys(productDescriptions).length > 0) {
@@ -474,22 +452,6 @@ const EaudemerNourriturePage = () => {
       setDebugLoaded(true);
     }
   }, [productDescriptions, debugLoaded]);
-
-  // Détecter la taille de l'écran pour la description mobile
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    // Vérifier au chargement initial
-    handleResize();
-
-    // Ajouter l'écouteur d'événement
-    window.addEventListener('resize', handleResize);
-
-    // Nettoyer l'écouteur lors du démontage
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Add this near the other state declarations
   const hasAppliedInitialSubCategory = useRef(false);
@@ -515,11 +477,12 @@ const EaudemerNourriturePage = () => {
   const { toast } = useToast();
   
   // État pour stocker le contenu éditable
-  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryTitle, setCategoryTitle] = useState<string>("Nourriture pour Poissons d'Eau de Mer");
   const [categoryDescription, setCategoryDescription] = useState<string>(
-    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+    "Découvrez notre sélection de nourritures adaptées à tous les poissons d'eau de mer, pour une alimentation équilibrée et une santé optimale."
   );
   const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
+  const [headerNavCategories, setHeaderNavCategories] = useState<Category[]>([]);
   
   // Obtenir les informations de la catégorie
   const categoryInfo = {
@@ -624,8 +587,7 @@ const EaudemerNourriturePage = () => {
                 }
             } else {
                 // Si la catégorie actuelle est une catégorie racine, utiliser ses enfants directs
-                const childrenOfCurrent = categoriesData.filter(cat => cat.parent_id === parentCategory.id);
-                mainNavCats = childrenOfCurrent;
+                mainNavCats = cleanedChildCategories;
             }
         }
         setHeaderNavCategories(mainNavCats);
@@ -1237,37 +1199,28 @@ const EaudemerNourriturePage = () => {
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
             />
           </h1>
-          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
+          <p className="max-w-2xl mx-auto mb-8">
             <EditableText
               contentKey={`category_${currentSlug}_description`}
               initialContent={categoryDescription}
               onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
             />
           </p>
-          {isMobile && categoryDescription.length > 0 && (
-            <button
-              onClick={() => setShowFullDescription(!showFullDescription)}
-              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
-            >
-              {showFullDescription ? "Lire moins" : "Lire la suite"}
-            </button>
-          )}
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
             {headerNavCategories.map((navCat) => (
-              <Link
+              <Button
                 key={navCat.id}
-                to={`/categories/${navCat.slug}`}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors
-                  ${currentSlug === navCat.slug
-                    ? 'bg-primary text-white'
-                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                  }`}
+                variant={navCat.slug === rawSlug ? "default" : "outline"}
+                asChild
               >
-                <span>{getEmojiForCategory(navCat.slug)}</span>
-                <span>{navCat.name}</span>
-              </Link>
+                <Link href={`/categories/${navCat.slug}`}>
+                  <span className="flex items-center gap-2">
+                    {getEmojiForCategory(navCat.slug)} {navCat.name}
+                  </span>
+                </Link>
+              </Button>
             ))}
           </div>
           
