@@ -408,14 +408,14 @@ const getEmojiForCategory = (slug: string) => {
 };
 
 const EaudouceNourriturePage = () => {
-  const { slug: currentSlug } = useParams();
+  const rawSlug = useParams<{ slug: string }>()?.slug || "eaudoucenourriture";
   const [searchParams] = useSearchParams();
   const souscategorieParam = searchParams.get("souscategorie");
   const hasAppliedInitialSubCategory = useRef(false);
   const initialSubCategorySlug = souscategorieParam;
 
   // Variables pour la navigation
-  const normalizedSlug = currentSlug?.trim().toLowerCase().replace(/\W+/g, "") || "";
+  const normalizedSlug = rawSlug.trim().toLowerCase().replace(/\W+/g, "") || "";
   const isEauDouce = normalizedSlug.includes("eaudouce");
   const isEauMer = normalizedSlug.includes("eaudemer");
   const isUniversel = normalizedSlug.includes("universel");
@@ -481,9 +481,9 @@ const EaudouceNourriturePage = () => {
   const { toast } = useToast();
   
   // État pour stocker le contenu éditable
-  const [categoryTitle, setCategoryTitle] = useState<string>("Décorations Eau Douce");
+  const [categoryTitle, setCategoryTitle] = useState<string>("Nourriture pour Aquarium d'Eau Douce");
   const [categoryDescription, setCategoryDescription] = useState<string>(
-    "Embellissez votre aquarium d'eau douce avec nos décorations spécialement sélectionnées."
+    "Découvrez notre sélection de nourriture pour poissons d'eau douce, garantissant santé et vitalité à vos compagnons aquatiques."
   );
   const [categoryBannerImage, setCategoryBannerImage] = useState<string>("/placeholder.svg");
   
@@ -496,13 +496,13 @@ const EaudouceNourriturePage = () => {
 
   // Log au montage du composant
   useEffect(() => {
-    console.log("🔁 CategoryPage monté - slug =", currentSlug);
+    console.log("🔁 CategoryPage monté - slug =", rawSlug);
   }, []);
   
   // Debug useEffect pour confirmer le chargement avec les paramètres URL
   useEffect(() => {
-    console.log("📍 CategoryPage chargé avec slug =", currentSlug, "et souscategorie =", initialSubCategorySlug);
-  }, [currentSlug, initialSubCategorySlug]);
+    console.log("📍 CategoryPage chargé avec slug =", rawSlug, "et souscategorie =", initialSubCategorySlug);
+  }, [rawSlug, initialSubCategorySlug]);
 
   // Charger les marques depuis Supabase
   useEffect(() => {
@@ -525,7 +525,7 @@ const EaudouceNourriturePage = () => {
 
   // Charger les produits et les catégories liées
   useEffect(() => {
-    console.log("🚀 Début du chargement des produits pour le slug:", currentSlug);
+    console.log("🚀 Début du chargement des produits pour le slug:", rawSlug);
     const loadProductsAndCategories = async () => {
       try {
         setIsLoading(true);
@@ -557,7 +557,7 @@ const EaudouceNourriturePage = () => {
         const categoriesData = await fetchCategories();
         setAllCategories(categoriesData);
         const parentCategory = categoriesData.find(
-          (cat) => cat.slug === currentSlug
+          (cat) => cat.slug === rawSlug
         );
         if (!parentCategory) {
           setError("Catégorie non trouvée.");
@@ -573,6 +573,30 @@ const EaudouceNourriturePage = () => {
         setSubCategories(cleanedChildCategories);
         const categoryIds = [parentCategory.id, ...cleanedChildCategories.map(cat => cat.id)].filter(Boolean);
         
+        // Logique pour déterminer les catégories de navigation du header
+        let mainNavCats: Category[] = [];
+        if (parentCategory) {
+            if (parentCategory.parent_id) {
+                // Si la catégorie actuelle a un parent, trouver son grand-parent
+                const grandParent = categoriesData.find(cat => cat.id === parentCategory.parent_id);
+                if (grandParent) {
+                    // Obtenir tous les enfants du grand-parent
+                    const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
+                    mainNavCats = childrenOfGrandparent;
+                } else {
+                    // Si la catégorie actuelle a un parent mais pas de grand-parent direct,
+                    // cela signifie qu'elle est une enfant de premier niveau.
+                    // Dans ce cas, les catégories de navigation devraient être les enfants de son parent.
+                    mainNavCats = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
+                }
+            } else {
+                // Si la catégorie actuelle n'a pas de parent, c'est une catégorie racine.
+                // On affiche alors ses propres enfants pour la navigation.
+                mainNavCats = cleanedChildCategories;
+            }
+        }
+        setHeaderNavCategories(mainNavCats);
+
         // 🔥 Ajoute les images principales Supabase
         const imageMap = await fetchMainImages(extendedProducts);
         let updatedWithImages = extendedProducts.map(p => ({
@@ -690,7 +714,7 @@ const EaudouceNourriturePage = () => {
       }
     };
     loadProductsAndCategories();
-  }, [currentSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
+  }, [rawSlug, selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   // Récupérer les descriptions des produits
   useEffect(() => {
@@ -866,9 +890,9 @@ const EaudouceNourriturePage = () => {
       const trimmedText = newText.trim();
       
       // Mettre à jour l'état local immédiatement
-      if (contentKey === `category_${currentSlug}_title`) {
+      if (contentKey === `category_${rawSlug}_title`) {
         setCategoryTitle(trimmedText);
-      } else if (contentKey === `category_${currentSlug}_description`) {
+      } else if (contentKey === `category_${rawSlug}_description`) {
         setCategoryDescription(trimmedText);
       }
       
@@ -926,18 +950,18 @@ const EaudouceNourriturePage = () => {
           .from("editable_content")
           .select("*")
           .in("content_key", [
-            `category_${currentSlug}_title`, 
-            `category_${currentSlug}_description`,
-            `category_${currentSlug}_banner_image`
+            `category_${rawSlug}_title`, 
+            `category_${rawSlug}_description`,
+            `category_${rawSlug}_banner_image`
           ]);
         
         if (!error && data) {
           data.forEach(item => {
-            if (item.content_key === `category_${currentSlug}_title`) {
+            if (item.content_key === `category_${rawSlug}_title`) {
               setCategoryTitle(item.content);
-            } else if (item.content_key === `category_${currentSlug}_description`) {
+            } else if (item.content_key === `category_${rawSlug}_description`) {
               setCategoryDescription(item.content);
-            } else if (item.content_key === `category_${currentSlug}_banner_image`) {
+            } else if (item.content_key === `category_${rawSlug}_banner_image`) {
               setCategoryBannerImage(item.content);
             }
           });
@@ -948,13 +972,13 @@ const EaudouceNourriturePage = () => {
     };
 
     fetchEditableContent();
-  }, [currentSlug, isEditMode]);
+  }, [rawSlug, isEditMode]);
 
   // Fonction pour mettre à jour l'URL de l'image
   const handleImageUpdate = async (newUrl: string, contentKey: string) => {
     try {
       // Mettre à jour l'état local
-      if (contentKey === `category_${currentSlug}_banner_image`) {
+      if (contentKey === `category_${rawSlug}_banner_image`) {
         setCategoryBannerImage(newUrl);
       }
       
@@ -1208,10 +1232,10 @@ const EaudouceNourriturePage = () => {
         {isEditMode ? (
           <div className="absolute inset-0 z-0 flex items-center justify-center">
             <EditableImage
-              imageKey={`category_${currentSlug}_banner_image`}
+              imageKey={`category_${rawSlug}_banner_image`}
               initialUrl={categoryBannerImage}
               className="w-full max-h-[320px] h-[320px] object-cover rounded-lg shadow"
-              onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${currentSlug}_banner_image`)}
+              onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${rawSlug}_banner_image`)}
             />
             <div className="absolute inset-0 bg-black/50 rounded-lg"></div>
           </div>
@@ -1227,65 +1251,47 @@ const EaudouceNourriturePage = () => {
         <div className="container mx-auto text-center text-white relative z-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">
             <EditableText
-              contentKey={`category_${currentSlug}_title`}
+              contentKey={`category_${rawSlug}_title`}
               initialContent={categoryTitle}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${rawSlug}_title`)}
             />
           </h1>
-          <p className="max-w-2xl mx-auto mb-8">
+          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
             <EditableText
-              contentKey={`category_${currentSlug}_description`}
+              contentKey={`category_${rawSlug}_description`}
               initialContent={categoryDescription}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+              onUpdate={(newText) => handleTextUpdate(newText, `category_${rawSlug}_description`)}
             />
           </p>
+          {isMobile && categoryDescription.length > 0 && (
+            <button
+              onClick={() => setShowFullDescription(!showFullDescription)}
+              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
+            >
+              {showFullDescription ? "Lire moins" : "Lire la suite"}
+            </button>
+          )}
           
           {/* Navigation Eau Douce / Eau de Mer / Universel */}
           <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            <Button
-              asChild
-              variant={isEauDouce ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauDouce
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudoucepompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudouce")}</div>
-                <span>Eau douce</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isEauMer ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isEauMer
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/eaudemerpompes" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("eaudemer")}</div>
-                <span>Eau de mer</span>
-              </a>
-            </Button>
-            
-            <Button
-              asChild
-              variant={isUniversel ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                isUniversel
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-              <a href="/categories/universelsdeco" className="flex flex-col items-center justify-center">
-                <div className="text-2xl mb-1">{getEmojiForCategory("universel")}</div>
-                <span>Universel</span>
-              </a>
-            </Button>
+            {headerNavCategories.map((navCat) => (
+              <Button
+                key={navCat.id}
+                asChild
+                // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
+                variant={navCat.slug === rawSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                  navCat.slug === rawSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
+                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                  <span>{navCat.name}</span>
+                </a>
+              </Button>
+            ))}
           </div>
           
           
@@ -1441,11 +1447,11 @@ const EaudouceNourriturePage = () => {
                     <tbody>
                       <tr>
                         <td className="py-1 font-semibold">Slug brut :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{currentSlug}</td>
+                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{rawSlug}</td>
                       </tr>
                       <tr>
                         <td className="py-1 font-semibold">Slug nettoyé :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{currentSlug}</td>
+                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{rawSlug}</td>
                       </tr>
                       <tr>
                         <td className="py-1 font-semibold">Slug normalisé :</td>
@@ -1823,7 +1829,7 @@ const EaudouceNourriturePage = () => {
                     <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                       <div className="relative h-56 bg-white flex items-center justify-center">
                         {(product.hasDiscount || product.onSale) && <PromoBadge />}
-                        <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>
+                        <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${rawSlug}`}>
                           <img 
                             src={product.image || "/placeholder.svg"} 
                             alt={product.title} 
@@ -1870,7 +1876,7 @@ const EaudouceNourriturePage = () => {
                         <div className="mt-auto">
                           {product.hasVariant ? (
                             <RouterLink
-                              to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}
+                              to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${rawSlug}`}
                               className="block bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold text-center text-sm w-full"
                             >
                               Voir le produit
