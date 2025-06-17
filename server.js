@@ -81,6 +81,8 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 
+app.options('/api/stripe/products', cors()); // Explicit OPTIONS handler for /api/stripe/products
+
 // 1. Récupérer les produits Stripe
 app.get('/api/stripe/products', async (_, res) => {
   try {
