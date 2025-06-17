@@ -299,9 +299,9 @@ const Header = () => {
       <header className="relative bg-white/80 backdrop-blur-md z-40 border-b border-gray-200">
         <div className="container mx-auto px-4">
           {/* 🔧 Header Mobile */}
-          <div className="flex items-center justify-between lg:hidden py-4">
+          <div className="flex items-center justify-between lg:hidden py-1">
             {/* Menu hamburger à gauche */}
-            <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(true)}>
+            <Button variant="ghost" size="icon-sm" onClick={() => setIsMenuOpen(true)}>
               <Menu className="h-6 w-6 text-gray-700" />
             </Button>
 
@@ -312,14 +312,14 @@ const Header = () => {
                   <img
                     src={logoUrl}
                     alt="Logo AquaShop"
-                    className="h-12 mx-auto object-contain"
+                    className="h-10 mx-auto object-contain"
                   />
                 ) : (
                 <span className="text-2xl font-bold text-ocean">AquaShop</span>
                 )}
               </Link>
               {isEditMode && (
-                <div className="">
+                <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white p-2 rounded-md shadow-lg z-50 w-full max-w-[300px]">
                   <input
                     type="file"
                     accept="image/*"
@@ -338,11 +338,11 @@ const Header = () => {
 
             {/* Icônes à droite */}
             <div className="flex items-center space-x-4 pr-1">
-              <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(true)}>
+              <Button variant="ghost" size="icon-sm" onClick={() => setIsSearchOpen(true)}>
                 <Search className="h-5 w-5 text-gray-600" />
               </Button>
               <Link to="/account/favorites">
-                <Button variant="ghost" size="icon" aria-label="Voir mes favoris" className="relative">
+                <Button variant="ghost" size="icon-sm" aria-label="Voir mes favoris" className="relative">
                   <Heart className="h-5 w-5 text-gray-600" />
                   {totalFavorites > 0 && (
                     <Badge 
@@ -354,13 +354,13 @@ const Header = () => {
                   )}
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={handleAccountClick}>
+              <Button variant="ghost" size="icon-sm" onClick={handleAccountClick}>
                 <User className="h-5 w-5 text-gray-600" />
               </Button>
               {/* Bouton du panier (réutilise le même cartDrawer) */}
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 className="relative"
                 onClick={openDrawer}
               >
@@ -393,7 +393,7 @@ const Header = () => {
                 )}
               </Link>
               {isEditMode && (
-                <div className="">
+                <div className="absolute top-full left-0 bg-white p-2 rounded-md shadow-lg z-50 w-full max-w-[300px]">
                   <input
                     type="file"
                     accept="image/*"
@@ -566,17 +566,17 @@ const Header = () => {
                 )}
               </div>
               <Link to="/account/favorites">
-                <Button variant="ghost" size="icon" aria-label="Voir mes favoris">
+                <Button variant="ghost" size="icon-sm" aria-label="Voir mes favoris">
                   <Heart className="h-5 w-5 text-gray-600" />
               </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={handleAccountClick}>
+              <Button variant="ghost" size="icon-sm" onClick={handleAccountClick}>
                 <User className="h-5 w-5" />
               </Button>
               {/* Bouton du panier (desktop) */}
               <Button
                 variant="ghost"
-                size="icon"
+                size="icon-sm"
                 className="relative"
                 onClick={openDrawer}
               >
@@ -614,7 +614,7 @@ const Header = () => {
                   <span className="text-xl font-bold text-ocean">AquaShop</span>
                 )}
               </Link>
-              <Button variant="ghost" size="icon" onClick={() => setIsMenuOpen(false)}>
+              <Button variant="ghost" size="icon-sm" onClick={() => setIsMenuOpen(false)}>
                 <X className="h-6 w-6 text-gray-600" />
               </Button>
             </div>
@@ -698,7 +698,7 @@ const Header = () => {
                 {/* Barre du haut */}
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-xl font-bold text-ocean">Recherche</span>
-                  <Button variant="ghost" size="icon" onClick={() => setIsSearchOpen(false)}>
+                  <Button variant="ghost" size="icon-sm" onClick={() => setIsSearchOpen(false)}>
                     <X className="h-6 w-6 text-gray-600" />
                   </Button>
                 </div>
