@@ -104,7 +104,7 @@ app.get('/api/stripe/products', cors(), async (_, res) => {
   
   try {
     // 🛠️ SOLUTION RAPIDE TEMPORAIRE: Récupère uniquement les IDs des produits
-    const stripeProducts = await stripe.products.list({ limit: 10 });
+    const stripeProducts = await stripe.products.list({ limit: 5 });
     console.log(`✅ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
     console.log(`🛍️ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
 
