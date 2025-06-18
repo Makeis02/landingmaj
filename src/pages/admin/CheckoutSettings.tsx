@@ -172,7 +172,7 @@ export default function CheckoutSettings() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
-          body: JSON.stringify({ productId }),
+          body: JSON.stringify({ stripeProductId: productId }),
         }
       );
       
