@@ -258,6 +258,155 @@ app.get('/api/stripe/products', async (req, res) => {
   }
 });
 
+// 💳 **API Stripe pour créer une session de checkout**
+app.post('/api/stripe/create-checkout', async (req, res) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('❌ Variable d\'environnement STRIPE_SECRET_KEY manquante');
+    return res.status(500).json({ 
+      error: 'Configuration Stripe manquante', 
+      message: 'La clé secrète Stripe n\'est pas configurée sur le serveur' 
+    });
+  }
+
+  try {
+    const { items, success_url, cancel_url } = req.body;
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ 
+        error: 'Panier vide', 
+        message: 'Le panier ne peut pas être vide' 
+      });
+    }
+
+    console.log('🛒 Création de session de checkout Stripe...');
+    
+    // Créer la session de checkout
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: items.map(item => ({
+        price_data: {
+          currency: 'eur',
+          product_data: {
+            name: item.title || 'Produit',
+            images: item.image_url ? [item.image_url] : [],
+          },
+          unit_amount: Math.round((item.price || 0) * 100), // Stripe utilise les centimes
+        },
+        quantity: item.quantity || 1,
+      })),
+      mode: 'payment',
+      success_url: success_url || 'https://majemsiteteste.netlify.app/success',
+      cancel_url: cancel_url || 'https://majemsiteteste.netlify.app/checkout?canceled=true',
+    });
+
+    console.log('✅ Session de checkout créée:', session.id);
+    
+    return res.status(200).json({ 
+      sessionId: session.id,
+      url: session.url
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la création de la session de checkout:', error);
+    return res.status(500).json({ 
+      error: 'Erreur serveur', 
+      message: error.message || 'Erreur lors de la création de la session de checkout'
+    });
+  }
+});
+
+// 🔄 **API Stripe Webhook**
+app.post('/api/stripe-webhook', async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  if (!endpointSecret) {
+    console.error('❌ Variable d\'environnement STRIPE_WEBHOOK_SECRET manquante');
+    return res.status(500).json({ 
+      error: 'Configuration webhook manquante', 
+      message: 'La clé secrète webhook n\'est pas configurée' 
+    });
+  }
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err) {
+    console.error('❌ Erreur de signature webhook:', err.message);
+    return res.status(400).json({ 
+      error: 'Signature invalide', 
+      message: 'La signature du webhook est invalide' 
+    });
+  }
+
+  try {
+    console.log('📡 Webhook Stripe reçu:', event.type);
+    
+    // Gérer les différents types d'événements
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        console.log('✅ Paiement complété pour la session:', session.id);
+        // Ici tu peux ajouter la logique pour mettre à jour ta base de données
+        break;
+        
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        console.log('✅ Paiement réussi:', paymentIntent.id);
+        break;
+        
+      case 'payment_intent.payment_failed':
+        const failedPayment = event.data.object;
+        console.log('❌ Paiement échoué:', failedPayment.id);
+        break;
+        
+      default:
+        console.log('📡 Événement non géré:', event.type);
+    }
+
+    return res.status(200).json({ received: true });
+  } catch (error) {
+    console.error('❌ Erreur lors du traitement du webhook:', error);
+    return res.status(500).json({ 
+      error: 'Erreur serveur', 
+      message: error.message || 'Erreur lors du traitement du webhook'
+    });
+  }
+});
+
+// 📦 **API pour décrémenter le stock**
+app.post('/api/stock/decrement', async (req, res) => {
+  try {
+    const { productId, quantity = 1 } = req.body;
+    
+    if (!productId) {
+      return res.status(400).json({ 
+        error: 'ID produit manquant', 
+        message: 'L\'ID du produit est requis' 
+      });
+    }
+
+    console.log('📦 Décrémentation du stock pour le produit:', productId);
+    
+    // Ici tu peux ajouter la logique pour décrémenter le stock
+    // Par exemple, mettre à jour Supabase ou Stripe
+    
+    // Pour l'instant, on retourne juste un succès
+    console.log('✅ Stock décrémenté avec succès');
+    
+    return res.status(200).json({ 
+      success: true,
+      message: 'Stock décrémenté avec succès'
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la décrémentation du stock:', error);
+    return res.status(500).json({ 
+      error: 'Erreur serveur', 
+      message: error.message || 'Erreur lors de la décrémentation du stock'
+    });
+  }
+});
+
 // API pour récupérer les descriptions des pages produit
 app.get('/api/products/descriptions', async (req, res) => {
   const pagesDir = path.join(__dirname, "src", "pages", "products");

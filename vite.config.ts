@@ -42,9 +42,11 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: process.env.NODE_ENV === 'production'
+          ? 'https://landingmaj-production.up.railway.app'
+          : 'http://localhost:3000',
         changeOrigin: true,
-        secure: false,
+        secure: process.env.NODE_ENV === 'production',
       }
     }
   },

@@ -1,10 +1,13 @@
 # Environment Variables pour le Frontend Vite
 # Copier ce fichier vers .env et remplir les valeurs
 
-# URL de l'API Backend (Render)
-# En production sur Netlify, définir cette variable vers votre serveur Render
-# Exemple: https://landingmaj.onrender.com
-VITE_API_URL=https://landingmaj-production.up.railway.app/.
+# URL de l'API Backend (Railway)
+# En production sur Netlify, définir cette variable vers votre serveur Railway
+# Exemple: https://landingmaj-production.up.railway.app
+VITE_API_URL=https://landingmaj-production.up.railway.app
+
+# URL du site frontend
+VITE_SITE_URL=https://majemsiteteste.netlify.app
 
 # Supabase Configuration (si utilisé côté frontend)
 VITE_SUPABASE_URL=your_supabase_url
