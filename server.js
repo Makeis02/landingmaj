@@ -221,4 +221,12 @@ app.post('/api/products/descriptions', async (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur démarré sur http://0.0.0.0:${PORT}`);
   console.log("🔐 Origines CORS autorisées :", allowedOrigins);
+  
+  // 🧪 Logger de routes pour débug
+  console.log("📋 Liste des routes Express déclarées :");
+  app._router.stack
+    .filter(r => r.route)
+    .forEach(r => {
+      console.log(`➡️ ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${r.route.path}`);
+    });
 });
