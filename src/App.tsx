@@ -15,7 +15,7 @@ import LandingPage from "./pages/Landing/index";
 import DecorationPage from "@/pages/categories/DecorationPage";
 import Modele from "@/pages/Product/Modele";
 import DynamicProductPage from "@/pages/DynamicProductPage";
-
+import ProductPage from "@/pages/products/ProductPage";
 
 import EaucDouceDécorationPage from "@/pages/categories/EaucDouceDécorationPage";
 
@@ -365,7 +365,7 @@ const App = () => {
           <Route path="/categories/:slug" element={<EaucDouceDécorationPage />} />
           <Route path="/modele" element={<Modele categoryParam={null} />} />
           <Route path="/dynamic-product" element={<DynamicProductPage />} />
-          <Route path="/produits/:slug" element={<Modele />} />
+          <Route path="/produits/:slug" element={<ProductPage />} />
 
           <Route path="/account/login" element={<LoginPage />} />
           <Route path="/account/signup" element={<SignupPage />} />
