@@ -21,12 +21,17 @@ function getApiBaseUrl(): string {
     }
   }
   
+  // En production, utiliser Railway
+  if (import.meta.env.PROD) {
+    return "https://landingmaj-production.up.railway.app";
+  }
+  
   // Par défaut, utiliser l'URL relative
   return '';
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = "https://landingmaj-production.up.railway.app";
+  const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}/api/stripe/products`;
   
   try {

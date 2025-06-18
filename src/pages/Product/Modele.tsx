@@ -35,6 +35,7 @@ import Reviews from "@/pages/Landing/components/Reviews";
 import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
+import { fetchStripeProducts } from "@/lib/api/stripe";
 
 // Types
 interface Product {
@@ -509,45 +510,24 @@ const Modele = ({ categoryParam = null }) => {
   // Fonction pour récupérer les produits depuis Stripe
   const fetchProducts = async () => {
     try {
-      logDebug("Appel de fetchProducts");
-      const apiBaseUrl = getApiBaseUrl();
-      const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+      logDebug("Appel de fetchStripeProducts");
+      const products = await fetchStripeProducts();
       
       const status = {
-        status: response.status,
-        success: response.ok,
+        status: 200,
+        success: true,
         error: null,
-        response: null
+        response: { products }
       };
-      
-      if (!response.ok) {
-        status.error = `Erreur HTTP ${response.status}: ${response.statusText}`;
-        setFetchStatus(status);
-        throw new Error(status.error);
-      }
-      
-      const data = await response.json();
-      status.response = data;
-      
-      // Vérifier la structure de la réponse
-      if (!data.products || !Array.isArray(data.products)) {
-        status.error = "La réponse ne contient pas de tableau 'products'";
-        setFetchStatus(status);
-        throw new Error(status.error);
-      }
-      
-      if (data.products.length === 0) {
-        status.error = "La liste des produits est vide";
-      }
       
       setFetchStatus(status);
       logDebug("Produits récupérés", {
-        count: data.products?.length || 0,
-        ids: data.products?.map(p => p.id)
+        count: products?.length || 0,
+        ids: products?.map(p => p.id)
       });
       
-      setStripeData(data.products);
-      return data.products;
+      setStripeData(products);
+      return products;
     } catch (error) {
       const status = {
         status: null,
@@ -556,7 +536,7 @@ const Modele = ({ categoryParam = null }) => {
         response: null
       };
       setFetchStatus(status);
-      logDebug("Erreur fetchProducts", error);
+      logDebug("Erreur fetchStripeProducts", error);
       throw error;
     }
   };

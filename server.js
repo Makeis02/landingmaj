@@ -50,7 +50,17 @@ console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini
 
 // 🛠️ Middleware essentiels
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: [
+    'https://majemsiteteste.netlify.app',
+    'https://landingmaj-production.up.railway.app',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+}));
 
 // 🚀 Démarrage WebSocket
 const wss = new WebSocketServer({ port: WS_PORT });
