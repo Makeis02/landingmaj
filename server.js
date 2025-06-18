@@ -42,7 +42,15 @@ console.log('- SHOPIFY_ADMIN_ACCESS_TOKEN:', SHOPIFY_ADMIN_ACCESS_TOKEN ? '✅ D
 
 // 🛠️ Middleware essentiels
 app.use(bodyParser.json());
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://majemsiteteste.netlify.app',
+    'https://landingmaj-production.up.railway.app'
+  ],
+  credentials: true
+}));
 
 // 🚀 Démarrage WebSocket
 const wss = new WebSocketServer({ port: WS_PORT });

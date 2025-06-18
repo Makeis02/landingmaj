@@ -21,6 +21,11 @@ function getApiBaseUrl(): string {
     }
   }
   
+  // Si on est sur Netlify, utiliser l'URL Railway
+  if (window.location.hostname === 'majemsiteteste.netlify.app') {
+    return 'https://landingmaj-production.up.railway.app';
+  }
+  
   // Par défaut, utiliser l'URL relative
   return '';
 }

@@ -15,7 +15,9 @@ export interface ShopifyProduct {
 // Configuration de l'URL de base en fonction de l'environnement
 const BASE_URL = import.meta.env.DEV
   ? 'http://localhost:3000' // En développement, API sur localhost:3000
-  : ''; // En production, utiliser l'URL relative
+  : typeof window !== 'undefined' && window.location.hostname === 'majemsiteteste.netlify.app'
+    ? 'https://landingmaj-production.up.railway.app' // Sur Netlify, utiliser Railway
+    : ''; // En production sur Railway, utiliser l'URL relative
 
 /**
  * Récupère les produits depuis l'API Shopify via notre backend
