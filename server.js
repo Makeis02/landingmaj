@@ -103,45 +103,25 @@ app.get('/api/stripe/products', cors(), async (_, res) => {
   console.log("📦 Tentative de récupération des produits Stripe");
   
   try {
-    // 🛠️ OPTIMISATION 1: Limiter à 10 produits pour le debug
-    const stripeProducts = await stripe.products.list({ 
-      limit: 10, 
-      expand: ['data.default_price'],
-      active: true 
-    });
+    // 🛠️ SOLUTION RAPIDE TEMPORAIRE: Récupère uniquement les IDs des produits
+    const stripeProducts = await stripe.products.list({ limit: 10 });
     console.log(`✅ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
     console.log(`🛍️ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
 
-    // 🛠️ OPTIMISATION 2: Récupérer tous les prix en une seule requête
-    console.log('💳 Récupération de tous les prix en une seule requête...');
-    const allPrices = await stripe.prices.list({ limit: 100 });
-    console.log(`💰 ${allPrices.data.length} prix récupérés au total`);
-
-    const products = [];
-    for (const p of stripeProducts.data) {
-      // 🛠️ OPTIMISATION 3: Filtrer les prix au lieu de faire une requête par produit
-      const prices = allPrices.data.filter(price => price.product === p.id);
-      console.log(`💵 ${prices.length} prix pour le produit: ${p.name}`);
-
-      const priceStocks = {};
-      prices.forEach(price => {
-        if (price.lookup_key && price.metadata?.stock) {
-          priceStocks[price.lookup_key] = Number(price.metadata.stock);
-        }
-      });
-      products.push({
+    // 🛠️ MAPPING SIMPLE sans appels lourds
+    const products = stripeProducts.data.map(p => ({
       id: p.id,
       title: p.name,
-      price: p.default_price?.unit_amount / 100 || 0,
+      price: 0, // pas de prix
       image: p.images[0] || '',
       description: p.description || '',
       brand: p.metadata?.brand || '',
-        reference: p.metadata?.reference || '',
-        metadata: p.metadata,
-        variantStocks: priceStocks,
-        stock: Number(p.metadata?.stock) || 0
-      });
-    }
+      reference: p.metadata?.reference || '',
+      metadata: p.metadata,
+      variantStocks: {}, // pas de stocks
+      stock: 0 // pas de stock non plus
+    }));
+
     console.log("✅ Produits renvoyés:", products.length, "produits");
     console.log('✅ Envoi des produits au frontend');
     res.json({ products });
