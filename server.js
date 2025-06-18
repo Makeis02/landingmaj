@@ -57,7 +57,8 @@ const allowedOrigins = [
   'http://localhost:8080',
   'http://192.168.1.14:8080',
   'https://majemsiteteste.netlify.app',
-  'https://landingmaj.onrender.com'
+  'https://landingmaj.onrender.com',
+  'https://landingmaj-production.up.railway.app'
 ];
 
 app.use(cors({
@@ -81,15 +82,8 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 
-app.options('/api/stripe/products', (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', 'https://majemsiteteste.netlify.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.status(204).end();
-});
-
 // 1. Récupérer les produits Stripe
-app.get('/api/stripe/products', cors(), async (_, res) => {
+app.get('/api/stripe/products', async (_, res) => {
   try {
     const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
     const products = [];
