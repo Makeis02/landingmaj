@@ -347,6 +347,7 @@ export default function CheckoutSettings() {
         title: "Succès",
         description: "Les paramètres ont été enregistrés et les prix Stripe mis à jour",
       });
+      await fetchData();
     } catch (error) {
       console.error("Erreur lors de l'enregistrement:", error);
       toast({
