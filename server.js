@@ -58,13 +58,17 @@ const allowedOrigins = [
   'http://192.168.1.14:8080',
   'https://majemsiteteste.netlify.app',
   'https://landingmaj.onrender.com',
-  'https://landingmaj-production.up.railway.app'
+  'https://landingmaj-production.up.railway.app',
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-    console.warn('⛔ Origine refusée :', origin);
+    if (!origin || allowedOrigins.includes(origin)) {
+      console.log("✅ Origine autorisée:", origin);
+      return callback(null, true);
+    }
+    console.warn("⛔ Blocage CORS pour l'origine:", origin);
+    console.log("🧾 Liste des origines autorisées:", allowedOrigins);
     callback(new Error('Not allowed by CORS'));
   },
   methods: ['GET', 'POST', 'OPTIONS'],
@@ -74,16 +78,24 @@ app.use(cors({
 
 app.options('*', cors()); // Gère les requêtes OPTIONS pour toutes les routes
 
-// Middleware de log pour debug
+// 🔍 Log middleware universel pour diagnostiquer les requêtes
 app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.path} from ${req.headers.origin}`);
+  console.log("🔍 Nouvelle requête reçue:");
+  console.log("➡️ Méthode:", req.method);
+  console.log("➡️ URL:", req.originalUrl);
+  console.log("➡️ Origin:", req.headers.origin);
+  console.log("➡️ Headers:", req.headers);
   next();
 });
 
 app.use(bodyParser.json());
 
+// 🔧 Correction CORS explicite pour OPTIONS (préflight)
+
+
 // 1. Récupérer les produits Stripe
-app.get('/api/stripe/products', async (_, res) => {
+app.get('/api/stripe/products', cors(), async (_, res) => {
+  console.log("📦 Tentative de récupération des produits Stripe");
   try {
     const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
     const products = [];
@@ -109,8 +121,11 @@ app.get('/api/stripe/products', async (_, res) => {
         stock: Number(p.metadata?.stock) || 0
       });
     }
+    console.log("✅ Produits renvoyés:", products.length, "produits");
     res.json({ products });
   } catch (err) {
+    console.error("❌ Erreur Stripe:", err.message);
+    console.error(err);
     res.status(500).json({ error: 'Stripe error', message: err.message });
   }
 });
@@ -203,5 +218,6 @@ app.post('/api/products/descriptions', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur en ligne sur http://0.0.0.0:${PORT}`);
+  console.log(`🚀 Serveur démarré sur http://0.0.0.0:${PORT}`);
+  console.log("🔐 Origines CORS autorisées :", allowedOrigins);
 });
