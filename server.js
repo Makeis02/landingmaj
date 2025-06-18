@@ -93,8 +93,13 @@ app.use((req, res, next) => {
 
 app.use(bodyParser.json());
 
-// 🔧 Correction CORS explicite pour OPTIONS (préflight)
+// 🔧 Route de test simple pour vérifier que le serveur fonctionne
+app.get('/api/ping', (_, res) => {
+  console.log('🏓 Ping reçu - Serveur fonctionne !');
+  res.json({ message: 'pong', timestamp: new Date().toISOString() });
+});
 
+// 🔧 Correction CORS explicite pour OPTIONS (préflight)
 
 // 1. Récupérer les produits Stripe
 app.get('/api/stripe/products', cors(), async (_, res) => {
