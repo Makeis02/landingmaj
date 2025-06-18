@@ -50,9 +50,9 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    // mode === 'development' &&
-    // componentTagger(), // 🔧 Temporairement désactivé pour debug
-    // mockApiPlugin(), // 🔧 Temporairement désactivé pour debug
+    mode === 'development' &&
+    componentTagger(),
+    mockApiPlugin(),
   ].filter(Boolean),
   define: {
     'process.env': process.env

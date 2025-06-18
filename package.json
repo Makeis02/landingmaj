@@ -77,7 +77,7 @@
 
 
 
-"build": "NODE_OPTIONS='--max-old-space-size=1024' vite build",
+"build": "vite build",
   
 
 
@@ -95,23 +95,6 @@
 
 
 "build:dev": "vite build --mode development",
-  
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
-"start": "NODE_OPTIONS='--max-old-space-size=512' node server.js",
   
 
 

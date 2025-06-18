@@ -308,15 +308,15 @@ const Header = () => {
             {/* Logo centré et Upload */}
             <div className="flex-grow text-center flex flex-col items-center">
               <Link to="/" >
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo AquaShop" 
-                  className="h-12 mx-auto object-contain" 
-                />
-              ) : (
-              <span className="text-2xl font-bold text-ocean">AquaShop</span>
-              )}
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo AquaShop"
+                    className="h-12 mx-auto object-contain"
+                  />
+                ) : (
+                <span className="text-2xl font-bold text-ocean">AquaShop</span>
+                )}
               </Link>
               {isEditMode && (
                 <div className="absolute top-full left-1/2 -translate-x-1/2 bg-white p-2 rounded-md shadow-lg z-50 w-full max-w-[300px]">
@@ -382,15 +382,15 @@ const Header = () => {
             {/* Logo et Upload */}
             <div className="flex items-center gap-2">
               <Link to="/" className="text-2xl font-bold text-ocean">
-              {logoUrl ? (
-                <img 
-                  src={logoUrl} 
-                  alt="Logo AquaShop" 
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo AquaShop"
                     className="h-24 object-contain"
-                />
-              ) : (
-                <span className="text-2xl font-bold text-ocean">AquaShop</span>
-              )}
+                  />
+                ) : (
+                  <span className="text-2xl font-bold text-ocean">AquaShop</span>
+                )}
               </Link>
               {isEditMode && (
                 <div className="absolute top-full left-0 bg-white p-2 rounded-md shadow-lg z-50 w-full max-w-[300px]">
