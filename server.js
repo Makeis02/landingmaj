@@ -28,7 +28,10 @@ try {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  httpClient: Stripe.createFetchHttpClient(),
+  timeout: 10000 // 10 secondes
+});
 
 // Stripe Webhook: doit être AVANT TOUS les middlewares
 app.post('/api/webhook', bodyParser.raw({ type: 'application/json' }), async (req, res) => {
@@ -95,15 +98,33 @@ app.use(bodyParser.json());
 
 // 1. Récupérer les produits Stripe
 app.get('/api/stripe/products', cors(), async (_, res) => {
+  console.log('⚡ Requête entrante vers /api/stripe/products');
+  console.log('📥 Requête reçue pour /api/stripe/products');
   console.log("📦 Tentative de récupération des produits Stripe");
+  
   try {
-    const stripeProducts = await stripe.products.list({ expand: ['data.default_price'], active: true });
+    // 🛠️ OPTIMISATION 1: Limiter à 10 produits pour le debug
+    const stripeProducts = await stripe.products.list({ 
+      limit: 10, 
+      expand: ['data.default_price'],
+      active: true 
+    });
+    console.log(`✅ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
+    console.log(`🛍️ ${stripeProducts.data.length} produits récupérés depuis Stripe`);
+
+    // 🛠️ OPTIMISATION 2: Récupérer tous les prix en une seule requête
+    console.log('💳 Récupération de tous les prix en une seule requête...');
+    const allPrices = await stripe.prices.list({ limit: 100 });
+    console.log(`💰 ${allPrices.data.length} prix récupérés au total`);
+
     const products = [];
     for (const p of stripeProducts.data) {
-      // Récupérer les stocks par variante (price)
-      const prices = await stripe.prices.list({ product: p.id });
+      // 🛠️ OPTIMISATION 3: Filtrer les prix au lieu de faire une requête par produit
+      const prices = allPrices.data.filter(price => price.product === p.id);
+      console.log(`💵 ${prices.length} prix pour le produit: ${p.name}`);
+
       const priceStocks = {};
-      prices.data.forEach(price => {
+      prices.forEach(price => {
         if (price.lookup_key && price.metadata?.stock) {
           priceStocks[price.lookup_key] = Number(price.metadata.stock);
         }
@@ -122,9 +143,12 @@ app.get('/api/stripe/products', cors(), async (_, res) => {
       });
     }
     console.log("✅ Produits renvoyés:", products.length, "produits");
+    console.log('✅ Envoi des produits au frontend');
     res.json({ products });
   } catch (err) {
     console.error("❌ Erreur Stripe:", err.message);
+    console.error('❌ Erreur Stripe :', err.message);
+    console.error('❌ Erreur Stripe:', err);
     console.error(err);
     res.status(500).json({ error: 'Stripe error', message: err.message });
   }
