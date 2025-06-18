@@ -23,7 +23,7 @@ try {
   // Charge .env en forçant le chemin absolu
   dotenv.config({ path: path.resolve(__dirname, '.env') });
   console.log('✅ Variables d\'environnement chargées avec succès');
-  console.log("🔑 Stripe key chargée:", process.env.STRIPE_SECRET_KEY?.substring(0, 5) + '...');
+  console.log("🔑 Stripe key chargée:", process.env.STRIPE_SECRET_KEY ? "✅ OK" : "❌ undefined");
 } catch (error) {
   console.error('❌ Erreur lors du chargement des variables d\'environnement:', error);
 }
