@@ -51,10 +51,21 @@ export default function CheckoutSettings() {
   });
   const [debugStripe, setDebugStripe] = useState<any[]>([]);
   const [globalFreeShippingThreshold, setGlobalFreeShippingThreshold] = useState<number>(settings.colissimo.free_shipping_threshold);
+  const [productIdDebounce, setProductIdDebounce] = useState<{ [key: string]: NodeJS.Timeout | null }>({});
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // 🎯 NOUVEAU : Nettoyage des timeouts au démontage du composant
+  useEffect(() => {
+    return () => {
+      // Nettoyer tous les timeouts actifs
+      Object.values(productIdDebounce).forEach(timeout => {
+        if (timeout) clearTimeout(timeout);
+      });
+    };
+  }, [productIdDebounce]);
 
   useEffect(() => {
     if (settings.colissimo.free_shipping_threshold !== globalFreeShippingThreshold) {
@@ -269,7 +280,17 @@ export default function CheckoutSettings() {
     }));
     
     if (field === "stripe_product_id") {
-      await fetchStripePriceForProduct(transporteur, newValue);
+      // 🎯 NOUVEAU : État pour gérer le debounce du stripe_product_id
+      if (productIdDebounce[transporteur]) {
+        clearTimeout(productIdDebounce[transporteur]);
+      }
+      const timeout = setTimeout(() => {
+        fetchStripePriceForProduct(transporteur, newValue);
+      }, 500);
+      setProductIdDebounce(prev => ({
+        ...prev,
+        [transporteur]: timeout,
+      }));
     }
     
     if (field === "base_price") {
