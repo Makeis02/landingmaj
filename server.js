@@ -15,6 +15,17 @@ console.log("📦 Lancement du serveur Express...");
 console.log("🌍 Railway ENV chargé ?");
 console.log("🔑 STRIPE_SECRET_KEY OK:", !!process.env.STRIPE_SECRET_KEY);
 
+// 🔥 Gestionnaires d'erreurs globaux pour capturer les crashes
+process.on("uncaughtException", (err) => {
+  console.error("🔥 Erreur non interceptée:", err);
+  console.error("📁 Fichier:", err.fileName || "inconnu");
+  console.error("📍 Ligne:", err.lineNumber || "inconnue");
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 Rejection non gérée:", reason);
+});
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -75,6 +86,7 @@ app.options('*', cors()); // Gère les requêtes OPTIONS pour toutes les routes
 
 // 🔍 Log middleware universel pour diagnostiquer les requêtes
 app.use((req, res, next) => {
+  console.log(`➡️ Requête reçue : ${req.method} ${req.originalUrl}`);
   console.log("🔍 Nouvelle requête reçue:");
   console.log("➡️ Méthode:", req.method);
   console.log("➡️ URL:", req.originalUrl);
@@ -89,6 +101,28 @@ app.use(bodyParser.json());
 app.get('/api/ping', (_, res) => {
   console.log('🏓 Ping reçu - Serveur fonctionne !');
   res.json({ message: 'pong 🎯', timestamp: new Date().toISOString() });
+});
+
+// 🔧 Route de diagnostic pour vérifier les fichiers
+app.get('/api/debug/files', async (_, res) => {
+  try {
+    const appTsxPath = path.join(__dirname, 'src', 'App.tsx');
+    const appTsxExists = await fs.pathExists(appTsxPath);
+    console.log("📦 Fichier App.tsx trouvé ?", appTsxExists);
+    
+    res.json({ 
+      appTsxExists,
+      appTsxPath,
+      currentDir: __dirname,
+      env: {
+        stripeKey: !!process.env.STRIPE_SECRET_KEY,
+        nodeEnv: process.env.NODE_ENV
+      }
+    });
+  } catch (error) {
+    console.error("❌ Erreur lors du diagnostic des fichiers:", error);
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 🔧 Correction CORS explicite pour OPTIONS (préflight)
