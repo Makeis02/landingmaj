@@ -12,6 +12,8 @@ import { supabase } from './src/integrations/supabase/client.js';
 import dotenv from 'dotenv';
 import cors from 'cors';
 
+console.log("📦 Lancement du serveur Express...");
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -96,7 +98,7 @@ app.use(bodyParser.json());
 // 🔧 Route de test simple pour vérifier que le serveur fonctionne
 app.get('/api/ping', (_, res) => {
   console.log('🏓 Ping reçu - Serveur fonctionne !');
-  res.json({ message: 'pong', timestamp: new Date().toISOString() });
+  res.json({ message: 'pong 🎯', timestamp: new Date().toISOString() });
 });
 
 // 🔧 Correction CORS explicite pour OPTIONS (préflight)
