@@ -114,7 +114,7 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // En production, forcer Render
+  // En production, forcer Railway
   if (import.meta.env.PROD) {
     return "https://landingmaj-production.up.railway.app";
   }
@@ -1521,6 +1521,9 @@ const Modele = ({ categoryParam = null }) => {
   const handleAddToCart = async () => {
     if (!product) return;
     
+    console.log('🛒 [HANDLE-ADD-TO-CART] Début de l\'ajout au panier pour:', product.title);
+    console.log('🛒 [HANDLE-ADD-TO-CART] Prix de base (computedPrice):', computedPrice);
+    
     // Récupérer les informations sur les variantes sélectionnées
     let variant = null;
     let stripePriceId = null;
@@ -1539,9 +1542,13 @@ const Modele = ({ categoryParam = null }) => {
         .join('|');
       variant = variantLabels;
       
+      console.log('🛒 [HANDLE-ADD-TO-CART] Variante sélectionnée:', variant);
+      
       // Pour les variantes, utiliser getDiscountedPrice du store
       const { getDiscountedPrice } = useCartStore.getState();
       const priceInfo = await getDiscountedPrice(product.id, variant);
+      
+      console.log('🛒 [HANDLE-ADD-TO-CART] Informations de prix récupérées:', priceInfo);
       
       if (priceInfo) {
         finalPrice = priceInfo.price;
@@ -1580,9 +1587,13 @@ const Modele = ({ categoryParam = null }) => {
         }
       }
     } else {
+      console.log('🛒 [HANDLE-ADD-TO-CART] Produit sans variante');
+      
       // Pour les produits sans variante, vérifier s'il y a une réduction
       const { getDiscountedPrice } = useCartStore.getState();
       const priceInfo = await getDiscountedPrice(product.id);
+      
+      console.log('🛒 [HANDLE-ADD-TO-CART] Informations de prix récupérées (sans variante):', priceInfo);
       
       if (priceInfo) {
         finalPrice = priceInfo.price;
@@ -1604,6 +1615,15 @@ const Modele = ({ categoryParam = null }) => {
       }
     }
     
+    console.log('🛒 [HANDLE-ADD-TO-CART] Prix final calculé:', {
+      finalPrice,
+      originalPrice,
+      discountPercentage,
+      hasDiscountApplied,
+      stripePriceId,
+      stripeDiscountPriceId
+    });
+    
     const stock = getSupabaseStock();
     if (stock === 0) {
       toast({
@@ -1613,8 +1633,30 @@ const Modele = ({ categoryParam = null }) => {
       });
       return;
     }
+    
+    // Ajouter l'article au panier immédiatement
+    addItem({
+      id: product.id,
+      price: finalPrice, // Prix final (réduit si applicable)
+      title: product.title,
+      image_url: selectedImage || product.image,
+      quantity: quantity,
+      variant: variant,
+      stripe_price_id: stripePriceId,
+      stripe_discount_price_id: stripeDiscountPriceId, // ID du prix promotionnel si applicable
+      original_price: originalPrice, // Prix original si réduction
+      discount_percentage: discountPercentage, // Pourcentage de réduction
+      has_discount: hasDiscountApplied // Indique si une réduction est active
+    });
+
+    toast({
+      title: "Produit ajouté au panier",
+      description: hasDiscountApplied 
+        ? `${product.title} a été ajouté à votre panier avec ${discountPercentage}% de réduction !`
+        : `${product.title} a été ajouté à votre panier.`,
+    });
         
-    // Décrémenter le stock côté Supabase
+    // Décrémenter le stock côté Supabase en arrière-plan (ne pas bloquer l'ajout au panier)
     const apiBaseUrl = getApiBaseUrl();
     fetch(`${apiBaseUrl}/api/stock/decrement`, {
       method: 'POST',
@@ -1625,34 +1667,9 @@ const Modele = ({ categoryParam = null }) => {
         variantOption: variants.length ? Object.values(selectedVariants)[0] : null,
         quantity
       })
-    }).then(() => {
-      addItem({
-        id: product.id,
-        price: finalPrice, // Prix final (réduit si applicable)
-        title: product.title,
-        image_url: selectedImage || product.image,
-        quantity: quantity,
-        variant: variant,
-        stripe_price_id: stripePriceId,
-        stripe_discount_price_id: stripeDiscountPriceId, // ID du prix promotionnel si applicable
-        original_price: originalPrice, // Prix original si réduction
-        discount_percentage: discountPercentage, // Pourcentage de réduction
-        has_discount: hasDiscountApplied // Indique si une réduction est active
-      });
-
-      toast({
-        title: "Produit ajouté au panier",
-        description: hasDiscountApplied 
-          ? `${product.title} a été ajouté à votre panier avec ${discountPercentage}% de réduction !`
-          : `${product.title} a été ajouté à votre panier.`,
-      });
     }).catch(error => {
       console.error("Erreur lors de la mise à jour du stock:", error);
-      toast({
-        variant: "destructive",
-        title: "Erreur",
-        description: "Impossible de mettre à jour le stock, veuillez réessayer."
-      });
+      // Ne pas afficher d'erreur à l'utilisateur car l'article a déjà été ajouté au panier
     });
   };
 

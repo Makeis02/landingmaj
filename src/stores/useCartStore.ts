@@ -189,6 +189,20 @@ export const useCartStore = create<CartStore>()(
   addItem: async (item) => {
     try {
       set({ isLoading: true });
+      
+      // 🐛 DEBUG: Log des informations de l'article ajouté
+      console.log('🛒 [ADD-ITEM] Ajout d\'un article au panier:', {
+        id: item.id,
+        title: item.title,
+        price: item.price,
+        original_price: item.original_price,
+        discount_percentage: item.discount_percentage,
+        has_discount: item.has_discount,
+        stripe_price_id: item.stripe_price_id,
+        stripe_discount_price_id: item.stripe_discount_price_id,
+        variant: item.variant
+      });
+      
       // Patch: garantir title et variant
       let patchedItem = { ...item };
       if (!patchedItem.title) {
@@ -204,45 +218,54 @@ export const useCartStore = create<CartStore>()(
         patchedItem.variant = null;
       }
           
-          const existingItem = get().items.find((i) => {
+      const existingItem = get().items.find((i) => {
         if (i.id === patchedItem.id) {
           if (patchedItem.variant && i.variant) {
             return i.variant === patchedItem.variant;
-              }
-              return true;
-            }
-            return false;
-          });
-      const quantity = patchedItem.quantity || 1;
-          let updatedItems;
-          if (existingItem) {
-            updatedItems = get().items.map((i) => {
-          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
-                return { ...i, quantity: i.quantity + quantity };
-              }
-              return i;
-            });
-          } else {
-        updatedItems = [...get().items, { ...patchedItem, quantity }];
           }
-          set({ items: updatedItems });
-          // Synchro serveur si connecté
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            try {
+          return true;
+        }
+        return false;
+      });
+      const quantity = patchedItem.quantity || 1;
+      let updatedItems;
       if (existingItem) {
-                await supabase
-          .from("cart_items")
-                  .update({ quantity: existingItem.quantity + quantity })
-          .eq("user_id", session.user.id)
-              .eq("product_id", patchedItem.id);
+        updatedItems = get().items.map((i) => {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
+            return { ...i, quantity: i.quantity + quantity };
+          }
+          return i;
+        });
       } else {
-                await supabase
-          .from("cart_items")
-          .insert({
-            user_id: session.user.id,
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
+      }
+      
+      // 🐛 DEBUG: Log de l'état du panier après ajout
+      console.log('🛒 [ADD-ITEM] Panier après ajout:', updatedItems.map(i => ({
+        id: i.id,
+        title: i.title,
+        price: i.price,
+        quantity: i.quantity
+      })));
+      
+      set({ items: updatedItems });
+      // Synchro serveur si connecté
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        try {
+          if (existingItem) {
+            await supabase
+              .from("cart_items")
+              .update({ quantity: existingItem.quantity + quantity })
+              .eq("user_id", session.user.id)
+              .eq("product_id", patchedItem.id);
+          } else {
+            await supabase
+              .from("cart_items")
+              .insert({
+                user_id: session.user.id,
                 product_id: patchedItem.id,
-                    quantity,
+                quantity,
                 variant: patchedItem.variant,
                 price_id: patchedItem.stripe_price_id,
                 discount_price_id: patchedItem.stripe_discount_price_id,
@@ -250,13 +273,13 @@ export const useCartStore = create<CartStore>()(
                 discount_percentage: patchedItem.discount_percentage,
                 has_discount: patchedItem.has_discount,
                 title: patchedItem.title
-          });
-      }
-      await get().manageGiftItem();
-            } catch (error) {
-              console.error("Error syncing with Supabase:", error);
-            }
+              });
           }
+          await get().manageGiftItem();
+        } catch (error) {
+          console.error("Error syncing with Supabase:", error);
+        }
+      }
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
