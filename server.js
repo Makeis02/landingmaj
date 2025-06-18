@@ -9,24 +9,14 @@ import Stripe from 'stripe';
 import { toComponentName } from './src/lib/utils/componentNames.js';
 import { addRoute, removeRoute } from './src/lib/utils/routeGenerator.js';
 import { supabase } from './src/integrations/supabase/client.js';
-import dotenv from 'dotenv';
 import cors from 'cors';
 
 console.log("📦 Lancement du serveur Express...");
+console.log("🌍 Railway ENV chargé ?");
+console.log("🔑 STRIPE_SECRET_KEY OK:", !!process.env.STRIPE_SECRET_KEY);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// 🔧 Charger les variables d'environnement
-console.log('📂 Chargement du fichier .env:', path.join(__dirname, '.env'));
-try {
-  // Charge .env en forçant le chemin absolu
-  dotenv.config({ path: path.resolve(__dirname, '.env') });
-  console.log('✅ Variables d\'environnement chargées avec succès');
-  console.log("🔑 Stripe key chargée:", process.env.STRIPE_SECRET_KEY ? "✅ OK" : "❌ undefined");
-} catch (error) {
-  console.error('❌ Erreur lors du chargement des variables d\'environnement:', error);
-}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
