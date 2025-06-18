@@ -51,21 +51,10 @@ export default function CheckoutSettings() {
   });
   const [debugStripe, setDebugStripe] = useState<any[]>([]);
   const [globalFreeShippingThreshold, setGlobalFreeShippingThreshold] = useState<number>(settings.colissimo.free_shipping_threshold);
-  const [productIdDebounce, setProductIdDebounce] = useState<{ [key: string]: NodeJS.Timeout | null }>({});
 
   useEffect(() => {
     fetchData();
   }, []);
-
-  // 🎯 NOUVEAU : Nettoyage des timeouts au démontage du composant
-  useEffect(() => {
-    return () => {
-      // Nettoyer tous les timeouts actifs
-      Object.values(productIdDebounce).forEach(timeout => {
-        if (timeout) clearTimeout(timeout);
-      });
-    };
-  }, [productIdDebounce]);
 
   useEffect(() => {
     if (settings.colissimo.free_shipping_threshold !== globalFreeShippingThreshold) {
@@ -278,28 +267,6 @@ export default function CheckoutSettings() {
         [field]: newValue,
       },
     }));
-    
-    if (field === "stripe_product_id") {
-      // 🎯 NOUVEAU : État pour gérer le debounce du stripe_product_id
-      if (productIdDebounce[transporteur]) {
-        clearTimeout(productIdDebounce[transporteur]);
-      }
-      const timeout = setTimeout(() => {
-        fetchStripePriceForProduct(transporteur, newValue);
-      }, 500);
-      setProductIdDebounce(prev => ({
-        ...prev,
-        [transporteur]: timeout,
-      }));
-    }
-    
-    if (field === "base_price") {
-      try {
-        await updateStripePrice(transporteur, newValue as number);
-      } catch (error) {
-        console.error("Erreur lors de la mise à jour du prix Stripe:", error);
-      }
-    }
   };
 
   const handleLogoChange = async (transporteur: string, file: File) => {
@@ -324,6 +291,49 @@ export default function CheckoutSettings() {
 
   const handleSave = async () => {
     try {
+      // 🎯 NOUVELLE LOGIQUE : Créer les prix Stripe si nécessaire avant de sauvegarder
+      const promises = [];
+      
+      // Pour Colissimo
+      if (settings.colissimo.stripe_product_id && settings.colissimo.base_price > 0) {
+        if (!settings.colissimo.stripe_price_id) {
+          // Si pas de price_id, essayer de le récupérer d'abord
+          promises.push(
+            fetchStripePriceForProduct("colissimo", settings.colissimo.stripe_product_id)
+              .catch(() => {
+                // Si pas de prix existant, en créer un nouveau
+                return updateStripePrice("colissimo", settings.colissimo.base_price);
+              })
+          );
+        } else {
+          // Si price_id existe mais prix différent, mettre à jour
+          promises.push(updateStripePrice("colissimo", settings.colissimo.base_price));
+        }
+      }
+      
+      // Pour Mondial Relay
+      if (settings.mondial_relay.stripe_product_id && settings.mondial_relay.base_price > 0) {
+        if (!settings.mondial_relay.stripe_price_id) {
+          // Si pas de price_id, essayer de le récupérer d'abord
+          promises.push(
+            fetchStripePriceForProduct("mondial_relay", settings.mondial_relay.stripe_product_id)
+              .catch(() => {
+                // Si pas de prix existant, en créer un nouveau
+                return updateStripePrice("mondial_relay", settings.mondial_relay.base_price);
+              })
+          );
+        } else {
+          // Si price_id existe mais prix différent, mettre à jour
+          promises.push(updateStripePrice("mondial_relay", settings.mondial_relay.base_price));
+        }
+      }
+      
+      // Attendre que tous les prix Stripe soient créés/mis à jour
+      if (promises.length > 0) {
+        await Promise.all(promises);
+      }
+      
+      // Sauvegarder les paramètres dans Supabase
       const { error } = await supabase
         .from("checkout_settings")
         .upsert({
@@ -335,7 +345,7 @@ export default function CheckoutSettings() {
 
       toast({
         title: "Succès",
-        description: "Les paramètres ont été enregistrés",
+        description: "Les paramètres ont été enregistrés et les prix Stripe mis à jour",
       });
     } catch (error) {
       console.error("Erreur lors de l'enregistrement:", error);
@@ -379,16 +389,27 @@ export default function CheckoutSettings() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="colissimo-base-price">Prix de base (€)</Label>
-                <Input
-                  id="colissimo-base-price"
-                  type="number"
-                  value={settings.colissimo.base_price}
-                  onChange={(e) => handleTarifChange("colissimo", "base_price", e.target.value)}
-                  disabled={isUpdatingPrice}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="colissimo-base-price"
+                    type="number"
+                    value={settings.colissimo.base_price}
+                    onChange={(e) => handleTarifChange("colissimo", "base_price", e.target.value)}
+                    disabled={isUpdatingPrice}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStripePrice("colissimo", settings.colissimo.base_price)}
+                    disabled={isUpdatingPrice || !settings.colissimo.stripe_product_id || settings.colissimo.base_price <= 0}
+                  >
+                    {isUpdatingPrice ? "..." : "Créer prix"}
+                  </Button>
+                </div>
                 {isUpdatingPrice && (
                   <p className="text-sm text-gray-500">Mise à jour du prix Stripe en cours...</p>
                 )}
+                <p className="text-sm text-gray-500">Le prix Stripe sera créé automatiquement lors de la sauvegarde</p>
               </div>
 
               <div className="space-y-2">
@@ -456,16 +477,27 @@ export default function CheckoutSettings() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="mondial-base-price">Prix de base (€)</Label>
-                <Input
-                  id="mondial-base-price"
-                  type="number"
-                  value={settings.mondial_relay.base_price}
-                  onChange={(e) => handleTarifChange("mondial_relay", "base_price", e.target.value)}
-                  disabled={isUpdatingPrice}
-                />
+                <div className="flex gap-2">
+                  <Input
+                    id="mondial-base-price"
+                    type="number"
+                    value={settings.mondial_relay.base_price}
+                    onChange={(e) => handleTarifChange("mondial_relay", "base_price", e.target.value)}
+                    disabled={isUpdatingPrice}
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStripePrice("mondial_relay", settings.mondial_relay.base_price)}
+                    disabled={isUpdatingPrice || !settings.mondial_relay.stripe_product_id || settings.mondial_relay.base_price <= 0}
+                  >
+                    {isUpdatingPrice ? "..." : "Créer prix"}
+                  </Button>
+                </div>
                 {isUpdatingPrice && (
                   <p className="text-sm text-gray-500">Mise à jour du prix Stripe en cours...</p>
                 )}
+                <p className="text-sm text-gray-500">Le prix Stripe sera créé automatiquement lors de la sauvegarde</p>
               </div>
 
               <div className="space-y-2">
