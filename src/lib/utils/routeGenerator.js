@@ -21,6 +21,11 @@ export function generateImport(slug) {
  * Génère une route React pour App.tsx
  */
 export function generateRoute(slug) {
+  // 🔐 Sécurité anti-bug: vérifier que le slug est valide
+  if (!slug || typeof slug !== "string" || !/^[a-z0-9-]+$/.test(slug)) {
+    throw new Error(`❌ Slug invalide pour generateRoute(): "${slug}"`);
+  }
+  
   const componentName = toComponentName(slug);
   if (!isValidComponentName(componentName)) {
     throw new Error(`Nom de composant invalide généré pour le slug "${slug}": ${componentName}`);
@@ -50,6 +55,12 @@ export function isValidProductSlug(slug) {
  */
 export async function addRoute(slug, componentName) {
   try {
+    // 🔐 Sécurité anti-bug: vérifier que le slug est valide
+    if (!slug || typeof slug !== "string" || !/^[a-z0-9-]+$/.test(slug)) {
+      console.warn(`❌ Slug invalide détecté : "${slug}"`);
+      return { success: false, message: `Slug invalide : "${slug}"` };
+    }
+    
     if (!slug) {
       return { 
         success: false, 
