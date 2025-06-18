@@ -93,7 +93,8 @@ app.get('/api/ping', (_, res) => {
 
 // 🔧 Correction CORS explicite pour OPTIONS (préflight)
 
-// 1. Récupérer les produits Stripe
+// 1. Récupérer les produits Stripe - TEMPORAIREMENT COMMENTÉ
+/*
 app.get('/api/stripe/products', cors(), async (_, res) => {
   console.log('⚡ Requête entrante vers /api/stripe/products');
   console.log('📥 Requête reçue pour /api/stripe/products');
@@ -130,9 +131,10 @@ app.get('/api/stripe/products', cors(), async (_, res) => {
     res.status(500).json({ error: 'Stripe error', message: err.message });
   }
 });
+*/
     
-// 2. Créer un fichier .tsx pour chaque produit
-// DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
+// 2. Créer un fichier .tsx pour chaque produit - TEMPORAIREMENT COMMENTÉ
+/*
 app.post('/api/products/create-page', async (req, res) => {
   // Cette API est conservée pour rétrocompatibilité mais ne crée plus de fichiers .tsx
   const p = req.body;
@@ -146,17 +148,20 @@ app.post('/api/products/create-page', async (req, res) => {
     note: "Utilisez /produits/:slug?id=PRODUCT_ID pour accéder dynamiquement aux produits"
   });
 });
+*/
 
-// 3. Supprimer un fichier .tsx produit
-// DEPRECATED: Remplacé par une approche dynamique sans génération de fichiers
+// 3. Supprimer un fichier .tsx produit - TEMPORAIREMENT COMMENTÉ
+/*
 app.post('/api/products/delete-page', async (req, res) => {
   res.json({ 
     success: true, 
     message: "Mode dynamique activé - Pas besoin de supprimer des fichiers" 
   });
 });
+*/
 
-// 4. Vérifier si une page produit existe (fichier ou Supabase)
+// 4. Vérifier si une page produit existe - TEMPORAIREMENT COMMENTÉ
+/*
 app.post('/api/products/check-pages', async (req, res) => {
     const { productIds, titles = {} } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
@@ -189,8 +194,10 @@ app.post('/api/products/check-pages', async (req, res) => {
 
   res.json({ exists: results });
 });
+*/
 
-// 5. Extraire les descriptions depuis fichiers .tsx ou Supabase
+// 5. Extraire les descriptions - TEMPORAIREMENT COMMENTÉ
+/*
 app.post('/api/products/descriptions', async (req, res) => {
   const { productIds } = req.body;
   const pagesDir = path.join(__dirname, 'src/pages/products');
@@ -217,16 +224,21 @@ app.post('/api/products/descriptions', async (req, res) => {
 
     res.json({ descriptions });
 });
+*/
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Serveur démarré sur http://0.0.0.0:${PORT}`);
-  console.log("🔐 Origines CORS autorisées :", allowedOrigins);
-  
-  // 🧪 Logger de routes pour débug
-  console.log("📋 Liste des routes Express déclarées :");
+// 🧪 Logger de routes pour débug
+console.log("📋 Liste des routes Express déclarées :");
+try {
   app._router.stack
     .filter(r => r.route)
     .forEach(r => {
       console.log(`➡️ ${Object.keys(r.route.methods).join(', ').toUpperCase()} ${r.route.path}`);
     });
+} catch (error) {
+  console.error("❌ Erreur lors de l'affichage des routes:", error);
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Serveur démarré sur http://0.0.0.0:${PORT}`);
+  console.log("🔐 Origines CORS autorisées :", allowedOrigins);
 });
