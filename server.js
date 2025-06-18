@@ -345,7 +345,7 @@ app.post('/api/stripe-webhook', async (req, res) => {
     // Gérer les différents types d'événements
     switch (event.type) {
       case 'checkout.session.completed':
-        const session = event.data.object;
+    const session = event.data.object;
         console.log('✅ Paiement complété pour la session:', session.id);
         // Ici tu peux ajouter la logique pour mettre à jour ta base de données
         break;

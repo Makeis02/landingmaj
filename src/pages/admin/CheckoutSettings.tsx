@@ -142,6 +142,100 @@ export default function CheckoutSettings() {
     }
   };
 
+  const fetchStripePriceForProduct = async (transporteur: string, productId: string) => {
+    if (!productId) {
+      setSettings(prev => ({
+        ...prev,
+        [transporteur]: {
+          ...prev[transporteur],
+          stripe_price_id: "",
+        },
+      }));
+      return;
+    }
+
+    let debugEntry: any = { 
+      date: new Date().toISOString(), 
+      transporteur, 
+      action: 'fetch_price_for_product',
+      productId 
+    };
+
+    try {
+      setIsUpdatingPrice(true);
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-stripe-prices`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ productId }),
+        }
+      );
+      
+      const data = await response.json();
+      debugEntry.response = data;
+      debugEntry.status = response.status;
+      
+      if (!response.ok) {
+        debugEntry.error = data.error || 'Erreur lors de la récupération des prix';
+        setDebugStripe(prev => [debugEntry, ...prev].slice(0, 10));
+        throw new Error(data.error || 'Erreur lors de la récupération des prix');
+      }
+
+      const defaultPrice = data.prices?.[0];
+      
+      if (defaultPrice) {
+        setSettings(prev => ({
+          ...prev,
+          [transporteur]: {
+            ...prev[transporteur],
+            stripe_price_id: defaultPrice.id,
+          },
+        }));
+        
+        debugEntry.result = `Prix trouvé: ${defaultPrice.id} (${defaultPrice.unit_amount / 100}€)`;
+        setDebugStripe(prev => [debugEntry, ...prev].slice(0, 10));
+        
+        toast({
+          title: "Prix récupéré",
+          description: `Prix Stripe automatiquement récupéré pour ${transporteur}: ${defaultPrice.unit_amount / 100}€`,
+        });
+      } else {
+        setSettings(prev => ({
+          ...prev,
+          [transporteur]: {
+            ...prev[transporteur],
+            stripe_price_id: "",
+          },
+        }));
+        
+        debugEntry.result = "Aucun prix trouvé pour ce produit";
+        setDebugStripe(prev => [debugEntry, ...prev].slice(0, 10));
+        
+        toast({
+          title: "Aucun prix trouvé",
+          description: `Aucun prix Stripe trouvé pour le produit ${productId}. Créez un prix en modifiant le tarif de base.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      debugEntry.error = error?.message || String(error);
+      setDebugStripe(prev => [debugEntry, ...prev].slice(0, 10));
+      console.error(`Erreur lors de la récupération du prix Stripe pour ${transporteur}:`, error);
+      toast({
+        title: "Erreur",
+        description: `Impossible de récupérer le prix Stripe pour ${transporteur}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUpdatingPrice(false);
+    }
+  };
+
   const handleTarifChange = async (transporteur: string, field: string, value: string) => {
     let newValue;
     if (field === "stripe_product_id" || field === "stripe_price_id" || field === "logo_url") {
@@ -149,6 +243,7 @@ export default function CheckoutSettings() {
     } else {
       newValue = parseFloat(value) || 0;
     }
+    
     if (field === "free_shipping_threshold") {
       setGlobalFreeShippingThreshold(newValue);
       setSettings((prev) => ({
@@ -164,6 +259,7 @@ export default function CheckoutSettings() {
       }));
       return;
     }
+    
     setSettings((prev) => ({
       ...prev,
       [transporteur]: {
@@ -171,6 +267,11 @@ export default function CheckoutSettings() {
         [field]: newValue,
       },
     }));
+    
+    if (field === "stripe_product_id") {
+      await fetchStripePriceForProduct(transporteur, newValue);
+    }
+    
     if (field === "base_price") {
       try {
         await updateStripePrice(transporteur, newValue as number);
@@ -271,14 +372,24 @@ export default function CheckoutSettings() {
 
               <div className="space-y-2">
                 <Label htmlFor="colissimo-stripe-product-id">Stripe Product ID</Label>
-                <Input
-                  id="colissimo-stripe-product-id"
-                  type="text"
-                  value={settings.colissimo.stripe_product_id || ""}
-                  onChange={(e) => handleTarifChange("colissimo", "stripe_product_id", e.target.value)}
-                  placeholder="prod_XXXXXX"
-                />
-                <p className="text-sm text-gray-500">Obligatoire pour créer un prix Stripe</p>
+                <div className="flex gap-2">
+                  <Input
+                    id="colissimo-stripe-product-id"
+                    type="text"
+                    value={settings.colissimo.stripe_product_id || ""}
+                    onChange={(e) => handleTarifChange("colissimo", "stripe_product_id", e.target.value)}
+                    placeholder="prod_XXXXXX"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchStripePriceForProduct("colissimo", settings.colissimo.stripe_product_id || "")}
+                    disabled={isUpdatingPrice || !settings.colissimo.stripe_product_id}
+                  >
+                    {isUpdatingPrice ? "..." : "Récupérer"}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">Obligatoire pour créer un prix Stripe. Le prix sera récupéré automatiquement.</p>
               </div>
 
               <div className="space-y-2">
@@ -338,14 +449,24 @@ export default function CheckoutSettings() {
 
               <div className="space-y-2">
                 <Label htmlFor="mondial-stripe-product-id">Stripe Product ID</Label>
-                <Input
-                  id="mondial-stripe-product-id"
-                  type="text"
-                  value={settings.mondial_relay.stripe_product_id || ""}
-                  onChange={(e) => handleTarifChange("mondial_relay", "stripe_product_id", e.target.value)}
-                  placeholder="prod_YYYYYY"
-                />
-                <p className="text-sm text-gray-500">Obligatoire pour créer un prix Stripe</p>
+                <div className="flex gap-2">
+                  <Input
+                    id="mondial-stripe-product-id"
+                    type="text"
+                    value={settings.mondial_relay.stripe_product_id || ""}
+                    onChange={(e) => handleTarifChange("mondial_relay", "stripe_product_id", e.target.value)}
+                    placeholder="prod_YYYYYY"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fetchStripePriceForProduct("mondial_relay", settings.mondial_relay.stripe_product_id || "")}
+                    disabled={isUpdatingPrice || !settings.mondial_relay.stripe_product_id}
+                  >
+                    {isUpdatingPrice ? "..." : "Récupérer"}
+                  </Button>
+                </div>
+                <p className="text-sm text-gray-500">Obligatoire pour créer un prix Stripe. Le prix sera récupéré automatiquement.</p>
               </div>
 
               <div className="space-y-2">

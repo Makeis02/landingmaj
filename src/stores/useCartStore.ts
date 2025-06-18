@@ -189,20 +189,6 @@ export const useCartStore = create<CartStore>()(
   addItem: async (item) => {
     try {
       set({ isLoading: true });
-      
-      // 🐛 DEBUG: Log des informations de l'article ajouté
-      console.log('🛒 [ADD-ITEM] Ajout d\'un article au panier:', {
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        original_price: item.original_price,
-        discount_percentage: item.discount_percentage,
-        has_discount: item.has_discount,
-        stripe_price_id: item.stripe_price_id,
-        stripe_discount_price_id: item.stripe_discount_price_id,
-        variant: item.variant
-      });
-      
       // Patch: garantir title et variant
       let patchedItem = { ...item };
       if (!patchedItem.title) {
@@ -218,54 +204,45 @@ export const useCartStore = create<CartStore>()(
         patchedItem.variant = null;
       }
           
-      const existingItem = get().items.find((i) => {
+          const existingItem = get().items.find((i) => {
         if (i.id === patchedItem.id) {
           if (patchedItem.variant && i.variant) {
             return i.variant === patchedItem.variant;
-          }
-          return true;
-        }
-        return false;
-      });
+              }
+              return true;
+            }
+            return false;
+          });
       const quantity = patchedItem.quantity || 1;
-      let updatedItems;
-      if (existingItem) {
-        updatedItems = get().items.map((i) => {
-          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
-            return { ...i, quantity: i.quantity + quantity };
-          }
-          return i;
-        });
-      } else {
-        updatedItems = [...get().items, { ...patchedItem, quantity }];
-      }
-      
-      // 🐛 DEBUG: Log de l'état du panier après ajout
-      console.log('🛒 [ADD-ITEM] Panier après ajout:', updatedItems.map(i => ({
-        id: i.id,
-        title: i.title,
-        price: i.price,
-        quantity: i.quantity
-      })));
-      
-      set({ items: updatedItems });
-      // Synchro serveur si connecté
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        try {
+          let updatedItems;
           if (existingItem) {
-            await supabase
-              .from("cart_items")
-              .update({ quantity: existingItem.quantity + quantity })
-              .eq("user_id", session.user.id)
-              .eq("product_id", patchedItem.id);
+            updatedItems = get().items.map((i) => {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
+                return { ...i, quantity: i.quantity + quantity };
+              }
+              return i;
+            });
           } else {
-            await supabase
-              .from("cart_items")
-              .insert({
-                user_id: session.user.id,
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
+          }
+          set({ items: updatedItems });
+          // Synchro serveur si connecté
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            try {
+      if (existingItem) {
+                await supabase
+          .from("cart_items")
+                  .update({ quantity: existingItem.quantity + quantity })
+          .eq("user_id", session.user.id)
+              .eq("product_id", patchedItem.id);
+      } else {
+                await supabase
+          .from("cart_items")
+          .insert({
+            user_id: session.user.id,
                 product_id: patchedItem.id,
-                quantity,
+                    quantity,
                 variant: patchedItem.variant,
                 price_id: patchedItem.stripe_price_id,
                 discount_price_id: patchedItem.stripe_discount_price_id,
@@ -273,13 +250,13 @@ export const useCartStore = create<CartStore>()(
                 discount_percentage: patchedItem.discount_percentage,
                 has_discount: patchedItem.has_discount,
                 title: patchedItem.title
-              });
-          }
-          await get().manageGiftItem();
-        } catch (error) {
-          console.error("Error syncing with Supabase:", error);
-        }
+          });
       }
+      await get().manageGiftItem();
+            } catch (error) {
+              console.error("Error syncing with Supabase:", error);
+            }
+          }
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
@@ -443,10 +420,14 @@ export const useCartStore = create<CartStore>()(
             `product_${cleanProductId}_discount_price`,
             `product_${cleanProductId}_discount_percentage`,
             `product_${cleanProductId}_stripe_discount_price_id`,
-            `product_${cleanProductId}_price`
+            `product_${cleanProductId}_price`,
+            `product_${cleanProductId}_stripe_price_id` // Ajout du prix de base
           ]);
         
-        if (!fallbackDiscountData) return null;
+        if (!fallbackDiscountData) {
+          console.warn(`⚠️ Aucune donnée trouvée pour le produit ${cleanProductId}`);
+          return null;
+        }
         
         const dataMap = fallbackDiscountData.reduce((acc, item) => {
           acc[item.content_key] = item.content;
@@ -456,6 +437,7 @@ export const useCartStore = create<CartStore>()(
         const discountPrice = dataMap[`product_${cleanProductId}_discount_price`];
         const discountPercentage = dataMap[`product_${cleanProductId}_discount_percentage`];
         const stripeDiscountPriceId = dataMap[`product_${cleanProductId}_stripe_discount_price_id`];
+        const stripePriceId = dataMap[`product_${cleanProductId}_stripe_price_id`]; // Prix de base
         
         if (discountPrice && discountPercentage) {
           // 🎯 CORRECTION : Calculer le prix original à partir du prix réduit et du pourcentage
@@ -473,7 +455,28 @@ export const useCartStore = create<CartStore>()(
         
         // Si pas de promotion, essayer de récupérer le prix de base
         const basePrice = dataMap[`product_${cleanProductId}_price`];
-        return basePrice ? { price: parseFloat(basePrice) } : null;
+        if (basePrice) {
+          return { 
+            price: parseFloat(basePrice),
+            stripe_price_id: stripePriceId // Retourner aussi l'ID Stripe de base
+          };
+        }
+        
+        // 🚨 DERNIER FALLBACK: Si aucun prix trouvé, essayer de récupérer depuis les produits
+        console.warn(`🚨 Aucun prix trouvé pour ${cleanProductId}, tentative de récupération depuis la table produits`);
+        const { data: productData } = await supabase
+          .from('products')
+          .select('price')
+          .eq('shopify_id', productId)
+          .maybeSingle();
+        
+        if (productData?.price) {
+          console.log(`✅ Prix récupéré depuis la table produits: ${productData.price}€`);
+          return { price: productData.price };
+        }
+        
+        console.error(`❌ Aucun prix trouvé pour le produit ${cleanProductId}`);
+        return null;
       } else {
         // Produit avec variante - parser les variantes
         const variantParts = variant.split('|');
@@ -508,10 +511,14 @@ export const useCartStore = create<CartStore>()(
             `product_${cleanProductId}_variant_${variantIdx}_option_${option}_discount_price`,
             `product_${cleanProductId}_variant_${variantIdx}_option_${option}_discount_percentage`,
             `product_${cleanProductId}_variant_${variantIdx}_option_${option}_stripe_discount_price_id`,
-            `product_${cleanProductId}_variant_${variantIdx}_price_map`
+            `product_${cleanProductId}_variant_${variantIdx}_price_map`,
+            `product_${cleanProductId}_variant_${variantIdx}_option_${option}_stripe_price_id` // Ajout du prix de base
           ]);
         
-        if (!variantDiscountData) return null;
+        if (!variantDiscountData) {
+          console.warn(`⚠️ Aucune donnée de variante trouvée pour ${cleanProductId} - ${variant}`);
+          return null;
+        }
         
         const variantDataMap = variantDiscountData.reduce((acc, item) => {
           acc[item.content_key] = item.content;
@@ -521,6 +528,7 @@ export const useCartStore = create<CartStore>()(
         const discountPrice = variantDataMap[`product_${cleanProductId}_variant_${variantIdx}_option_${option}_discount_price`];
         const discountPercentage = variantDataMap[`product_${cleanProductId}_variant_${variantIdx}_option_${option}_discount_percentage`];
         const stripeDiscountPriceId = variantDataMap[`product_${cleanProductId}_variant_${variantIdx}_option_${option}_stripe_discount_price_id`];
+        const stripePriceId = variantDataMap[`product_${cleanProductId}_variant_${variantIdx}_option_${option}_stripe_price_id`]; // Prix de base
         const priceMapRaw = variantDataMap[`product_${cleanProductId}_variant_${variantIdx}_price_map`];
         
         let originalPrice = 0;
@@ -543,7 +551,15 @@ export const useCartStore = create<CartStore>()(
           };
         }
         
-        return originalPrice > 0 ? { price: originalPrice } : null;
+        if (originalPrice > 0) {
+          return { 
+            price: originalPrice,
+            stripe_price_id: stripePriceId // Retourner aussi l'ID Stripe de base
+          };
+        }
+        
+        console.error(`❌ Aucun prix trouvé pour la variante ${cleanProductId} - ${variant}`);
+        return null;
       }
     } catch (error) {
       console.error('Erreur lors de la récupération du prix avec réduction:', error);

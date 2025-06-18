@@ -252,6 +252,8 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
     
+    console.log(`🔍 [EDITORIAL-CARD] Début handleAddToCart pour produit: ${selectedProduct.id} - ${selectedProduct.title}`);
+    
     // Récupérer les informations sur les variantes sélectionnées
     let variant = null;
     let stripePriceId = null;
@@ -262,7 +264,9 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     let hasDiscountApplied = false;
     
     // Vérifier s'il y a une réduction avec getDiscountedPrice
+    console.log(`🔍 [EDITORIAL-CARD] Appel getDiscountedPrice pour: ${selectedProduct.id}`);
     const priceInfo = await getDiscountedPrice(selectedProduct.id);
+    console.log(`🔍 [EDITORIAL-CARD] Résultat getDiscountedPrice:`, priceInfo);
     
     if (priceInfo) {
       finalPrice = priceInfo.price;
@@ -280,19 +284,26 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     
     // Si on n'a pas encore de stripePriceId, récupérer le prix de base
     if (!stripePriceId) {
-      const { data: priceIdData } = await supabase
+      console.log(`🔍 [EDITORIAL-CARD] Recherche stripe_price_id dans editable_content pour: product_${selectedProduct.id}_stripe_price_id`);
+      const { data: priceIdData, error } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', `product_${selectedProduct.id}_stripe_price_id`)
         .single();
+      
+      console.log(`🔍 [EDITORIAL-CARD] Résultat recherche stripe_price_id:`, { data: priceIdData, error });
+      
       if (priceIdData?.content) {
         stripePriceId = priceIdData.content;
+        console.log(`✅ [EDITORIAL-CARD] stripe_price_id trouvé: ${stripePriceId}`);
+      } else {
+        console.log(`❌ [EDITORIAL-CARD] Aucun stripe_price_id trouvé dans editable_content`);
       }
     }
     
     // Vérifier que nous avons un stripe_price_id valide
     if (!stripePriceId || stripePriceId === "null") {
-      console.error(`❌ Aucun stripe_price_id trouvé pour le produit ${selectedProduct.id}`);
+      console.error(`❌ [EDITORIAL-CARD] Aucun stripe_price_id trouvé pour le produit ${selectedProduct.id}`);
       toast({
         variant: "destructive",
         title: "Erreur de configuration",
@@ -301,7 +312,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       return;
     }
     
-    console.log(`✅ stripe_price_id trouvé pour ${selectedProduct.id}: ${stripePriceId}`);
+    console.log(`✅ [EDITORIAL-CARD] stripe_price_id trouvé pour ${selectedProduct.id}: ${stripePriceId}`);
     
     // Vérifier le stock
     const { data: stockData } = await supabase
@@ -343,7 +354,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
           : `${selectedProduct.title} a été ajouté à votre panier.`,
       });
       
-      console.log(`✅ Produit ajouté au panier:`, {
+      console.log(`✅ [EDITORIAL-CARD] Produit ajouté au panier:`, {
         id: selectedProduct.id,
         title: selectedProduct.title,
         price: finalPrice,
@@ -351,7 +362,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         has_discount: hasDiscountApplied
       });
     } catch (error) {
-      console.error("Erreur lors de l'ajout au panier:", error);
+      console.error("❌ [EDITORIAL-CARD] Erreur lors de l'ajout au panier:", error);
       toast({
         variant: "destructive",
         title: "Erreur",
