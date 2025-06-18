@@ -6,9 +6,9 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // En prod, forcer l'URL Render
+  // En production, utiliser l'URL relative pour que ça fonctionne sur Railway
   if (import.meta.env.PROD) {
-    return "https://landingmaj-production.up.railway.app";
+    return "";
   }
   if (typeof window !== 'undefined') {
     return window.location.origin;

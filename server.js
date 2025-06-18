@@ -157,6 +157,55 @@ app.get('/api/shopify/products', async (req, res) => {
   }
 });
 
+// 💳 **API Stripe pour les produits**
+app.get('/api/stripe/products', async (req, res) => {
+  try {
+    console.log('🔍 Récupération des produits depuis Stripe...');
+    
+    // Pour l'instant, retourner des produits fictifs ou vides
+    // Vous pouvez adapter cette logique selon vos besoins
+    const stripeProducts = [
+      {
+        id: "prod_1",
+        title: "Produit Stripe 1",
+        price: 29.99,
+        stock: 10,
+        image: "/placeholder.svg",
+        description: "Description du produit Stripe 1",
+        metadata: {},
+        show_logo_eaudouce: "true",
+        show_logo_eaudemer: "false"
+      },
+      {
+        id: "prod_2", 
+        title: "Produit Stripe 2",
+        price: 49.99,
+        stock: 5,
+        image: "/placeholder.svg",
+        description: "Description du produit Stripe 2",
+        metadata: {},
+        show_logo_eaudouce: "false",
+        show_logo_eaudemer: "true"
+      }
+    ];
+
+    console.log(`✅ ${stripeProducts.length} produits Stripe récupérés avec succès`);
+    
+    return res.status(200).json({ 
+      products: stripeProducts,
+      count: stripeProducts.length
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la récupération des produits Stripe :', error.message);
+    
+    return res.status(500).json({ 
+      error: 'Erreur API Stripe', 
+      message: error.message || "Erreur lors de la récupération des produits Stripe",
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
 // API pour récupérer les descriptions des pages produit
 app.get('/api/products/descriptions', async (req, res) => {
   const pagesDir = path.join(__dirname, "src", "pages", "products");
