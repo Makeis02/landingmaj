@@ -21,17 +21,12 @@ function getApiBaseUrl(): string {
     }
   }
   
-  // Si on est sur Netlify, utiliser l'URL Railway
-  if (window.location.hostname === 'majemsiteteste.netlify.app') {
-    return 'https://landingmaj-production.up.railway.app';
-  }
-  
   // Par défaut, utiliser l'URL relative
   return '';
 }
 
 export async function fetchStripeProducts(): Promise<StripeProduct[]> {
-  const baseUrl = getApiBaseUrl();
+  const baseUrl = "https://landingmaj-production.up.railway.app";
   const url = `${baseUrl}/api/stripe/products`;
   
   try {

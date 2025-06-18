@@ -113,13 +113,9 @@ const getApiBaseUrl = () => {
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Si on est sur Netlify, utiliser l'URL Railway
-  if (typeof window !== 'undefined' && window.location.hostname === 'majemsiteteste.netlify.app') {
-    return 'https://landingmaj-production.up.railway.app';
-  }
-  // En production, utiliser l'URL relative pour que ça fonctionne sur Railway
+  // En production, forcer Render
   if (import.meta.env.PROD) {
-    return "";
+    return "https://landingmaj-production.up.railway.app";
   }
   if (typeof window !== 'undefined') {
     return window.location.origin;
