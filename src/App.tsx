@@ -362,10 +362,10 @@ const App = () => {
           <Route path="/categories/thermometres" element={<ThermometresPage />} />
           
           {/* Route générique pour toutes les catégories avec paramètres dynamiques */}
-          <Route path="/categories/:slug" element={<EaucDouceDécorationPage />} />
+          {/* <Route path="/categories/:slug" element={<EaucDouceDécorationPage />} /> */}
           <Route path="/modele" element={<Modele categoryParam={null} />} />
           <Route path="/dynamic-product" element={<DynamicProductPage />} />
-          <Route path="/produits/:slug" element={<Modele />} />
+          {/* <Route path="/produits/:slug" element={<Modele />} /> */}
 
           <Route path="/account/login" element={<LoginPage />} />
           <Route path="/account/signup" element={<SignupPage />} />
