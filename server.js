@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import fs from 'fs-extra';
 import slugify from 'slugify';
 import { supabase } from './src/integrations/supabase/client.js';
+import Stripe from 'stripe';
 
 
 // 📂 Obtenir le chemin du répertoire courant
@@ -39,6 +40,13 @@ console.log('- VERIFY_TOKEN:', VERIFY_TOKEN ? '✅ Défini' : '❌ Manquant');
 console.log('- PAGE_ACCESS_TOKEN:', PAGE_ACCESS_TOKEN ? '✅ Défini' : '❌ Manquant');
 console.log('- SHOPIFY_DOMAIN:', SHOPIFY_DOMAIN ? '✅ Défini' : '❌ Manquant');
 console.log('- SHOPIFY_ADMIN_ACCESS_TOKEN:', SHOPIFY_ADMIN_ACCESS_TOKEN ? '✅ Défini' : '❌ Manquant');
+
+// 💳 Initialiser Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: '2023-10-16',
+});
+
+console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini' : '❌ Manquant');
 
 // 🛠️ Middleware essentiels
 app.use(bodyParser.json());
@@ -151,6 +159,89 @@ app.get('/api/shopify/products', async (req, res) => {
     
     return res.status(500).json({ 
       error: 'Erreur API Shopify', 
+      message: errorMessage,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// 💳 **API Stripe pour les produits**
+app.get('/api/stripe/products', async (req, res) => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    console.error('❌ Variable d\'environnement STRIPE_SECRET_KEY manquante');
+    return res.status(500).json({ 
+      error: 'Configuration Stripe manquante', 
+      message: 'La clé secrète Stripe n\'est pas configurée sur le serveur' 
+    });
+  }
+
+  try {
+    console.log('🔍 Récupération des produits depuis Stripe...');
+    
+    // Récupérer tous les produits actifs depuis Stripe
+    const products = await stripe.products.list({
+      active: true,
+      expand: ['data.default_price']
+    });
+
+    console.log(`📦 ${products.data.length} produits trouvés dans Stripe`);
+
+    // Formater les produits pour correspondre à l'interface StripeProduct
+    const formattedProducts = await Promise.all(products.data.map(async (product) => {
+      // Récupérer les prix pour ce produit
+      const prices = await stripe.prices.list({
+        product: product.id,
+        active: true
+      });
+
+      // Calculer le stock total à partir des métadonnées des prix
+      let totalStock = 0;
+      prices.data.forEach(price => {
+        if (price.metadata?.stock) {
+          const stock = parseInt(price.metadata.stock);
+          if (!isNaN(stock)) {
+            totalStock += stock;
+          }
+        }
+      });
+
+      // Utiliser le stock du produit si disponible, sinon la somme des prix
+      const productStock = product.metadata?.stock ? parseInt(product.metadata.stock) : totalStock;
+
+      // Trouver le prix par défaut ou le premier prix actif
+      const defaultPrice = product.default_price || prices.data[0];
+      const price = defaultPrice ? (defaultPrice.unit_amount / 100) : 0;
+
+      return {
+        id: product.id,
+        title: product.name,
+        price: price,
+        stock: productStock || 0,
+        image: product.images?.[0] || '',
+        description: product.description || '',
+        metadata: product.metadata || {}
+      };
+    }));
+
+    console.log(`✅ ${formattedProducts.length} produits formatés avec succès`);
+    
+    return res.status(200).json({ 
+      products: formattedProducts,
+      count: formattedProducts.length
+    });
+  } catch (error) {
+    console.error('❌ Erreur lors de la communication avec Stripe :', error.message);
+    
+    let errorMessage = "Erreur inconnue";
+    
+    if (error.type) {
+      errorMessage = `Erreur Stripe (${error.type}): ${error.message}`;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return res.status(500).json({ 
+      error: 'Erreur API Stripe', 
       message: errorMessage,
       timestamp: new Date().toISOString()
     });
