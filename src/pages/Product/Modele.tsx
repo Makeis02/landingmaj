@@ -3279,7 +3279,7 @@ const Modele = ({ categoryParam = null }) => {
                           <span dangerouslySetInnerHTML={{ __html: spec.name }} />
                         )}
                       </td>
-                      <td className="py-3 px-4 text-left pl-6 align-middle">
+                      <td className="py-3 px-0 text-left pl-0 align-middle">
                         {isEditMode ? (
                           <EditableText
                             contentKey={generateContentKey(product.id, `specification_${index}_value`)}
