@@ -112,16 +112,17 @@ const getProductIdFromQuery = () => {
 
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
-  // En développement
-  if (import.meta.env.DEV) {
-    log.similar.debug("Mode développement détecté, utilisation de l'URL locale");
-    return 'http://localhost:3000';
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
   }
-
-  // En production
-  const url = window.location.origin;
-  log.similar.debug(`Mode production détecté, utilisation de l'URL: ${url}`);
-  return url;
+  // En production, forcer Render
+  if (import.meta.env.PROD) {
+    return "https://landingmaj-production.up.railway.app";
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return '';
 };
 
 // Fonction utilitaire pour générer des clés de contenu cohérentes
@@ -958,22 +959,39 @@ const Modele = ({ categoryParam = null }) => {
   // Chargement de la catégorie liée depuis Supabase
   useEffect(() => {
     if (!product) return;
+
     const fetchRelatedCategory = async () => {
+      // 1. Essayer de récupérer la catégorie liée depuis Supabase
       const { data } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', `product_${product.id}_related_category`)
         .single();
+
       if (data?.content) {
         setRelatedCategory(data.content.trim());
-        if (import.meta.env.DEV) console.log('[MODELE] relatedCategory from Supabase:', data.content.trim());
-      } else if (breadcrumbCategory?.parent?.id) {
-        setRelatedCategory(breadcrumbCategory.parent.id);
-        if (import.meta.env.DEV) console.log('[MODELE] relatedCategory fallback to parent.id:', breadcrumbCategory.parent.id);
+        return;
       }
+
+      // 2. Sinon, récupérer les catégories liées au produit
+      const productCategories = await fetchCategoriesForProducts([product.id]);
+      const categoryIds = productCategories[product.id] || [];
+
+      if (categoryIds.length > 0) {
+        setRelatedCategory(categoryIds[0]); // Prend la première catégorie liée
+        return;
+      }
+
+      // 3. Si aucune catégorie trouvée, afficher un message d'erreur explicite
+      setRelatedCategory(null);
+      setDebugSimilar((prev) => ({
+        ...prev,
+        error: "Aucune catégorie de référence trouvée pour ce produit."
+      }));
     };
+
     fetchRelatedCategory();
-  }, [product, breadcrumbCategory]);
+  }, [product]);
 
   // Charger toutes les catégories pour le menu (si ce n'est pas déjà fait)
   useEffect(() => {
@@ -1240,18 +1258,14 @@ const Modele = ({ categoryParam = null }) => {
     return path.join(' > ');
   }
 
-  // Fonction récursive pour obtenir tous les IDs de sous-catégories
-  function getAllSubCategoryIds(categoryId: string, categories: any[]): string[] {
-    if (!categoryId || !categories) return [];
-    
-    const ids = [categoryId];
-    const children = categories.filter(cat => cat.parent_id === categoryId);
-    
-    children.forEach(child => {
-      ids.push(...getAllSubCategoryIds(child.id, categories));
-    });
-    
-    return ids;
+  // Fonction utilitaire pour récupérer récursivement tous les IDs de sous-catégories
+  function getAllSubCategoryIds(categoryId, cats) {
+    const result = [categoryId];
+    const children = cats.filter(cat => cat.parent_id === categoryId);
+    for (const child of children) {
+      result.push(...getAllSubCategoryIds(child.id, cats));
+    }
+    return result;
   }
 
   // Fonction utilitaire pour nettoyer les IDs de produit (supporte shopify_ et gid://shopify/Product/)
@@ -1404,50 +1418,6 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
-  // Fonction utilitaire pour les logs standardisés
-  const log = {
-    similar: {
-      info: (msg: string) => console.log(`🔄 [SIMILAR] ${msg}`),
-      success: (msg: string) => console.log(`✅ [SIMILAR] ${msg}`),
-      warning: (msg: string) => console.warn(`⚠️ [SIMILAR] ${msg}`),
-      error: (msg: string) => console.error(`❌ [SIMILAR] ${msg}`),
-      debug: (msg: string, data?: any) => {
-        console.log(`🔍 [SIMILAR-DEBUG] ${msg}`);
-        if (data) console.log(data);
-      }
-    },
-    promo: {
-      info: (msg: string) => console.log(`💰 [PROMO] ${msg}`),
-      success: (msg: string) => console.log(`✨ [PROMO] ${msg}`),
-      warning: (msg: string) => console.warn(`⚠️ [PROMO] ${msg}`),
-      error: (msg: string) => console.error(`❌ [PROMO] ${msg}`),
-      debug: (msg: string, data?: any) => {
-        console.log(`🔍 [PROMO-DEBUG] ${msg}`);
-        if (data) console.log(data);
-      }
-    },
-    variant: {
-      info: (msg: string) => console.log(`🎨 [VARIANT] ${msg}`),
-      success: (msg: string) => console.log(`✅ [VARIANT] ${msg}`),
-      warning: (msg: string) => console.warn(`⚠️ [VARIANT] ${msg}`),
-      error: (msg: string) => console.error(`❌ [VARIANT] ${msg}`),
-      debug: (msg: string, data?: any) => {
-        console.log(`🔍 [VARIANT-DEBUG] ${msg}`);
-        if (data) console.log(data);
-      }
-    },
-    category: {
-      info: (msg: string) => console.log(`📂 [CATEGORY] ${msg}`),
-      success: (msg: string) => console.log(`✅ [CATEGORY] ${msg}`),
-      warning: (msg: string) => console.warn(`⚠️ [CATEGORY] ${msg}`),
-      error: (msg: string) => console.error(`❌ [CATEGORY] ${msg}`),
-      debug: (msg: string, data?: any) => {
-        console.log(`🔍 [CATEGORY-DEBUG] ${msg}`);
-        if (data) console.log(data);
-      }
-    }
-  };
-
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
@@ -1455,200 +1425,39 @@ const Modele = ({ categoryParam = null }) => {
     
     const loadSimilarProducts = async () => {
       try {
-        log.similar.info("Chargement des produits similaires...");
-        
-        // 1. Récupérer tous les produits
         const apiBaseUrl = getApiBaseUrl();
-        const apiUrl = `${apiBaseUrl}/api/stripe/products`;
-        log.similar.debug(`URL de l'API: ${apiUrl}`);
-        
-        // Ajouter des headers pour s'assurer d'obtenir du JSON
-        const headers = {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        };
-        
-        log.similar.debug("Envoi de la requête avec headers:", headers);
-        
-        const response = await fetch(apiUrl, { headers });
-        
-        // Vérifier si la réponse est ok
-        if (!response.ok) {
-          log.similar.error(`Erreur HTTP: ${response.status} ${response.statusText}`);
-          // Récupérer le contenu de l'erreur pour le debug
-          const errorContent = await response.text();
-          log.similar.debug("Contenu de l'erreur:", errorContent);
-          throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        // Vérifier le type de contenu
-        const contentType = response.headers.get("content-type");
-        log.similar.debug(`Type de contenu reçu: ${contentType}`);
-        
-        if (!contentType || !contentType.includes("application/json")) {
-          // Récupérer le contenu pour le debug
-          const content = await response.text();
-          log.similar.error(`Type de contenu invalide: ${contentType}`);
-          log.similar.debug("Contenu reçu:", content);
-          
-          // Si nous sommes en développement, essayons de deviner le problème
-          if (import.meta.env.DEV) {
-            if (content.includes("<!DOCTYPE html>")) {
-              log.similar.warning("L'API semble renvoyer une page HTML au lieu de JSON. Vérifiez que le serveur API est bien lancé.");
-            }
-            if (content.includes("Cannot GET") || content.includes("404")) {
-              log.similar.warning("L'endpoint API n'existe pas. Vérifiez l'URL et la configuration du serveur.");
-            }
-          }
-          
-          throw new Error(`Type de contenu invalide: ${contentType}. L'API doit renvoyer du JSON.`);
-        }
-
-        // Récupérer le texte brut pour le debug
-        const rawText = await response.text();
-        log.similar.debug("Réponse brute reçue:", rawText.substring(0, 200) + "...");
-        
-        let data;
-        try {
-          data = JSON.parse(rawText);
-          log.similar.debug("Réponse JSON valide reçue");
-        } catch (parseError) {
-          log.similar.error("Erreur de parsing JSON");
-          log.similar.debug("Contenu brut reçu:", rawText);
-          throw new Error(`Erreur de parsing JSON: ${parseError.message}`);
-        }
-
-        // Vérifier la structure des données
-        if (!data || !Array.isArray(data.products)) {
-          log.similar.error("Format de données invalide");
-          log.similar.debug("Structure reçue:", {
-            hasData: !!data,
-            dataType: typeof data,
-            hasProducts: data && 'products' in data,
-            productsType: data && typeof data.products
-          });
-          throw new Error("Format de données invalide: la réponse doit contenir un tableau 'products'");
-        }
-        
-        if (!data.products?.length) {
-          log.similar.warning("Aucun produit trouvé");
-          setSimilarProducts([]);
-          return;
-        }
-        
-        log.similar.success(`${data.products.length} produits récupérés`);
-        
-        // 2. Récupérer les catégories pour tous les produits
+        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+        const data = await response.json();
         const productIds = data.products.map(p => p.id);
-        log.similar.debug("IDs des produits à traiter:", productIds);
-        
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        if (!categoriesByProduct) {
-          log.similar.error("Impossible de récupérer les catégories des produits");
-          throw new Error("Erreur lors de la récupération des catégories");
-        }
-        
-        // 3. Déterminer la catégorie de référence
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
-        
-        if (!refCategoryId) {
-          log.similar.warning("Aucune catégorie de référence trouvée");
-          setSimilarProducts([]);
-          return;
-        }
-        
-        log.similar.info(`Catégorie de référence: ${refCategoryId}`);
-        
-        // 4. Récupérer tous les IDs de sous-catégories
+        // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-        
-        if (!allRelevantCategoryIds.length) {
-          log.similar.warning("Aucune sous-catégorie trouvée");
-          setSimilarProducts([]);
-          return;
-        }
-        
-        log.category.debug("Catégories pertinentes:", allRelevantCategoryIds);
-        
-        // 5. Filtrer les produits
+        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
         const filtered = data.products.filter(p => {
-          // Exclure le produit actuel
           if (p.id === product.id) return false;
-          
-          // Vérifier les catégories du produit
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
-          const hasMatchingCategory = productCategories.some(catId => allRelevantCategoryIds.includes(catId));
-          
-          if (hasMatchingCategory) {
-            log.similar.debug(`Produit correspondant trouvé: ${p.title || p.name}`, {
-              id: p.id,
-              categories: productCategories
-            });
-          }
-          
-          return hasMatchingCategory;
+          return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
-        
-        if (!filtered.length) {
-          log.similar.warning("Aucun produit similaire trouvé après filtrage");
-          setSimilarProducts([]);
-          return;
-        }
-        
-        log.similar.success(`${filtered.length} produits filtrés trouvés`);
 
-        // 6. Enrichir les produits similaires
-        try {
-          const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
-          setSimilarProducts(enrichedProducts);
-          log.similar.success("Produits similaires enrichis avec succès");
-        } catch (enrichError) {
-          log.similar.error(`Erreur lors de l'enrichissement: ${enrichError.message}`);
-          // On continue avec les produits non enrichis plutôt que d'échouer complètement
-          setSimilarProducts(filtered.slice(0, 4));
-        }
+        // Enrichir les produits similaires avec variantPriceRange
+        const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
+        setSimilarProducts(enrichedProducts);
         
-        // 7. Mettre à jour le debug
-        const debugData = {
+        setDebugSimilar({
           relatedCategory,
           refCategoryId,
           allRelevantCategoryIds,
           categoriesByProduct,
-          filteredProducts: filtered.map(p => ({
-            id: p.id,
-            title: p.title || p.name,
-            categories: categoriesByProduct[p.id]
-          })),
-          allProducts: data.products.map(p => ({
-            id: p.id,
-            title: p.title || p.name,
-            categories: categoriesByProduct[p.id]
-          }))
-        };
-        
-        log.similar.debug("Données de debug complètes:", debugData);
-        setDebugSimilar(debugData);
-        
+          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+        });
       } catch (error) {
-        log.similar.error(`Erreur: ${error.message}`);
-        log.similar.debug("Stack trace:", error.stack);
-        
-        // Ajouter des informations de debug supplémentaires
-        const debugInfo = {
-          error: error.message,
-          stack: error.stack,
-          timestamp: new Date().toISOString(),
-          environment: import.meta.env.MODE,
-          apiUrl: `${getApiBaseUrl()}/api/stripe/products`,
-          userAgent: navigator.userAgent
-        };
-        
-        log.similar.debug("Informations de debug complètes:", debugInfo);
-        setDebugSimilar(debugInfo);
+        console.error("Erreur lors du chargement des produits similaires:", error);
+        setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
     };
-    
     loadSimilarProducts();
   }, [product, relatedCategory, breadcrumbCategory?.parent?.id, allCategories]);
 
