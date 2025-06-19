@@ -3268,28 +3268,31 @@ const Modele = ({ categoryParam = null }) => {
                 <tbody>
                   {product.specifications.map((spec, index) => (
                     <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="py-3 px-4 font-medium">
-                        {isEditMode ? (
-                          <EditableText
-                            contentKey={generateContentKey(product.id, `specification_${index}_name`)}
-                            initialContent={spec.name}
-                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_name`))}
-                          />
-                        ) : (
+                      {isEditMode ? (
+                        <>
+                          <td className="py-3 px-4 font-medium">
+                            <EditableText
+                              contentKey={generateContentKey(product.id, `specification_${index}_name`)}
+                              initialContent={spec.name}
+                              onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_name`))}
+                            />
+                          </td>
+                          <td className="py-3 px-4">
+                            <EditableText
+                              contentKey={generateContentKey(product.id, `specification_${index}_value`)}
+                              initialContent={spec.value}
+                              onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
+                            />
+                          </td>
+                        </>
+                      ) : (
+                        <td className="py-3 px-4 font-medium" colSpan={2}>
                           <span dangerouslySetInnerHTML={{ __html: spec.name }} />
-                        )}
-                      </td>
-                      <td className="py-3 px-4">
-                        {isEditMode ? (
-                          <EditableText
-                            contentKey={generateContentKey(product.id, `specification_${index}_value`)}
-                            initialContent={spec.value}
-                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
-                          />
-                        ) : (
-                          spec.value
-                        )}
-                      </td>
+                          <div className="text-gray-700 mt-1 text-sm" style={{marginLeft: '1rem'}}>
+                            <span dangerouslySetInnerHTML={{ __html: spec.value }} />
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                   {isEditMode && (
