@@ -1333,7 +1333,7 @@ const Modele = ({ categoryParam = null }) => {
                 console.log(`💰 [SIMILAR-PROMO] Prix pour ${id}: ${priceMap[id].min} - ${priceMap[id].max} €`);
             }
           } catch (e) {
-              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e);
+              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e, content);
             }
           }
         });
@@ -1404,12 +1404,8 @@ const Modele = ({ categoryParam = null }) => {
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
-    if (!relatedCategory && !breadcrumbCategory?.parent?.id) {
-      console.warn('[SIMILAR] Aucune catégorie de référence trouvée pour ce produit.');
-      setSimilarProducts([]);
-      setDebugSimilar({ error: 'Aucune catégorie de référence trouvée pour ce produit.' });
-      return;
-    }
+    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
+    
     const loadSimilarProducts = async () => {
       try {
         const apiBaseUrl = getApiBaseUrl();
@@ -1418,23 +1414,20 @@ const Modele = ({ categoryParam = null }) => {
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
+        if (!refCategoryId) {
+          console.log("❌ Aucune catégorie trouvée pour ce produit, impossible de charger les produits similaires.");
+          setSimilarProducts([]);
+          setDebugSimilar({ error: 'Aucune catégorie de référence.' });
+          return;
+        }
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-
-        // LOGS DEBUG
-        console.log('[SIMILAR] Produit courant :', product.id);
-        console.log('[SIMILAR] Catégories liées à ce produit :', categoriesByProduct[product.id]);
-        console.log('[SIMILAR] relatedCategory :', relatedCategory);
-        console.log('[SIMILAR] breadcrumbCategory?.parent?.id :', breadcrumbCategory?.parent?.id);
-        console.log('[SIMILAR] allRelevantCategoryIds :', allRelevantCategoryIds);
-
+        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
         const filtered = data.products.filter(p => {
           if (p.id === product.id) return false;
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
           return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
-
-        console.log('[SIMILAR] Produits filtrés :', filtered.map(p => p.id));
 
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
@@ -1448,7 +1441,7 @@ const Modele = ({ categoryParam = null }) => {
           allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
         });
       } catch (error) {
-        console.error('[SIMILAR] Erreur lors du chargement des produits similaires:', error);
+        console.error("Erreur lors du chargement des produits similaires:", error);
         setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
