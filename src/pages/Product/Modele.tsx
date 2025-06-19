@@ -3272,10 +3272,17 @@ const Modele = ({ categoryParam = null }) => {
               </div>
 
               {/* Grid des caractéristiques */}
-              <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-700">
+              <div className="rounded-lg border overflow-hidden">
                 {product.specifications?.map((spec, index) => (
-                  <React.Fragment key={index}>
-                    <div className="font-semibold">
+                  <div
+                    key={index}
+                    className={
+                      "grid grid-cols-2 text-sm text-gray-700 " +
+                      (index % 2 === 0 ? "bg-gray-50" : "bg-white") +
+                      " border-b last:border-b-0"
+                    }
+                  >
+                    <div className="font-semibold py-3 px-4">
                       {isEditMode ? (
                         <EditableText
                           contentKey={generateContentKey(product.id, `specification_${index}_name`)}
@@ -3286,7 +3293,7 @@ const Modele = ({ categoryParam = null }) => {
                         <span dangerouslySetInnerHTML={{ __html: spec.name }} />
                       )}
                     </div>
-                    <div>
+                    <div className="py-3 px-4">
                       {isEditMode ? (
                         <EditableText
                           contentKey={generateContentKey(product.id, `specification_${index}_value`)}
@@ -3297,7 +3304,7 @@ const Modele = ({ categoryParam = null }) => {
                         <span dangerouslySetInnerHTML={{ __html: spec.value }} />
                       )}
                     </div>
-                  </React.Fragment>
+                  </div>
                 ))}
               </div>
 
