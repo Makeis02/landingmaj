@@ -112,17 +112,16 @@ const getProductIdFromQuery = () => {
 
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
+  // En développement
+  if (import.meta.env.DEV) {
+    log.similar.debug("Mode développement détecté, utilisation de l'URL locale");
+    return 'http://localhost:3000';
   }
-  // En production, forcer Render
-  if (import.meta.env.PROD) {
-    return "https://landingmaj-production.up.railway.app";
-  }
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-  return '';
+
+  // En production
+  const url = window.location.origin;
+  log.similar.debug(`Mode production détecté, utilisation de l'URL: ${url}`);
+  return url;
 };
 
 // Fonction utilitaire pour générer des clés de contenu cohérentes
@@ -1460,25 +1459,54 @@ const Modele = ({ categoryParam = null }) => {
         
         // 1. Récupérer tous les produits
         const apiBaseUrl = getApiBaseUrl();
-        log.similar.debug(`URL de l'API: ${apiBaseUrl}/api/stripe/products`);
+        const apiUrl = `${apiBaseUrl}/api/stripe/products`;
+        log.similar.debug(`URL de l'API: ${apiUrl}`);
         
-        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+        // Ajouter des headers pour s'assurer d'obtenir du JSON
+        const headers = {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        };
+        
+        log.similar.debug("Envoi de la requête avec headers:", headers);
+        
+        const response = await fetch(apiUrl, { headers });
         
         // Vérifier si la réponse est ok
         if (!response.ok) {
           log.similar.error(`Erreur HTTP: ${response.status} ${response.statusText}`);
-          throw new Error(`Erreur HTTP: ${response.status}`);
+          // Récupérer le contenu de l'erreur pour le debug
+          const errorContent = await response.text();
+          log.similar.debug("Contenu de l'erreur:", errorContent);
+          throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
         }
 
         // Vérifier le type de contenu
         const contentType = response.headers.get("content-type");
+        log.similar.debug(`Type de contenu reçu: ${contentType}`);
+        
         if (!contentType || !contentType.includes("application/json")) {
+          // Récupérer le contenu pour le debug
+          const content = await response.text();
           log.similar.error(`Type de contenu invalide: ${contentType}`);
-          throw new Error("La réponse n'est pas au format JSON");
+          log.similar.debug("Contenu reçu:", content);
+          
+          // Si nous sommes en développement, essayons de deviner le problème
+          if (import.meta.env.DEV) {
+            if (content.includes("<!DOCTYPE html>")) {
+              log.similar.warning("L'API semble renvoyer une page HTML au lieu de JSON. Vérifiez que le serveur API est bien lancé.");
+            }
+            if (content.includes("Cannot GET") || content.includes("404")) {
+              log.similar.warning("L'endpoint API n'existe pas. Vérifiez l'URL et la configuration du serveur.");
+            }
+          }
+          
+          throw new Error(`Type de contenu invalide: ${contentType}. L'API doit renvoyer du JSON.`);
         }
 
         // Récupérer le texte brut pour le debug
         const rawText = await response.text();
+        log.similar.debug("Réponse brute reçue:", rawText.substring(0, 200) + "...");
         
         let data;
         try {
@@ -1489,11 +1517,17 @@ const Modele = ({ categoryParam = null }) => {
           log.similar.debug("Contenu brut reçu:", rawText);
           throw new Error(`Erreur de parsing JSON: ${parseError.message}`);
         }
-        
+
+        // Vérifier la structure des données
         if (!data || !Array.isArray(data.products)) {
           log.similar.error("Format de données invalide");
-          log.similar.debug("Données reçues:", data);
-          throw new Error("Format de données invalide");
+          log.similar.debug("Structure reçue:", {
+            hasData: !!data,
+            dataType: typeof data,
+            hasProducts: data && 'products' in data,
+            productsType: data && typeof data.products
+          });
+          throw new Error("Format de données invalide: la réponse doit contenir un tableau 'products'");
         }
         
         if (!data.products?.length) {
@@ -1598,11 +1632,19 @@ const Modele = ({ categoryParam = null }) => {
       } catch (error) {
         log.similar.error(`Erreur: ${error.message}`);
         log.similar.debug("Stack trace:", error.stack);
-        setDebugSimilar({ 
+        
+        // Ajouter des informations de debug supplémentaires
+        const debugInfo = {
           error: error.message,
           stack: error.stack,
-          timestamp: new Date().toISOString()
-        });
+          timestamp: new Date().toISOString(),
+          environment: import.meta.env.MODE,
+          apiUrl: `${getApiBaseUrl()}/api/stripe/products`,
+          userAgent: navigator.userAgent
+        };
+        
+        log.similar.debug("Informations de debug complètes:", debugInfo);
+        setDebugSimilar(debugInfo);
         setSimilarProducts([]);
       }
     };
