@@ -14,6 +14,7 @@ import { fetchCategories, Category } from '@/lib/api/categories';
 import { EditableImage } from '@/components/EditableImage';
 import { Heart } from 'lucide-react';
 import { getPriceIdForProduct } from '@/lib/stripe/getPriceIdFromSupabase';
+import { fetchProductDescriptions } from '@/lib/api/products';
 
 interface EditorialProductCardProps {
   cardIndex: number;
@@ -42,6 +43,15 @@ const gradients = [
   'from-[#0074b3] to-cyan-400',
   'from-[#0074b3] to-indigo-400',
 ];
+
+// Fonction utilitaire pour nettoyer les IDs de produit (supporte shopify_ et gid://shopify/Product/)
+const getCleanProductId = (id: string) => {
+  if (!id || typeof id !== "string") return "";
+  if (id.startsWith("prod_")) return id;
+  if (id.startsWith("shopify_")) return id.replace("shopify_", "");
+  if (id.includes("/")) return id.split("/").pop() || "";
+  return id;
+};
 
 const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, isSpecialCard, editorialData }) => {
   const { isEditMode, isAdmin } = useEditStore();
@@ -247,6 +257,18 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     };
     fetchPromo();
   }, [selectedProductId, allProducts]);
+
+  // Charger la description Supabase du produit sélectionné
+  useEffect(() => {
+    const loadDescription = async () => {
+      if (!selectedProductId) return;
+      const cleanId = getCleanProductId(selectedProductId);
+      const descriptions = await fetchProductDescriptions([cleanId]);
+      const desc = descriptions[cleanId] || "";
+      setSelectedProduct(prev => prev ? { ...prev, description: desc } : prev);
+    };
+    loadDescription();
+  }, [selectedProductId]);
 
   // 🎯 NOUVELLE FONCTION : Gestion complète de l'ajout au panier avec promotions
   const handleAddToCart = async () => {
