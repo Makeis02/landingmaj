@@ -3268,17 +3268,6 @@ const Modele = ({ categoryParam = null }) => {
                 <tbody>
                   {product.specifications.map((spec, index) => (
                     <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="py-3 px-4 text-right align-middle">
-                        {isEditMode ? (
-                          <EditableText
-                            contentKey={generateContentKey(product.id, `specification_${index}_value`)}
-                            initialContent={spec.value}
-                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
-                          />
-                        ) : (
-                          <span dangerouslySetInnerHTML={{ __html: spec.value }} />
-                        )}
-                      </td>
                       <td className="py-3 px-4 font-medium">
                         {isEditMode ? (
                           <EditableText
@@ -3288,6 +3277,17 @@ const Modele = ({ categoryParam = null }) => {
                           />
                         ) : (
                           <span dangerouslySetInnerHTML={{ __html: spec.name }} />
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-left pl-6 align-middle">
+                        {isEditMode ? (
+                          <EditableText
+                            contentKey={generateContentKey(product.id, `specification_${index}_value`)}
+                            initialContent={spec.value}
+                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
+                          />
+                        ) : (
+                          <span dangerouslySetInnerHTML={{ __html: spec.value }} />
                         )}
                       </td>
                     </tr>
