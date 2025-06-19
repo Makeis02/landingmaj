@@ -1419,8 +1419,8 @@ const Modele = ({ categoryParam = null }) => {
         // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
         const filtered = data.products.filter(p => {
           if (p.id === product.id) return false;
-          const productCategories = categoriesByProduct[p.id] || [];
-          return productCategories.some(catId => allRelevantCategoryIds.includes(String(catId)));
+          const productCategories = (categoriesByProduct[p.id] || []).map(String);
+          return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
 
         // Enrichir les produits similaires avec variantPriceRange
@@ -1432,8 +1432,8 @@ const Modele = ({ categoryParam = null }) => {
           refCategoryId,
           allRelevantCategoryIds,
           categoriesByProduct,
-          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id] || []})),
-          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id] || []})),
+          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
         });
       } catch (error) {
         console.error("Erreur lors du chargement des produits similaires:", error);
@@ -3266,11 +3266,7 @@ const Modele = ({ categoryParam = null }) => {
             
             <TabsContent value="specifications" className="p-4 bg-white rounded-lg shadow-sm">
               {/* Header grid */}
-              <div className="grid grid-cols-2 border-b border-gray-200 pb-2 mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">Description</h3>
-                <h3 className="text-sm font-semibold text-gray-700">Caractéristiques</h3>
-              </div>
-
+              
               {/* Grid des caractéristiques */}
               <div className="rounded-lg border overflow-hidden">
                 {product.specifications?.map((spec, index) => (
