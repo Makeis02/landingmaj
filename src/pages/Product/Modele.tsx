@@ -1404,7 +1404,6 @@ const Modele = ({ categoryParam = null }) => {
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
-    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
     
     const loadSimilarProducts = async () => {
       try {
@@ -1413,9 +1412,27 @@ const Modele = ({ categoryParam = null }) => {
         const data = await response.json();
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
+        
+        // Utiliser la première catégorie disponible dans cet ordre :
+        // 1. relatedCategory (si définie)
+        // 2. breadcrumbCategory.parent.id (si défini)
+        // 3. product.category (si défini)
+        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id || product.category;
+        
+        if (!refCategoryId) {
+          console.warn("Aucune catégorie de référence trouvée pour les produits similaires");
+          setDebugSimilar({
+            relatedCategory: null,
+            refCategoryId: null,
+            error: "Aucune catégorie de référence trouvée"
+          });
+          setSimilarProducts([]);
+          return;
+        }
+
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
+        
         // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
         const filtered = data.products.filter(p => {
           if (p.id === product.id) return false;
@@ -1433,7 +1450,7 @@ const Modele = ({ categoryParam = null }) => {
           allRelevantCategoryIds,
           categoriesByProduct,
           filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]}))
         });
       } catch (error) {
         console.error("Erreur lors du chargement des produits similaires:", error);
@@ -1441,6 +1458,7 @@ const Modele = ({ categoryParam = null }) => {
         setSimilarProducts([]);
       }
     };
+    
     loadSimilarProducts();
   }, [product, relatedCategory, breadcrumbCategory?.parent?.id, allCategories]);
 
