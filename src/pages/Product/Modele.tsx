@@ -1241,14 +1241,18 @@ const Modele = ({ categoryParam = null }) => {
     return path.join(' > ');
   }
 
-  // Fonction utilitaire pour récupérer récursivement tous les IDs de sous-catégories
-  function getAllSubCategoryIds(categoryId, cats) {
-    const result = [categoryId];
-    const children = cats.filter(cat => cat.parent_id === categoryId);
-    for (const child of children) {
-      result.push(...getAllSubCategoryIds(child.id, cats));
-    }
-    return result;
+  // Fonction récursive pour obtenir tous les IDs de sous-catégories
+  function getAllSubCategoryIds(categoryId: string, categories: any[]): string[] {
+    if (!categoryId || !categories) return [];
+    
+    const ids = [categoryId];
+    const children = categories.filter(cat => cat.parent_id === categoryId);
+    
+    children.forEach(child => {
+      ids.push(...getAllSubCategoryIds(child.id, categories));
+    });
+    
+    return ids;
   }
 
   // Fonction utilitaire pour nettoyer les IDs de produit (supporte shopify_ et gid://shopify/Product/)
@@ -1404,56 +1408,79 @@ const Modele = ({ categoryParam = null }) => {
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
+    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
     
     const loadSimilarProducts = async () => {
       try {
+        console.log("🔄 [SIMILAR] Chargement des produits similaires...");
+        
+        // 1. Récupérer tous les produits
         const apiBaseUrl = getApiBaseUrl();
         const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
         const data = await response.json();
+        
+        if (!data.products?.length) {
+          console.warn("❌ [SIMILAR] Aucun produit trouvé");
+          return;
+        }
+        
+        console.log(`✅ [SIMILAR] ${data.products.length} produits récupérés`);
+        
+        // 2. Récupérer les catégories pour tous les produits
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
         
-        // Utiliser la première catégorie disponible dans cet ordre :
-        // 1. relatedCategory (si définie)
-        // 2. breadcrumbCategory.parent.id (si défini)
-        // 3. product.category (si défini)
-        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id || product.category;
+        // 3. Déterminer la catégorie de référence
+        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
         
         if (!refCategoryId) {
-          console.warn("Aucune catégorie de référence trouvée pour les produits similaires");
-          setDebugSimilar({
-            relatedCategory: null,
-            refCategoryId: null,
-            error: "Aucune catégorie de référence trouvée"
-          });
-          setSimilarProducts([]);
+          console.warn("❌ [SIMILAR] Aucune catégorie de référence trouvée");
           return;
         }
-
-        // Récupère tous les IDs de sous-catégories (récursif)
+        
+        console.log(`🎯 [SIMILAR] Catégorie de référence: ${refCategoryId}`);
+        
+        // 4. Récupérer tous les IDs de sous-catégories
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
         
-        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
+        console.log(`📂 [SIMILAR] Catégories pertinentes: ${allRelevantCategoryIds.join(', ')}`);
+        
+        // 5. Filtrer les produits
         const filtered = data.products.filter(p => {
+          // Exclure le produit actuel
           if (p.id === product.id) return false;
+          
+          // Vérifier les catégories du produit
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
           return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
+        
+        console.log(`✨ [SIMILAR] ${filtered.length} produits filtrés trouvés`);
 
-        // Enrichir les produits similaires avec variantPriceRange
+        // 6. Enrichir les produits similaires
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
         setSimilarProducts(enrichedProducts);
         
+        // 7. Mettre à jour le debug
         setDebugSimilar({
           relatedCategory,
           refCategoryId,
           allRelevantCategoryIds,
           categoriesByProduct,
-          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]}))
+          filteredProducts: filtered.map(p => ({
+            id: p.id,
+            title: p.title || p.name,
+            categories: categoriesByProduct[p.id]
+          })),
+          allProducts: data.products.map(p => ({
+            id: p.id,
+            title: p.title || p.name,
+            categories: categoriesByProduct[p.id]
+          }))
         });
+        
       } catch (error) {
-        console.error("Erreur lors du chargement des produits similaires:", error);
+        console.error("❌ [SIMILAR] Erreur:", error);
         setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
