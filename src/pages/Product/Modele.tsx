@@ -1405,6 +1405,50 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
+  // Fonction utilitaire pour les logs standardisés
+  const log = {
+    similar: {
+      info: (msg: string) => console.log(`🔄 [SIMILAR] ${msg}`),
+      success: (msg: string) => console.log(`✅ [SIMILAR] ${msg}`),
+      warning: (msg: string) => console.warn(`⚠️ [SIMILAR] ${msg}`),
+      error: (msg: string) => console.error(`❌ [SIMILAR] ${msg}`),
+      debug: (msg: string, data?: any) => {
+        console.log(`🔍 [SIMILAR-DEBUG] ${msg}`);
+        if (data) console.log(data);
+      }
+    },
+    promo: {
+      info: (msg: string) => console.log(`💰 [PROMO] ${msg}`),
+      success: (msg: string) => console.log(`✨ [PROMO] ${msg}`),
+      warning: (msg: string) => console.warn(`⚠️ [PROMO] ${msg}`),
+      error: (msg: string) => console.error(`❌ [PROMO] ${msg}`),
+      debug: (msg: string, data?: any) => {
+        console.log(`🔍 [PROMO-DEBUG] ${msg}`);
+        if (data) console.log(data);
+      }
+    },
+    variant: {
+      info: (msg: string) => console.log(`🎨 [VARIANT] ${msg}`),
+      success: (msg: string) => console.log(`✅ [VARIANT] ${msg}`),
+      warning: (msg: string) => console.warn(`⚠️ [VARIANT] ${msg}`),
+      error: (msg: string) => console.error(`❌ [VARIANT] ${msg}`),
+      debug: (msg: string, data?: any) => {
+        console.log(`🔍 [VARIANT-DEBUG] ${msg}`);
+        if (data) console.log(data);
+      }
+    },
+    category: {
+      info: (msg: string) => console.log(`📂 [CATEGORY] ${msg}`),
+      success: (msg: string) => console.log(`✅ [CATEGORY] ${msg}`),
+      warning: (msg: string) => console.warn(`⚠️ [CATEGORY] ${msg}`),
+      error: (msg: string) => console.error(`❌ [CATEGORY] ${msg}`),
+      debug: (msg: string, data?: any) => {
+        console.log(`🔍 [CATEGORY-DEBUG] ${msg}`);
+        if (data) console.log(data);
+      }
+    }
+  };
+
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
@@ -1412,38 +1456,85 @@ const Modele = ({ categoryParam = null }) => {
     
     const loadSimilarProducts = async () => {
       try {
-        console.log("🔄 [SIMILAR] Chargement des produits similaires...");
+        log.similar.info("Chargement des produits similaires...");
         
         // 1. Récupérer tous les produits
         const apiBaseUrl = getApiBaseUrl();
+        log.similar.debug(`URL de l'API: ${apiBaseUrl}/api/stripe/products`);
+        
         const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
-        const data = await response.json();
+        
+        // Vérifier si la réponse est ok
+        if (!response.ok) {
+          log.similar.error(`Erreur HTTP: ${response.status} ${response.statusText}`);
+          throw new Error(`Erreur HTTP: ${response.status}`);
+        }
+
+        // Vérifier le type de contenu
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          log.similar.error(`Type de contenu invalide: ${contentType}`);
+          throw new Error("La réponse n'est pas au format JSON");
+        }
+
+        // Récupérer le texte brut pour le debug
+        const rawText = await response.text();
+        
+        let data;
+        try {
+          data = JSON.parse(rawText);
+          log.similar.debug("Réponse JSON valide reçue");
+        } catch (parseError) {
+          log.similar.error("Erreur de parsing JSON");
+          log.similar.debug("Contenu brut reçu:", rawText);
+          throw new Error(`Erreur de parsing JSON: ${parseError.message}`);
+        }
+        
+        if (!data || !Array.isArray(data.products)) {
+          log.similar.error("Format de données invalide");
+          log.similar.debug("Données reçues:", data);
+          throw new Error("Format de données invalide");
+        }
         
         if (!data.products?.length) {
-          console.warn("❌ [SIMILAR] Aucun produit trouvé");
+          log.similar.warning("Aucun produit trouvé");
+          setSimilarProducts([]);
           return;
         }
         
-        console.log(`✅ [SIMILAR] ${data.products.length} produits récupérés`);
+        log.similar.success(`${data.products.length} produits récupérés`);
         
         // 2. Récupérer les catégories pour tous les produits
         const productIds = data.products.map(p => p.id);
+        log.similar.debug("IDs des produits à traiter:", productIds);
+        
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        if (!categoriesByProduct) {
+          log.similar.error("Impossible de récupérer les catégories des produits");
+          throw new Error("Erreur lors de la récupération des catégories");
+        }
         
         // 3. Déterminer la catégorie de référence
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
         
         if (!refCategoryId) {
-          console.warn("❌ [SIMILAR] Aucune catégorie de référence trouvée");
+          log.similar.warning("Aucune catégorie de référence trouvée");
+          setSimilarProducts([]);
           return;
         }
         
-        console.log(`🎯 [SIMILAR] Catégorie de référence: ${refCategoryId}`);
+        log.similar.info(`Catégorie de référence: ${refCategoryId}`);
         
         // 4. Récupérer tous les IDs de sous-catégories
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
         
-        console.log(`📂 [SIMILAR] Catégories pertinentes: ${allRelevantCategoryIds.join(', ')}`);
+        if (!allRelevantCategoryIds.length) {
+          log.similar.warning("Aucune sous-catégorie trouvée");
+          setSimilarProducts([]);
+          return;
+        }
+        
+        log.category.debug("Catégories pertinentes:", allRelevantCategoryIds);
         
         // 5. Filtrer les produits
         const filtered = data.products.filter(p => {
@@ -1452,17 +1543,39 @@ const Modele = ({ categoryParam = null }) => {
           
           // Vérifier les catégories du produit
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
-          return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
+          const hasMatchingCategory = productCategories.some(catId => allRelevantCategoryIds.includes(catId));
+          
+          if (hasMatchingCategory) {
+            log.similar.debug(`Produit correspondant trouvé: ${p.title || p.name}`, {
+              id: p.id,
+              categories: productCategories
+            });
+          }
+          
+          return hasMatchingCategory;
         });
         
-        console.log(`✨ [SIMILAR] ${filtered.length} produits filtrés trouvés`);
+        if (!filtered.length) {
+          log.similar.warning("Aucun produit similaire trouvé après filtrage");
+          setSimilarProducts([]);
+          return;
+        }
+        
+        log.similar.success(`${filtered.length} produits filtrés trouvés`);
 
         // 6. Enrichir les produits similaires
-        const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
-        setSimilarProducts(enrichedProducts);
+        try {
+          const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
+          setSimilarProducts(enrichedProducts);
+          log.similar.success("Produits similaires enrichis avec succès");
+        } catch (enrichError) {
+          log.similar.error(`Erreur lors de l'enrichissement: ${enrichError.message}`);
+          // On continue avec les produits non enrichis plutôt que d'échouer complètement
+          setSimilarProducts(filtered.slice(0, 4));
+        }
         
         // 7. Mettre à jour le debug
-        setDebugSimilar({
+        const debugData = {
           relatedCategory,
           refCategoryId,
           allRelevantCategoryIds,
@@ -1477,11 +1590,19 @@ const Modele = ({ categoryParam = null }) => {
             title: p.title || p.name,
             categories: categoriesByProduct[p.id]
           }))
-        });
+        };
+        
+        log.similar.debug("Données de debug complètes:", debugData);
+        setDebugSimilar(debugData);
         
       } catch (error) {
-        console.error("❌ [SIMILAR] Erreur:", error);
-        setDebugSimilar({ error: error.message });
+        log.similar.error(`Erreur: ${error.message}`);
+        log.similar.debug("Stack trace:", error.stack);
+        setDebugSimilar({ 
+          error: error.message,
+          stack: error.stack,
+          timestamp: new Date().toISOString()
+        });
         setSimilarProducts([]);
       }
     };
