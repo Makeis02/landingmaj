@@ -3268,7 +3268,7 @@ const Modele = ({ categoryParam = null }) => {
                 <tbody>
                   {product.specifications.map((spec, index) => (
                     <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="py-3 px-4 font-medium">
+                      <td className="py-3 px-4 font-medium text-left align-top min-w-[160px]">
                         {isEditMode ? (
                           <EditableText
                             contentKey={generateContentKey(product.id, `specification_${index}_name`)}
@@ -3279,7 +3279,7 @@ const Modele = ({ categoryParam = null }) => {
                           <span dangerouslySetInnerHTML={{ __html: spec.name }} />
                         )}
                       </td>
-                      <td className="py-3 px-4 text-left pl-8 align-middle">
+                      <td className="py-3 px-4 text-left align-top">
                         {isEditMode ? (
                           <EditableText
                             contentKey={generateContentKey(product.id, `specification_${index}_value`)}
