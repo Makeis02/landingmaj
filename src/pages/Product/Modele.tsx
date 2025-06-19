@@ -3276,7 +3276,7 @@ const Modele = ({ categoryParam = null }) => {
                             onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_name`))}
                           />
                         ) : (
-                          spec.name
+                          <span dangerouslySetInnerHTML={{ __html: spec.name }} />
                         )}
                       </td>
                       <td className="py-3 px-4">
