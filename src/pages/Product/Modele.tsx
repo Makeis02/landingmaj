@@ -1,6 +1,7 @@
 // Ce fichier sert de modèle pour générer de nouvelles pages produit.
 // NE PAS MODIFIER LE NOM DU COMPOSANT ET L'EXPORT - ils sont remplacés automatiquement lors de la génération.
 
+import React from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { ShoppingCart, Heart, CircleDot, ArrowRight, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
@@ -3264,60 +3265,43 @@ const Modele = ({ categoryParam = null }) => {
             </TabsContent>
             
             <TabsContent value="specifications" className="p-4 bg-white rounded-lg shadow-sm">
-              <table className="w-full border-collapse">
-                <tbody>
-                  {product.specifications.map((spec, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="py-3 px-4 font-medium text-left align-top min-w-[160px]">
-                        {isEditMode ? (
-                          <EditableText
-                            contentKey={generateContentKey(product.id, `specification_${index}_name`)}
-                            initialContent={spec.name}
-                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_name`))}
-                          />
-                        ) : (
-                          <span dangerouslySetInnerHTML={{ __html: spec.name }} />
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-left align-top">
-                        {isEditMode ? (
-                          <EditableText
-                            contentKey={generateContentKey(product.id, `specification_${index}_value`)}
-                            initialContent={spec.value}
-                            onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
-                          />
-                        ) : (
-                          <span dangerouslySetInnerHTML={{ __html: spec.value }} />
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {isEditMode && (
-                    <tr>
-                      <td colSpan={2} className="py-3 px-4">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setProduct(prev => ({
-                              ...prev,
-                              specifications: [
-                                ...prev.specifications,
-                                { name: 'Nouvelle caractéristique', value: 'Valeur' }
-                              ]
-                            }));
-                          }}
-                        >
-                          + Ajouter une caractéristique
-                        </Button>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            
-              {/* UI édition des variantes (mode admin, dans l'onglet Caractéristiques ou un nouvel onglet si besoin) */}
-            {isEditMode && (
+              {/* Header grid */}
+              <div className="grid grid-cols-2 border-b border-gray-200 pb-2 mb-4">
+                <h3 className="text-sm font-semibold text-gray-700">Description</h3>
+                <h3 className="text-sm font-semibold text-gray-700">Caractéristiques</h3>
+              </div>
+
+              {/* Grid des caractéristiques */}
+              <div className="grid grid-cols-2 gap-y-2 text-sm text-gray-700">
+                {product.specifications?.map((spec, index) => (
+                  <React.Fragment key={index}>
+                    <div className="font-semibold">
+                      {isEditMode ? (
+                        <EditableText
+                          contentKey={generateContentKey(product.id, `specification_${index}_name`)}
+                          initialContent={spec.name}
+                          onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_name`))}
+                        />
+                      ) : (
+                        <span dangerouslySetInnerHTML={{ __html: spec.name }} />
+                      )}
+                    </div>
+                    <div>
+                      {isEditMode ? (
+                        <EditableText
+                          contentKey={generateContentKey(product.id, `specification_${index}_value`)}
+                          initialContent={spec.value}
+                          onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, `specification_${index}_value`))}
+                        />
+                      ) : (
+                        <span dangerouslySetInnerHTML={{ __html: spec.value }} />
+                      )}
+                    </div>
+                  </React.Fragment>
+                ))}
+              </div>
+
+              {isEditMode && (
                 <div className="mt-6">
                   <h4 className="font-semibold mb-2">Variantes</h4>
                   <table className="w-full text-sm border rounded">
