@@ -3005,11 +3005,9 @@ const Modele = ({ categoryParam = null }) => {
             )}
           </div>
           
-          {/* Right Column - Details */}
-          <div className="flex flex-col space-y-4">
-            {/* Titre et Marque */}
-            <div className="flex flex-col space-y-4">
-              <h2 className="text-2xl font-bold">
+          {/* En-tête mobile (titre + avis) */}
+          <div className="block lg:hidden mb-6">
+            <h2 className="text-2xl font-bold mb-2">
               {isEditMode ? (
                 <EditableText
                   contentKey={generateContentKey(product.id, 'title')}
@@ -3020,7 +3018,25 @@ const Modele = ({ categoryParam = null }) => {
                 product.title
               )}
             </h2>
-            
+            <ProductReviewSummary productId={product.id} />
+          </div>
+
+          {/* Right Column - Details */}
+          <div className="flex flex-col space-y-4">
+            {/* Titre et Marque - version desktop */}
+            <div className="hidden lg:flex flex-col space-y-4">
+              <h2 className="text-2xl font-bold">
+              {isEditMode ? (
+                <EditableText
+                  contentKey={generateContentKey(product.id, 'title')}
+                  initialContent={product.title}
+                  onUpdate={(newText) => handleTextUpdate(newText, generateContentKey(product.id, 'title'))}
+                />
+              ) : (
+                product.title
+              )}
+              </h2>
+              
               {/* Note moyenne */}
               <ProductReviewSummary productId={product.id} />
               
