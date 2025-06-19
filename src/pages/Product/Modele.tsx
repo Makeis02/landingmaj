@@ -959,39 +959,22 @@ const Modele = ({ categoryParam = null }) => {
   // Chargement de la catégorie liée depuis Supabase
   useEffect(() => {
     if (!product) return;
-
     const fetchRelatedCategory = async () => {
-      // 1. Essayer de récupérer la catégorie liée depuis Supabase
       const { data } = await supabase
         .from('editable_content')
         .select('content')
         .eq('content_key', `product_${product.id}_related_category`)
         .single();
-
       if (data?.content) {
         setRelatedCategory(data.content.trim());
-        return;
+        if (import.meta.env.DEV) console.log('[MODELE] relatedCategory from Supabase:', data.content.trim());
+      } else if (breadcrumbCategory?.parent?.id) {
+        setRelatedCategory(breadcrumbCategory.parent.id);
+        if (import.meta.env.DEV) console.log('[MODELE] relatedCategory fallback to parent.id:', breadcrumbCategory.parent.id);
       }
-
-      // 2. Sinon, récupérer les catégories liées au produit
-      const productCategories = await fetchCategoriesForProducts([product.id]);
-      const categoryIds = productCategories[product.id] || [];
-
-      if (categoryIds.length > 0) {
-        setRelatedCategory(categoryIds[0]); // Prend la première catégorie liée
-        return;
-      }
-
-      // 3. Si aucune catégorie trouvée, afficher un message d'erreur explicite
-      setRelatedCategory(null);
-      setDebugSimilar((prev) => ({
-        ...prev,
-        error: "Aucune catégorie de référence trouvée pour ce produit."
-      }));
     };
-
     fetchRelatedCategory();
-  }, [product]);
+  }, [product, breadcrumbCategory]);
 
   // Charger toutes les catégories pour le menu (si ce n'est pas déjà fait)
   useEffect(() => {
@@ -1421,8 +1404,12 @@ const Modele = ({ categoryParam = null }) => {
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
-    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
-    
+    if (!relatedCategory && !breadcrumbCategory?.parent?.id) {
+      console.warn('[SIMILAR] Aucune catégorie de référence trouvée pour ce produit.');
+      setSimilarProducts([]);
+      setDebugSimilar({ error: 'Aucune catégorie de référence trouvée pour ce produit.' });
+      return;
+    }
     const loadSimilarProducts = async () => {
       try {
         const apiBaseUrl = getApiBaseUrl();
@@ -1433,17 +1420,25 @@ const Modele = ({ categoryParam = null }) => {
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
+
+        // LOGS DEBUG
+        console.log('[SIMILAR] Produit courant :', product.id);
+        console.log('[SIMILAR] Catégories liées à ce produit :', categoriesByProduct[product.id]);
+        console.log('[SIMILAR] relatedCategory :', relatedCategory);
+        console.log('[SIMILAR] breadcrumbCategory?.parent?.id :', breadcrumbCategory?.parent?.id);
+        console.log('[SIMILAR] allRelevantCategoryIds :', allRelevantCategoryIds);
+
         const filtered = data.products.filter(p => {
           if (p.id === product.id) return false;
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
           return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
 
+        console.log('[SIMILAR] Produits filtrés :', filtered.map(p => p.id));
+
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
         setSimilarProducts(enrichedProducts);
-        
         setDebugSimilar({
           relatedCategory,
           refCategoryId,
@@ -1453,7 +1448,7 @@ const Modele = ({ categoryParam = null }) => {
           allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
         });
       } catch (error) {
-        console.error("Erreur lors du chargement des produits similaires:", error);
+        console.error('[SIMILAR] Erreur lors du chargement des produits similaires:', error);
         setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
