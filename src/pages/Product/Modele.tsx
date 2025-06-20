@@ -2728,8 +2728,8 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
-  // Fonction utilitaire pour charger les produits d'une même catégorie
-  export async function fetchProductsByCategory(categoryId) {
+  // Fonction utilitaire pour charger les produits d'une même catégorie (hors composant)
+  async function fetchProductsByCategory(categoryId: string) {
     const { data, error } = await supabase
       .from('product_pages')
       .select('*')
@@ -2740,15 +2740,14 @@ const Modele = ({ categoryParam = null }) => {
     return data;
   }
 
-  const mainCategoryId = product?.category || (product?.categories?.[0]?.id) || null;
+  const mainCategoryId = product?.category || null;
   const currentProductId = product?.id;
-  const { data: sameCategoryProducts = [] } = useQuery([
-    'same-category-products',
-    mainCategoryId
-  ], () => fetchProductsByCategory(mainCategoryId), {
-    enabled: !!mainCategoryId
-  });
-  const filteredSimilarProducts = sameCategoryProducts?.filter(p => p.id !== currentProductId);
+  const { data: sameCategoryProducts } = useQuery<any[], Error>(
+    ['same-category-products', mainCategoryId],
+    () => fetchProductsByCategory(mainCategoryId),
+    { enabled: !!mainCategoryId }
+  );
+  const filteredSimilarProducts = Array.isArray(sameCategoryProducts) ? sameCategoryProducts.filter(p => p.id !== currentProductId) : [];
 
   return (
     <div className="min-h-screen flex flex-col">
