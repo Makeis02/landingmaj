@@ -1026,11 +1026,6 @@ const Checkout = () => {
                             <div className="flex-1 min-w-0 relative z-10">
                               <div className="flex items-center gap-2 mb-1">
                                 <h4 className="font-medium text-sm leading-tight text-blue-900">{item.title}</h4>
-                                {item.quantity > 1 && (
-                                  <div className="text-xs text-gray-500 mb-1">
-                                    {item.price.toFixed(2)}€ x {item.quantity}
-                                  </div>
-                                )}
                                 <Badge className="bg-green-100 text-green-800 text-xs">GRATUIT</Badge>
                               </div>
                               
@@ -1104,11 +1099,9 @@ const Checkout = () => {
                         
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-sm leading-tight">{item.title}</h4>
-                          {item.quantity > 1 && (
-                            <div className="text-xs text-gray-500 mb-1">
-                              {item.price.toFixed(2)}€ x {item.quantity}
-                            </div>
-                          )}
+                          <div className="text-xs text-gray-500 mb-1">
+                            {item.price.toFixed(2)}€ / unité
+                          </div>
                           {item.variant && (
                             <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
                           )}
@@ -1126,7 +1119,7 @@ const Checkout = () => {
                                 </span>
                               </div>
                             ) : (
-                              item.quantity === 1 && <span className="text-gray-600">{item.price.toFixed(2)}€</span>
+                              <span className="text-gray-600">{item.price.toFixed(2)}€</span>
                             )}
                           </div>
                           
