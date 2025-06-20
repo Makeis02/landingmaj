@@ -1199,15 +1199,11 @@ const Checkout = () => {
                       <span>Chargement...</span>
                         )}
                       </div>
-                  {shippingSettings && !shippingFree && (
-                    <div className="text-xs text-gray-500 text-right">
-                      Livraison gratuite à partir de {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €
-                    </div>
-                  )}
-                  {/* Message explicite si code promo appliqué et total < seuil */}
-                  {appliedPromoCode && (orderSummary.subtotal - orderSummary.discount) < shippingSettings[selectedShipping].free_shipping_threshold && (
-                    <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 mt-2 text-right">
-                      ℹ️ La livraison gratuite s'applique uniquement si le total de vos produits (après remise) atteint {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €.
+                  {/* Message explicatif livraison gratuite et promo */}
+                  {appliedPromoCode && !shippingFree && orderSummary.total < shippingSettings?.[selectedShipping]?.free_shipping_threshold && (
+                    <div className="text-xs text-blue-700 mt-1">
+                      ℹ️ La livraison gratuite s'applique uniquement si le total de vos produits (après remise) atteint {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €.<br />
+                      (Actuellement, votre total est de {orderSummary.total.toFixed(2)} €)
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-semibold pt-2 border-t">
