@@ -270,11 +270,13 @@ const ProduitsPage = () => {
   useEffect(() => {
     const loadLinkedCategories = async () => {
       if (products.length === 0) return;
-      
+      console.log('[ADMIN] loadLinkedCategories - Début', { productCount: products.length });
       try {
         const productIds = products.map(p => p.id.toString());
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        console.log('[ADMIN] loadLinkedCategories - Résultat fetchCategoriesForProducts', categoriesByProduct);
         setLinkedCategories(categoriesByProduct);
+        console.log('[ADMIN] loadLinkedCategories - Après setLinkedCategories', categoriesByProduct);
       } catch (err) {
         console.error("Erreur lors du chargement des catégories liées:", err);
         toast({
@@ -367,12 +369,18 @@ const ProduitsPage = () => {
   // Gérer la modification des catégories d'un produit
   const handleCategoryChange = async (productId: string, selectedCategoryIds: string[]) => {
     try {
+      console.log('[ADMIN] handleCategoryChange - Avant update', { productId, selectedCategoryIds });
       setUpdatingProduct(productId);
       await updateProductCategories(productId, selectedCategoryIds);
-      setLinkedCategories((prev) => ({
-        ...prev,
-        [productId]: selectedCategoryIds,
-      }));
+      console.log('[ADMIN] handleCategoryChange - Après updateProductCategories');
+      setLinkedCategories((prev) => {
+        const updated = {
+          ...prev,
+          [productId]: selectedCategoryIds,
+        };
+        console.log('[ADMIN] handleCategoryChange - Après setLinkedCategories', updated);
+        return updated;
+      });
       toast({
         title: "Succès",
         description: "Catégories mises à jour avec succès.",
@@ -692,146 +700,152 @@ const ProduitsPage = () => {
                           </TableCell>
                         </TableRow>
                       ) : (
-                        filteredProducts.map((product) => (
-                          <TableRow key={product.id}>
-                            <TableCell>
-                              <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
-                                <img 
-                                  src={product.image || "https://placehold.co/100x100?text=No+Image"} 
-                                  alt={product.title} 
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            </TableCell>
-                            <TableCell className="font-medium">{product.title}</TableCell>
-                              <TableCell>{product.price.toFixed(2)} €</TableCell>
-                            <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                product.stock > 10 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : product.stock > 0 
-                                    ? 'bg-yellow-100 text-yellow-800' 
-                                    : 'bg-red-100 text-red-800'
-                              }`}>
-                                {product.stock > 0 ? `${product.stock} en stock` : 'Rupture de stock'}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              {productPages[product.id.toString()]?.isLoading ? (
-                                <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                  <span className="text-xs text-gray-500">Chargement...</span>
+                        filteredProducts.map((product) => {
+                          console.log('[ADMIN] Rendu produit', { id: product.id, title: product.title, linkedCategories: linkedCategories[product.id] });
+                          return (
+                            <TableRow key={product.id}>
+                              <TableCell>
+                                <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
+                                  <img 
+                                    src={product.image || "https://placehold.co/100x100?text=No+Image"} 
+                                    alt={product.title} 
+                                    className="w-full h-full object-cover"
+                                  />
                                 </div>
-                              ) : productPages[product.id.toString()]?.exists ? (
-                                <div className="flex items-center">
-                                  <span className="text-green-500 font-bold text-xl">✓</span>
-                                  <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">Page créée</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center">
-                                  <span className="text-red-500 font-bold text-xl">✗</span>
-                                  <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">Pas de page</span>
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                                <MultiSelect
-                                  options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
-                                  selectedValues={linkedCategories[product.id] || []}
-                                  onChange={(selected) => handleCategoryChange(product.id, selected)}
-                                  placeholder="Sélectionner des catégories"
-                                />
+                              </TableCell>
+                              <TableCell className="font-medium">{product.title}</TableCell>
+                                <TableCell>{product.price.toFixed(2)} €</TableCell>
+                              <TableCell>
+                                <span className={`px-2 py-1 rounded-full text-xs ${
+                                  product.stock > 10 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : product.stock > 0 
+                                      ? 'bg-yellow-100 text-yellow-800' 
+                                      : 'bg-red-100 text-red-800'
+                                }`}>
+                                  {product.stock > 0 ? `${product.stock} en stock` : 'Rupture de stock'}
+                                </span>
                               </TableCell>
                               <TableCell>
-                                <Select
-                                  value={linkedBrands[product.id] || "none"}
-                                  onValueChange={(value) => handleBrandChange(product.id, value === "none" ? null : value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="Sélectionner une marque" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="none">Aucune marque</SelectItem>
-                                    {brands.map((brand) => (
-                                      <SelectItem key={brand.id} value={brand.id}>
-                                        {brand.name}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                                {productPages[product.id.toString()]?.isLoading ? (
+                                  <div className="flex items-center">
+                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                    <span className="text-xs text-gray-500">Chargement...</span>
+                                  </div>
+                                ) : productPages[product.id.toString()]?.exists ? (
+                                  <div className="flex items-center">
+                                    <span className="text-green-500 font-bold text-xl">✓</span>
+                                    <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">Page créée</span>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center">
+                                    <span className="text-red-500 font-bold text-xl">✗</span>
+                                    <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">Pas de page</span>
+                                  </div>
+                                )}
                               </TableCell>
                               <TableCell>
-                                <Switch
-                                  checked={product.show_logo_eaudouce === "true"}
-                                  disabled={false}
-                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudouce', checked)}
-                                />
-                            </TableCell>
-                            <TableCell>
-                                <Switch
-                                  checked={product.show_logo_eaudemer === "true"}
-                                  disabled={false}
-                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
-                                />
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col gap-2">
-                                <Button variant="outline" size="sm">Éditer</Button>
-                                <Button variant="destructive" size="sm">Supprimer</Button>
-                                
-                                {/* Boutons de gestion des pages produit */}
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="border-blue-500 text-blue-500 hover:bg-blue-50"
-                                  disabled={creatingPage === product.id.toString() || productPages[product.id.toString()]?.exists === true}
-                                  onClick={() => handleCreateProductPage(product)}
-                                >
-                                  {creatingPage === product.id.toString() ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                      Création en cours...
-                                    </>
-                                  ) : productPages[product.id.toString()]?.exists ? (
-                                    "✓ Page déjà créée"
-                                  ) : (
-                                    "✨ Créer page produit"
-                                  )}
-                                </Button>
-                                
-                                <Button 
-                                  variant="outline"
-                                  size="sm"
-                                  className="border-red-500 text-red-500 hover:bg-red-50"
-                                  disabled={deletingPage === product.id.toString() || productPages[product.id.toString()]?.exists === false}
-                                  onClick={() => handleDeleteProductPage(product)}
-                                >
-                                  {deletingPage === product.id.toString() ? (
-                                    <>
-                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                      Suppression en cours...
-                                    </>
-                                  ) : !productPages[product.id.toString()]?.exists ? (
-                                    "❌ Pas de page à supprimer"
-                                  ) : (
-                                    "🗑️ Supprimer page produit"
-                                  )}
-                                </Button>
-                                
-                                <Button 
-                                  variant="link" 
-                                  size="sm"
-                                  onClick={() => {
-                                      const slug = slugify(product.title, { lower: true });
-                                      window.open(`/produits/${slug}?id=${product.id}`, '_blank');
-                                  }}
-                                >
-                                  Voir la page
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                                  <MultiSelect
+                                    options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                                    selectedValues={linkedCategories[product.id] || []}
+                                    onChange={(selected) => {
+                                      console.log('[ADMIN] MultiSelect onChange', { productId: product.id, selected });
+                                      handleCategoryChange(product.id, selected);
+                                    }}
+                                    placeholder="Sélectionner des catégories"
+                                  />
+                                </TableCell>
+                                <TableCell>
+                                  <Select
+                                    value={linkedBrands[product.id] || "none"}
+                                    onValueChange={(value) => handleBrandChange(product.id, value === "none" ? null : value)}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Sélectionner une marque" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="none">Aucune marque</SelectItem>
+                                      {brands.map((brand) => (
+                                        <SelectItem key={brand.id} value={brand.id}>
+                                          {brand.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                </TableCell>
+                                <TableCell>
+                                  <Switch
+                                    checked={product.show_logo_eaudouce === "true"}
+                                    disabled={false}
+                                    onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudouce', checked)}
+                                  />
+                              </TableCell>
+                              <TableCell>
+                                  <Switch
+                                    checked={product.show_logo_eaudemer === "true"}
+                                    disabled={false}
+                                    onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
+                                  />
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col gap-2">
+                                  <Button variant="outline" size="sm">Éditer</Button>
+                                  <Button variant="destructive" size="sm">Supprimer</Button>
+                                  
+                                  {/* Boutons de gestion des pages produit */}
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                                    disabled={creatingPage === product.id.toString() || productPages[product.id.toString()]?.exists === true}
+                                    onClick={() => handleCreateProductPage(product)}
+                                  >
+                                    {creatingPage === product.id.toString() ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Création en cours...
+                                      </>
+                                    ) : productPages[product.id.toString()]?.exists ? (
+                                      "✓ Page déjà créée"
+                                    ) : (
+                                      "✨ Créer page produit"
+                                    )}
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-red-500 text-red-500 hover:bg-red-50"
+                                    disabled={deletingPage === product.id.toString() || productPages[product.id.toString()]?.exists === false}
+                                    onClick={() => handleDeleteProductPage(product)}
+                                  >
+                                    {deletingPage === product.id.toString() ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Suppression en cours...
+                                      </>
+                                    ) : !productPages[product.id.toString()]?.exists ? (
+                                      "❌ Pas de page à supprimer"
+                                    ) : (
+                                      "🗑️ Supprimer page produit"
+                                    )}
+                                  </Button>
+                                  
+                                  <Button 
+                                    variant="link" 
+                                    size="sm"
+                                    onClick={() => {
+                                        const slug = slugify(product.title, { lower: true });
+                                        window.open(`/produits/${slug}?id=${product.id}`, '_blank');
+                                    }}
+                                  >
+                                    Voir la page
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
