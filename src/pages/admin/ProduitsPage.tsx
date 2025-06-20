@@ -369,20 +369,35 @@ const ProduitsPage = () => {
     try {
       setUpdatingProduct(productId);
       await updateProductCategories(productId, selectedCategoryIds);
+
+      // Log pour debug
+      console.log("🟢 Categories sélectionnées :", selectedCategoryIds);
+
       setLinkedCategories((prev) => ({
         ...prev,
         [productId]: selectedCategoryIds,
       }));
-      // ✅ Enregistre la première catégorie comme "catégorie de référence"
+
+      // ✅ Enregistre la première comme catégorie de référence (clé: product_<id>_ref_category)
       if (selectedCategoryIds.length > 0) {
         const refCategoryId = selectedCategoryIds[0];
-        await supabase
+        console.log("🟡 Tentative d'upsert ref_category:", `product_${productId}_ref_category`, refCategoryId);
+        const { error } = await supabase
           .from('editable_content')
           .upsert(
-            { content_key: `product_${productId}_related_category`, content: refCategoryId },
+            {
+              content_key: `product_${productId}_ref_category`,
+              content: refCategoryId,
+            },
             { onConflict: 'content_key' }
           );
+        if (error) {
+          console.error("❌ Erreur lors de l'enregistrement de la ref_category :", error);
+        } else {
+          console.log("✅ ref_category enregistrée :", refCategoryId);
+        }
       }
+
       toast({
         title: "Succès",
         description: "Catégories mises à jour avec succès.",
