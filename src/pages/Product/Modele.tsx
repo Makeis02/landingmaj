@@ -1414,42 +1414,42 @@ const Modele = ({ categoryParam = null }) => {
     console.log("[SIMILAR] Début du chargement des produits similaires...");
     const loadSimilarProducts = async () => {
       try {
-        // Remplacement de l'appel API par la Supabase Edge Function
+        // Récupère la liste des produits
         const response = await fetch('https://btnyenoxsjtuydpzbapq.functions.supabase.co/sync-products');
         const data = await response.json();
-        console.log('[SIMILAR] Réponse brute de la function Supabase:', data);
-        // Adapte ici selon la structure retournée par la function
         const products = data.products || data.data || [];
         console.log('[SIMILAR] Produits reçus:', products.length, products.map(p => p.id));
-        const productIds = products.map(p => p.id);
-        // 🛠️ Inclure le produit courant dans la liste des IDs pour fetchCategoriesForProducts
-        const allProductIds = products.map(p => p.id);
-        if (!allProductIds.includes(product.id)) {
-          allProductIds.push(product.id);
+        // Récupère toutes les ref_category pour tous les produits
+        const { data: refCategoriesData, error: refCatError } = await supabase
+          .from('editable_content')
+          .select('content_key, content')
+          .like('content_key', 'product_%_ref_category');
+        if (refCatError) {
+          console.error('[SIMILAR] Erreur chargement ref_category:', refCatError);
+          setSimilarProducts([]);
+          return;
         }
-        const categoriesByProduct = await fetchCategoriesForProducts(allProductIds);
-        console.log('[SIMILAR] categoriesByProduct:', categoriesByProduct);
-        console.log('[SIMILAR] Catégories du produit courant:', categoriesByProduct[product.id]);
-        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
-        console.log('[SIMILAR] refCategoryId:', refCategoryId);
-        // Récupère tous les IDs de sous-catégories (récursif)
-        const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-        console.log('[SIMILAR] allRelevantCategoryIds:', allRelevantCategoryIds);
-        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
-        const filtered = products.filter(p => {
-          if (p.id === product.id) {
-            console.log(`[SIMILAR] Produit courant ignoré: ${p.id}`);
-            return false;
-          }
-          const productCategories = (categoriesByProduct[p.id] || []).map(String);
-          const match = productCategories.some(catId => allRelevantCategoryIds.includes(catId));
+        const allRefCategories = {};
+        refCategoriesData?.forEach(item => {
+          const match = item.content_key.match(/^product_(.+)_ref_category$/);
           if (match) {
-            console.log(`[SIMILAR] Produit ${p.id} match:`, productCategories);
-          } else {
-            console.log(`[SIMILAR] Produit ${p.id} PAS match:`, productCategories);
+            allRefCategories[match[1]] = item.content;
           }
-          return match;
         });
+        console.log('[SIMILAR] allRefCategories:', allRefCategories);
+        const currentProductId = product.id;
+        const refCategoryId = relatedCategory;
+        // Filtrer les autres produits qui ont la même catégorie de référence
+        const similarProductIds = Object.entries(allRefCategories)
+          .filter(([productId, catId]) =>
+            catId && refCategoryId &&
+            String(catId).trim() === String(refCategoryId).trim() &&
+            productId !== currentProductId
+          )
+          .map(([productId]) => productId);
+        console.log('[SIMILAR] Produits similaires trouvés (par ref_category):', similarProductIds);
+        // Récupérer les objets produits correspondants
+        const filtered = products.filter(p => similarProductIds.includes(p.id));
         console.log('[SIMILAR] Produits filtrés:', filtered.map(p => p.id));
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
@@ -1457,10 +1457,10 @@ const Modele = ({ categoryParam = null }) => {
         setDebugSimilar({
           relatedCategory,
           refCategoryId,
-          allRelevantCategoryIds,
-          categoriesByProduct,
-          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-          allProducts: products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+          allRefCategories,
+          similarProductIds,
+          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, refCategory: allRefCategories[p.id]})),
+          allProducts: products.map(p => ({id: p.id, title: p.title || p.name, refCategory: allRefCategories[p.id]})),
         });
       } catch (error) {
         console.error('[SIMILAR] Erreur lors du chargement des produits similaires:', error);
