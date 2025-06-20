@@ -1412,10 +1412,11 @@ const Modele = ({ categoryParam = null }) => {
         // Remplacement du fetch+json par bloc debug
         let data;
         try {
-          const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+          const base = getApiBaseUrl().replace(/\/+$/, ''); // supprime les barres finales
+          const response = await fetch(`${base}/api/stripe/products`);
 
           // 🔍 Log de l'URL utilisée
-          console.log("🔗 [DEBUG] API URL utilisée:", `${apiBaseUrl}/api/stripe/products`);
+          console.log("🔗 [DEBUG] API URL utilisée:", `${base}/api/stripe/products`);
 
           // 🔍 Lire le contenu brut
           const text = await response.text();
