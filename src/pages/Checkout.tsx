@@ -1105,23 +1105,19 @@ const Checkout = () => {
                           {item.variant && (
                             <div className="text-xs text-gray-500 mb-1">{item.variant}</div>
                           )}
-                          <div className="text-sm">
-                            {item.has_discount && item.original_price ? (
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-500 line-through">
-                                  {item.original_price.toFixed(2)}€
-                                </span>
-                                <span className="text-red-600 font-medium">
-                                  {item.price.toFixed(2)}€
-                                </span>
-                                <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
-                                  -{item.discount_percentage}%
-                                </span>
-                              </div>
-                            ) : (
-                              <span className="text-gray-600">{item.price.toFixed(2)}€</span>
-                            )}
-                          </div>
+                          {item.has_discount && item.original_price && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-gray-500 line-through">
+                                {item.original_price.toFixed(2)}€
+                              </span>
+                              <span className="text-red-600 font-medium">
+                                {item.price.toFixed(2)}€
+                              </span>
+                              <span className="text-xs bg-red-100 text-red-800 px-1 py-0.5 rounded">
+                                -{item.discount_percentage}%
+                              </span>
+                            </div>
+                          )}
                           
                           <div className="flex items-center gap-2 mt-2">
                             <Button
