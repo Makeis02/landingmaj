@@ -1414,21 +1414,23 @@ const Modele = ({ categoryParam = null }) => {
     console.log("[SIMILAR] Début du chargement des produits similaires...");
     const loadSimilarProducts = async () => {
       try {
-        const apiBaseUrl = getApiBaseUrl();
-        console.log("[SIMILAR] Appel API produits:", `${apiBaseUrl}/api/stripe/products`);
-        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+        // Remplacement de l'appel API par la Supabase Edge Function
+        const response = await fetch('https://btnyenoxsjtuydpzbapq.functions.supabase.co/sync-products');
         const data = await response.json();
-        console.log("[SIMILAR] Produits reçus:", data.products?.length, data.products?.map(p => p.id));
-        const productIds = data.products.map(p => p.id);
+        console.log('[SIMILAR] Réponse brute de la function Supabase:', data);
+        // Adapte ici selon la structure retournée par la function
+        const products = data.products || data.data || [];
+        console.log('[SIMILAR] Produits reçus:', products.length, products.map(p => p.id));
+        const productIds = products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        console.log("[SIMILAR] categoriesByProduct:", categoriesByProduct);
+        console.log('[SIMILAR] categoriesByProduct:', categoriesByProduct);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
-        console.log("[SIMILAR] refCategoryId:", refCategoryId);
+        console.log('[SIMILAR] refCategoryId:', refCategoryId);
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-        console.log("[SIMILAR] allRelevantCategoryIds:", allRelevantCategoryIds);
+        console.log('[SIMILAR] allRelevantCategoryIds:', allRelevantCategoryIds);
         // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
-        const filtered = data.products.filter(p => {
+        const filtered = products.filter(p => {
           if (p.id === product.id) {
             console.log(`[SIMILAR] Produit courant ignoré: ${p.id}`);
             return false;
@@ -1442,7 +1444,7 @@ const Modele = ({ categoryParam = null }) => {
           }
           return match;
         });
-        console.log("[SIMILAR] Produits filtrés:", filtered.map(p => p.id));
+        console.log('[SIMILAR] Produits filtrés:', filtered.map(p => p.id));
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
         setSimilarProducts(enrichedProducts);
@@ -1452,10 +1454,10 @@ const Modele = ({ categoryParam = null }) => {
           allRelevantCategoryIds,
           categoriesByProduct,
           filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
+          allProducts: products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
         });
       } catch (error) {
-        console.error("[SIMILAR] Erreur lors du chargement des produits similaires:", error);
+        console.error('[SIMILAR] Erreur lors du chargement des produits similaires:', error);
         setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
