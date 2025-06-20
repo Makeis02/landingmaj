@@ -37,7 +37,6 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
-import ProductCard from "@/components/ProductCard";
 
 // Types
 interface Product {
@@ -390,7 +389,6 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
-  const [relatedProducts, setRelatedProducts] = useState([]);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -1406,45 +1404,51 @@ const Modele = ({ categoryParam = null }) => {
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
     if (!product) return;
-    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
-    
+
     const loadSimilarProducts = async () => {
       try {
-        const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
-        const data = await response.json();
-        const productIds = data.products.map(p => p.id);
-        const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
-        // Récupère tous les IDs de sous-catégories (récursif)
-        const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
-        // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
-        const filtered = data.products.filter(p => {
-          if (p.id === product.id) return false;
-          const productCategories = (categoriesByProduct[p.id] || []).map(String);
-          return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
-        });
+        // 1. Déterminer la catégorie de référence dynamiquement
+        let refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
+        if (!refCategoryId) {
+          // Fallback : va chercher la première catégorie liée au produit
+          const { data: productCategories, error: catError } = await supabase
+            .from("product_categories")
+            .select("category_id")
+            .eq("product_id", product.id);
+          if (catError) console.warn("Erreur récupération product_categories:", catError);
+          refCategoryId = productCategories?.[0]?.category_id || null;
+        }
+        console.log("🎯 refCategoryId utilisé pour similaires :", refCategoryId);
+        if (!refCategoryId) {
+          setSimilarProducts([]);
+          setDebugSimilar({ error: 'Aucune catégorie de référence trouvée.' });
+          return;
+        }
 
-        // Enrichir les produits similaires avec variantPriceRange
-        const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
-        setSimilarProducts(enrichedProducts);
-        
-        setDebugSimilar({
-          relatedCategory,
-          refCategoryId,
-          allRelevantCategoryIds,
-          categoriesByProduct,
-          filteredProducts: filtered.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-          allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
-        });
+        // 2. Charger les produits similaires via Supabase
+        const { data: similarProducts, error } = await supabase
+          .from("products")
+          .select("*")
+          .contains("category_ids", [refCategoryId])
+          .neq("id", product.id)
+          .limit(4);
+        if (error) {
+          console.error("Erreur chargement produits similaires:", error);
+          setSimilarProducts([]);
+          setDebugSimilar({ error: error.message });
+          return;
+        }
+        setSimilarProducts(similarProducts || []);
+        setDebugSimilar({ refCategoryId, count: similarProducts?.length || 0 });
+        console.log("Produits similaires chargés :", similarProducts);
       } catch (error) {
         console.error("Erreur lors du chargement des produits similaires:", error);
-        setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
+        setDebugSimilar({ error: error.message });
       }
     };
     loadSimilarProducts();
-  }, [product, relatedCategory, breadcrumbCategory?.parent?.id, allCategories]);
+  }, [product, relatedCategory, breadcrumbCategory?.parent?.id]);
 
   useEffect(() => {
     if (!similarProducts.length) return;
@@ -2722,32 +2726,6 @@ const Modele = ({ categoryParam = null }) => {
       });
     }
   };
-
-  useEffect(() => {
-    async function fetchRelated() {
-      if (!product?.id) return;
-      // 1. Charger les catégories liées au produit
-      const { data: productCategories, error: catError } = await supabase
-        .from("product_categories")
-        .select("category_id")
-        .eq("product_id", product.id);
-      const refCategoryId = productCategories?.[0]?.category_id || null;
-      console.log("🎯 refCategoryId utilisé pour similaires :", refCategoryId);
-      let related = [];
-      if (refCategoryId) {
-        const { data: similarProducts, error } = await supabase
-          .from("products")
-          .select("*")
-          .contains("category_ids", [refCategoryId])
-          .neq("id", product.id)
-          .limit(4);
-        related = similarProducts || [];
-        console.log("Produits similaires chargés :", related);
-      }
-      setRelatedProducts(related);
-    }
-    fetchRelated();
-  }, [product?.id]);
 
   return (
     <div className="min-h-screen flex flex-col">
