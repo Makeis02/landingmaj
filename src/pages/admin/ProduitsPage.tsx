@@ -379,9 +379,8 @@ const ProduitsPage = () => {
       }));
 
       // ✅ Enregistre la première comme catégorie de référence (clé: product_<id>_ref_category)
-      if (selectedCategoryIds.length > 0) {
-        const refCategoryId = selectedCategoryIds[0];
-        console.log("🟡 Tentative d'upsert ref_category:", `product_${productId}_ref_category`, refCategoryId);
+      const refCategoryId = selectedCategoryIds[0];
+      if (refCategoryId) {
         const { error } = await supabase
           .from('editable_content')
           .upsert(
@@ -392,9 +391,9 @@ const ProduitsPage = () => {
             { onConflict: 'content_key' }
           );
         if (error) {
-          console.error("❌ Erreur lors de l'enregistrement de la ref_category :", error);
+          console.error(`❌ Erreur lors de l'enregistrement de la ref_category pour produit ${productId} :`, error);
         } else {
-          console.log("✅ ref_category enregistrée :", refCategoryId);
+          console.log(`✅ ref_category enregistré pour produit ${productId} → ${refCategoryId}`);
         }
       }
 
