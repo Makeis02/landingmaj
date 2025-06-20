@@ -37,6 +37,7 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
+import { useQuery } from '@tanstack/react-query';
 
 // Types
 interface Product {
@@ -2726,6 +2727,28 @@ const Modele = ({ categoryParam = null }) => {
       });
     }
   };
+
+  // Fonction utilitaire pour charger les produits d'une même catégorie
+  export async function fetchProductsByCategory(categoryId) {
+    const { data, error } = await supabase
+      .from('product_pages')
+      .select('*')
+      .contains('categories', [{ id: categoryId }]);
+    if (error) {
+      throw new Error('Erreur chargement produits même catégorie');
+    }
+    return data;
+  }
+
+  const mainCategoryId = product?.category || (product?.categories?.[0]?.id) || null;
+  const currentProductId = product?.id;
+  const { data: sameCategoryProducts = [] } = useQuery([
+    'same-category-products',
+    mainCategoryId
+  ], () => fetchProductsByCategory(mainCategoryId), {
+    enabled: !!mainCategoryId
+  });
+  const filteredSimilarProducts = sameCategoryProducts?.filter(p => p.id !== currentProductId);
 
   return (
     <div className="min-h-screen flex flex-col">
