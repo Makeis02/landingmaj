@@ -1124,18 +1124,7 @@ const Checkout = () => {
                               variant="outline"
                               size="sm"
                               className="h-6 w-6 p-0"
-                              onClick={() => {
-                                if (typeof item.stock === 'number' && item.quantity >= item.stock) {
-                                  toast({
-                                    title: "Stock maximum atteint",
-                                    description: `Stock disponible : ${item.stock}`,
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                handleQuantityChange(item.id, -1);
-                              }}
-                              disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
+                              onClick={() => handleQuantityChange(item.id, -1)}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -1144,18 +1133,7 @@ const Checkout = () => {
                               variant="outline"
                               size="sm"
                               className="h-6 w-6 p-0"
-                              onClick={() => {
-                                if (typeof item.stock === 'number' && item.quantity >= item.stock) {
-                                  toast({
-                                    title: "Stock maximum atteint",
-                                    description: `Stock disponible : ${item.stock}`,
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                handleQuantityChange(item.id, 1);
-                              }}
-                              disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
+                              onClick={() => handleQuantityChange(item.id, 1)}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -1221,6 +1199,12 @@ const Checkout = () => {
                       <span>Chargement...</span>
                         )}
                       </div>
+                  {/* Message générique seuil livraison gratuite */}
+                  {shippingSettings && !shippingFree && (
+                    <div className="text-xs text-gray-500 text-right">
+                      Livraison gratuite à partir de {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €
+                    </div>
+                  )}
                   {/* Message explicatif livraison gratuite et promo */}
                   {appliedPromoCode && !shippingFree && orderSummary.total < shippingSettings?.[selectedShipping]?.free_shipping_threshold && (
                     <div className="text-xs text-blue-700 mt-1">

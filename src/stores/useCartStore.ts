@@ -23,7 +23,6 @@ interface CartItem {
   expires_at?: string; // Date ISO d'expiration
   // 🎫 Propriétés pour les catégories (codes promo)
   category?: string;
-  stock?: number;
 }
 
 interface GiftSettings {
@@ -190,8 +189,10 @@ export const useCartStore = create<CartStore>()(
   addItem: async (item) => {
     try {
       set({ isLoading: true });
+      // Patch: garantir title et variant
       let patchedItem = { ...item };
       if (!patchedItem.title) {
+        // Essayer de récupérer le titre depuis la base produits
         const { data: product } = await supabase
           .from('products')
           .select('title')
@@ -202,74 +203,46 @@ export const useCartStore = create<CartStore>()(
       if (typeof patchedItem.variant === 'undefined') {
         patchedItem.variant = null;
       }
-
-      // Gestion du stock
-      const stock = typeof patchedItem.stock === 'number' ? patchedItem.stock : undefined;
-      const existingItem = get().items.find((i) => {
+          
+          const existingItem = get().items.find((i) => {
         if (i.id === patchedItem.id) {
           if (patchedItem.variant && i.variant) {
             return i.variant === patchedItem.variant;
-          }
-          return true;
-        }
-        return false;
-      });
+              }
+              return true;
+            }
+            return false;
+          });
       const quantity = patchedItem.quantity || 1;
-      let newTotal = quantity;
-      if (existingItem) {
-        newTotal = existingItem.quantity + quantity;
-      }
-      if (typeof stock === 'number' && newTotal > stock) {
-        toast({
-          title: "Stock insuffisant",
-          description: `Stock disponible : ${stock}. Vous ne pouvez pas ajouter plus d'unités à votre panier.`,
-          variant: "destructive",
-        });
-        // Limite la quantité à stock max
-        if (existingItem) {
-          if (existingItem.quantity < stock) {
-            // On ajuste à la limite
-            set({ items: get().items.map((i) =>
-              i.id === patchedItem.id && i.variant === patchedItem.variant
-                ? { ...i, quantity: stock }
-                : i
-            ) });
-          }
-        } else if (stock > 0) {
-          set({ items: [...get().items, { ...patchedItem, quantity: stock }] });
-        }
-        set({ isLoading: false });
-        return;
-      }
-      let updatedItems;
-      if (existingItem) {
-        updatedItems = get().items.map((i) => {
-          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
-            return { ...i, quantity: i.quantity + quantity };
-          }
-          return i;
-        });
-      } else {
-        updatedItems = [...get().items, { ...patchedItem, quantity }];
-      }
-      set({ items: updatedItems });
-      // Synchro serveur si connecté
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        try {
+          let updatedItems;
           if (existingItem) {
-            await supabase
-              .from("cart_items")
-              .update({ quantity: existingItem.quantity + quantity })
-              .eq("user_id", session.user.id)
-              .eq("product_id", patchedItem.id);
+            updatedItems = get().items.map((i) => {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
+                return { ...i, quantity: i.quantity + quantity };
+              }
+              return i;
+            });
           } else {
-            await supabase
-              .from("cart_items")
-              .insert({
-                user_id: session.user.id,
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
+          }
+          set({ items: updatedItems });
+          // Synchro serveur si connecté
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            try {
+      if (existingItem) {
+                await supabase
+          .from("cart_items")
+                  .update({ quantity: existingItem.quantity + quantity })
+          .eq("user_id", session.user.id)
+              .eq("product_id", patchedItem.id);
+      } else {
+                await supabase
+          .from("cart_items")
+          .insert({
+            user_id: session.user.id,
                 product_id: patchedItem.id,
-                quantity,
+                    quantity,
                 variant: patchedItem.variant,
                 price_id: patchedItem.stripe_price_id,
                 discount_price_id: patchedItem.stripe_discount_price_id,
@@ -277,13 +250,13 @@ export const useCartStore = create<CartStore>()(
                 discount_percentage: patchedItem.discount_percentage,
                 has_discount: patchedItem.has_discount,
                 title: patchedItem.title
-              });
-          }
-          await get().manageGiftItem();
-        } catch (error) {
-          console.error("Error syncing with Supabase:", error);
-        }
+          });
       }
+      await get().manageGiftItem();
+            } catch (error) {
+              console.error("Error syncing with Supabase:", error);
+            }
+          }
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
@@ -326,41 +299,27 @@ export const useCartStore = create<CartStore>()(
   updateQuantity: async (id, quantity) => {
     try {
       set({ isLoading: true });
-      // Trouver l'item et vérifier le stock
-      const item = get().items.find((i) => i.id === id);
-      const stock = typeof item?.stock === 'number' ? item.stock : undefined;
-      if (typeof stock === 'number' && quantity > stock) {
-        toast({
-          title: "Stock insuffisant",
-          description: `Stock disponible : ${stock}. Vous ne pouvez pas dépasser cette quantité.`,
-          variant: "destructive",
-        });
-        set((state) => ({
-          items: state.items.map((item) =>
-            item.id === id ? { ...item, quantity: stock } : item
-          )
-        }));
-        set({ isLoading: false });
-        return;
-      }
-      set((state) => ({
-        items: state.items.map((item) =>
-          item.id === id ? { ...item, quantity } : item
-        )
-      }));
-      // Synchro serveur si connecté
+          
+          // Mettre à jour la copie locale
+          set((state) => ({
+            items: state.items.map((item) => 
+              item.id === id ? { ...item, quantity } : item
+            )
+          }));
+          
+          // Synchro serveur si connecté
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await supabase
-          .from("cart_items")
-          .update({ quantity })
-          .eq("user_id", session.user.id)
-          .eq("product_id", id);
+          if (session) {
+            await supabase
+        .from("cart_items")
+        .update({ quantity })
+        .eq("user_id", session.user.id)
+        .eq("product_id", id);
 
-        await get().manageGiftItem();
-      }
+      await get().manageGiftItem();
+          }
     } catch (error) {
-      console.error("Error updating item quantity:", error);
+          console.error("Error updating item quantity:", error);
     } finally {
       set({ isLoading: false });
     }

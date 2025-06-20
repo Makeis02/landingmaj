@@ -1656,8 +1656,7 @@ const Modele = ({ categoryParam = null }) => {
         stripe_discount_price_id: stripeDiscountPriceId, // ID du prix promotionnel si applicable
         original_price: originalPrice, // Prix original si réduction
         discount_percentage: discountPercentage, // Pourcentage de réduction
-        has_discount: hasDiscountApplied, // Indique si une réduction est active
-        stock: getSupabaseStock() // Passe le stock courant
+        has_discount: hasDiscountApplied // Indique si une réduction est active
       });
 
       toast({

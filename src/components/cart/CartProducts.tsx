@@ -342,19 +342,8 @@ const CartProducts = () => {
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => {
-                      if (typeof item.stock === 'number' && item.quantity >= item.stock) {
-                        toast({
-                          title: "Stock maximum atteint",
-                          description: `Stock disponible : ${item.stock}`,
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      handleQuantityChange(item.id, 1, item.is_gift || false, item.threshold_gift || false);
-                    }}
+                    onClick={() => handleQuantityChange(item.id, 1, item.is_gift || false, item.threshold_gift || false)}
                     className="h-8 w-8"
-                    disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
                   >
                     <Plus className="w-3 h-3" />
                   </Button>
