@@ -1204,6 +1204,12 @@ const Checkout = () => {
                       Livraison gratuite à partir de {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €
                     </div>
                   )}
+                  {/* Message explicite si code promo appliqué et total < seuil */}
+                  {appliedPromoCode && (orderSummary.subtotal - orderSummary.discount) < shippingSettings[selectedShipping].free_shipping_threshold && (
+                    <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded px-2 py-1 mt-2 text-right">
+                      ℹ️ La livraison gratuite s'applique uniquement si le total de vos produits (après remise) atteint {shippingSettings[selectedShipping].free_shipping_threshold.toFixed(2)} €.
+                    </div>
+                  )}
                   <div className="flex justify-between text-lg font-semibold pt-2 border-t">
                         <span>Total TTC</span>
                     <span>{(orderSummary.total + (shippingFree ? 0 : shippingPrice)).toFixed(2)} €</span>
