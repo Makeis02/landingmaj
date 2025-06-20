@@ -1124,7 +1124,18 @@ const Checkout = () => {
                               variant="outline"
                               size="sm"
                               className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, -1)}
+                              onClick={() => {
+                                if (typeof item.stock === 'number' && item.quantity >= item.stock) {
+                                  toast({
+                                    title: "Stock maximum atteint",
+                                    description: `Stock disponible : ${item.stock}`,
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                handleQuantityChange(item.id, -1);
+                              }}
+                              disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -1133,7 +1144,18 @@ const Checkout = () => {
                               variant="outline"
                               size="sm"
                               className="h-6 w-6 p-0"
-                              onClick={() => handleQuantityChange(item.id, 1)}
+                              onClick={() => {
+                                if (typeof item.stock === 'number' && item.quantity >= item.stock) {
+                                  toast({
+                                    title: "Stock maximum atteint",
+                                    description: `Stock disponible : ${item.stock}`,
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                handleQuantityChange(item.id, 1);
+                              }}
+                              disabled={typeof item.stock === 'number' && item.quantity >= item.stock}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
