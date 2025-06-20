@@ -49,6 +49,15 @@ type ProductPageStatus = {
 // Fonction utilitaire pour formater l'ID Stripe
 const formatStripeId = (id: string | number) => `stripe_${id}`;
 
+const logWithTime = (msg, data) => {
+  const now = new Date().toISOString();
+  if (data !== undefined) {
+    console.log(`[ADMIN][${now}] ${msg}`, data);
+  } else {
+    console.log(`[ADMIN][${now}] ${msg}`);
+  }
+};
+
 const ProduitsPage = () => {
   const [products, setProducts] = useState<StripeProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -270,13 +279,13 @@ const ProduitsPage = () => {
   useEffect(() => {
     const loadLinkedCategories = async () => {
       if (products.length === 0) return;
-      console.log('[ADMIN] loadLinkedCategories - Début', { productCount: products.length });
+      logWithTime('loadLinkedCategories - Début', { productCount: products.length });
       try {
         const productIds = products.map(p => p.id.toString());
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        console.log('[ADMIN] loadLinkedCategories - Résultat fetchCategoriesForProducts', categoriesByProduct);
+        logWithTime('loadLinkedCategories - Résultat fetchCategoriesForProducts', categoriesByProduct);
         setLinkedCategories(categoriesByProduct);
-        console.log('[ADMIN] loadLinkedCategories - Après setLinkedCategories', categoriesByProduct);
+        logWithTime('loadLinkedCategories - Après setLinkedCategories', categoriesByProduct);
       } catch (err) {
         console.error("Erreur lors du chargement des catégories liées:", err);
         toast({
@@ -369,16 +378,16 @@ const ProduitsPage = () => {
   // Gérer la modification des catégories d'un produit
   const handleCategoryChange = async (productId: string, selectedCategoryIds: string[]) => {
     try {
-      console.log('[ADMIN] handleCategoryChange - Avant update', { productId, selectedCategoryIds });
+      logWithTime('handleCategoryChange - Avant update', { productId, selectedCategoryIds });
       setUpdatingProduct(productId);
       await updateProductCategories(productId, selectedCategoryIds);
-      console.log('[ADMIN] handleCategoryChange - Après updateProductCategories');
+      logWithTime('handleCategoryChange - Après updateProductCategories', { productId, selectedCategoryIds });
       setLinkedCategories((prev) => {
         const updated = {
           ...prev,
           [productId]: selectedCategoryIds,
         };
-        console.log('[ADMIN] handleCategoryChange - Après setLinkedCategories', updated);
+        logWithTime('handleCategoryChange - Après setLinkedCategories', updated);
         return updated;
       });
       toast({
@@ -749,7 +758,7 @@ const ProduitsPage = () => {
                                     options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
                                     selectedValues={linkedCategories[product.id] || []}
                                     onChange={(selected) => {
-                                      console.log('[ADMIN] MultiSelect onChange', { productId: product.id, selected });
+                                      logWithTime('MultiSelect onChange', { productId: product.id, selected });
                                       handleCategoryChange(product.id, selected);
                                     }}
                                     placeholder="Sélectionner des catégories"
