@@ -1010,11 +1010,12 @@ const Checkout = () => {
                             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
                             
                             {item.image_url && (
-                              <div className="relative">
+                              <div className="relative w-16 h-16 flex items-center justify-center bg-transparent rounded-lg overflow-hidden border-2 border-blue-200 shadow-sm p-1">
                                 <img
                                   src={item.image_url}
                                   alt={item.title}
-                                  className="w-16 h-16 object-cover rounded-lg border-2 border-blue-300 shadow-lg"
+                                  className="w-full h-full object-contain bg-transparent"
+                                  style={{ background: 'transparent' }}
                                 />
                                 <div className="absolute -top-1 -right-1 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
                                   <span className="text-white text-xs">🎁</span>
@@ -1086,11 +1087,14 @@ const Checkout = () => {
                         {payableItems.map((item) => (
                       <div key={item.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                         {item.image_url && (
-                          <img
-                            src={item.image_url}
-                            alt={item.title}
-                            className="w-16 h-16 object-cover rounded"
-                          />
+                          <div className="w-16 h-16 flex items-center justify-center bg-transparent rounded overflow-hidden border border-gray-200 shadow-sm p-1">
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                              className="w-full h-full object-contain bg-transparent"
+                              style={{ background: 'transparent' }}
+                            />
+                          </div>
                         )}
                         
                         <div className="flex-1 min-w-0">
