@@ -1409,8 +1409,25 @@ const Modele = ({ categoryParam = null }) => {
     const loadSimilarProducts = async () => {
       try {
         const apiBaseUrl = getApiBaseUrl();
-        const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
-        const data = await response.json();
+        // Remplacement du fetch+json par bloc debug
+        let data;
+        try {
+          const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
+
+          // 🔍 Log de l'URL utilisée
+          console.log("🔗 [DEBUG] API URL utilisée:", `${apiBaseUrl}/api/stripe/products`);
+
+          // 🔍 Lire le contenu brut
+          const text = await response.text();
+          console.log("📦 [DEBUG] Réponse brute reçue:", text.slice(0, 200)); // affiche seulement les 200 premiers caractères
+
+          // 🔄 Tente de parser
+          data = JSON.parse(text);
+        } catch (error) {
+          console.error("❌ Erreur parsing JSON pour produits similaires:", error);
+          setDebugSimilar({ error: error.message });
+          return;
+        }
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
