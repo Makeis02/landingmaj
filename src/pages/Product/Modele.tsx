@@ -100,12 +100,13 @@ const logDebug = (label: string, data?: any) => {
 const getProductIdFromQuery = () => {
   const params = new URLSearchParams(window.location.search);
   const productId = params.get("id");
-  console.log('[DEBUG] getProductIdFromQuery - params:', Array.from(params.entries()));
+  
   if (!productId) {
-    console.warn("[DEBUG] ID produit manquant dans l'URL");
+    logDebug("ID produit manquant dans l'URL");
     return null;
   }
-  console.log("[DEBUG] ID produit récupéré depuis l'URL:", productId);
+  
+  logDebug("ID produit récupéré depuis l'URL", productId);
   return productId;
 };
 
@@ -545,19 +546,20 @@ const Modele = ({ categoryParam = null }) => {
   const fetchEditableContent = async (productId: string, productData: any) => {
     try {
       logDebug("Recherche du contenu éditable", productId);
+      
       const searchKey = `product_${productId}_%`;
       logDebug("Clé de recherche Supabase", searchKey);
+      
       const { data, error } = await supabase
         .from('editable_content')
         .select('content_key, content')
         .like('content_key', searchKey);
+
       if (error) {
         logDebug("❌ Erreur Supabase", error);
         return productData;
       }
-      if (!data || data.length === 0) {
-        console.warn('[DEBUG PRODUIT] Aucun contenu éditable trouvé pour', productId);
-      }
+
       logDebug("Contenu Supabase récupéré", {
         keys: data.map(item => item.content_key),
         count: data.length
@@ -845,7 +847,6 @@ const Modele = ({ categoryParam = null }) => {
         localStorage.setItem("last_product_id", productId);
         logDebug("ID sauvegardé dans localStorage", productId);
         const stripeData = await fetchProducts();
-        console.log('[DEBUG PRODUIT] stripeData:', stripeData);
         // Logs de debug pour la recherche
         console.log("🔍 ID recherché =", productId);
         console.log("🆔 Produits disponibles :", stripeData.map(p => ({
@@ -861,7 +862,7 @@ const Modele = ({ categoryParam = null }) => {
           product: realProduct
         });
         if (!realProduct) {
-          logDebug("Produit non trouvé", { productId, idsDisponibles: stripeData.map(p => p.id) });
+          logDebug("Produit non trouvé");
           toast({
             variant: "destructive",
             title: "Erreur",
@@ -878,17 +879,15 @@ const Modele = ({ categoryParam = null }) => {
           badges: [],
         };
         logDebug("Données produit préparées", productData);
+        
         // Attendre le chargement complet du contenu éditable avant de setProduct
         const updated = await fetchEditableContent(productData.id, productData);
-        if (!updated) {
-          console.warn('[DEBUG PRODUIT] fetchEditableContent a retourné null/undefined');
-        }
+        
         // S'assurer que le prix de base existe
-        if (updated && updated.price) {
+        if (updated.price) {
           await ensureBasePriceId(productData.id, updated.price);
         }
-        // Ajout de logs ultra-précis dans le useEffect qui charge le produit
-        console.log('[DEBUG PRODUIT] Produit fetché juste avant setProduct:', updated);
+        
         setProduct(updated);
         setIsLoading(false);
       } catch (error) {
@@ -1404,16 +1403,12 @@ const Modele = ({ categoryParam = null }) => {
 
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
-    console.log('[SIMILAR DEBUG] product:', product);
-    console.log('[SIMILAR DEBUG] relatedCategory:', relatedCategory);
-    console.log('[SIMILAR DEBUG] breadcrumbCategory:', breadcrumbCategory);
-    console.log('[SIMILAR DEBUG] allCategories:', allCategories);
     if (!product) {
-      console.warn('[SIMILAR] Pas de produit chargé !', { product });
+      console.warn("[SIMILAR] Pas de produit chargé !");
       return;
     }
     if (!relatedCategory && !breadcrumbCategory?.parent?.id) {
-      console.warn('[SIMILAR] Pas de catégorie liée trouvée ! relatedCategory:', relatedCategory, 'breadcrumbCategory:', breadcrumbCategory);
+      console.warn("[SIMILAR] Pas de catégorie liée trouvée ! relatedCategory:", relatedCategory, "breadcrumbCategory:", breadcrumbCategory);
       return;
     }
     console.log("[SIMILAR] Début du chargement des produits similaires...");
@@ -1427,8 +1422,14 @@ const Modele = ({ categoryParam = null }) => {
         const products = data.products || data.data || [];
         console.log('[SIMILAR] Produits reçus:', products.length, products.map(p => p.id));
         const productIds = products.map(p => p.id);
-        const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        // 🛠️ Inclure le produit courant dans la liste des IDs pour fetchCategoriesForProducts
+        const allProductIds = products.map(p => p.id);
+        if (!allProductIds.includes(product.id)) {
+          allProductIds.push(product.id);
+        }
+        const categoriesByProduct = await fetchCategoriesForProducts(allProductIds);
         console.log('[SIMILAR] categoriesByProduct:', categoriesByProduct);
+        console.log('[SIMILAR] Catégories du produit courant:', categoriesByProduct[product.id]);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
         console.log('[SIMILAR] refCategoryId:', refCategoryId);
         // Récupère tous les IDs de sous-catégories (récursif)

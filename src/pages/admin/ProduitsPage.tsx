@@ -49,15 +49,6 @@ type ProductPageStatus = {
 // Fonction utilitaire pour formater l'ID Stripe
 const formatStripeId = (id: string | number) => `stripe_${id}`;
 
-const logWithTime = (msg, data) => {
-  const now = new Date().toISOString();
-  if (data !== undefined) {
-    console.log(`[ADMIN][${now}] ${msg}`, data);
-  } else {
-    console.log(`[ADMIN][${now}] ${msg}`);
-  }
-};
-
 const ProduitsPage = () => {
   const [products, setProducts] = useState<StripeProduct[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -279,13 +270,11 @@ const ProduitsPage = () => {
   useEffect(() => {
     const loadLinkedCategories = async () => {
       if (products.length === 0) return;
-      logWithTime('loadLinkedCategories - Début', { productCount: products.length });
+      
       try {
         const productIds = products.map(p => p.id.toString());
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
-        logWithTime('loadLinkedCategories - Résultat fetchCategoriesForProducts', categoriesByProduct);
         setLinkedCategories(categoriesByProduct);
-        logWithTime('loadLinkedCategories - Après setLinkedCategories', categoriesByProduct);
       } catch (err) {
         console.error("Erreur lors du chargement des catégories liées:", err);
         toast({
@@ -378,18 +367,12 @@ const ProduitsPage = () => {
   // Gérer la modification des catégories d'un produit
   const handleCategoryChange = async (productId: string, selectedCategoryIds: string[]) => {
     try {
-      logWithTime('handleCategoryChange - Avant update', { productId, selectedCategoryIds });
       setUpdatingProduct(productId);
       await updateProductCategories(productId, selectedCategoryIds);
-      logWithTime('handleCategoryChange - Après updateProductCategories', { productId, selectedCategoryIds });
-      setLinkedCategories((prev) => {
-        const updated = {
-          ...prev,
-          [productId]: selectedCategoryIds,
-        };
-        logWithTime('handleCategoryChange - Après setLinkedCategories', updated);
-        return updated;
-      });
+      setLinkedCategories((prev) => ({
+        ...prev,
+        [productId]: selectedCategoryIds,
+      }));
       toast({
         title: "Succès",
         description: "Catégories mises à jour avec succès.",
@@ -752,16 +735,13 @@ const ProduitsPage = () => {
                               )}
                             </TableCell>
                             <TableCell>
-                              <MultiSelect
-                                options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
-                                selectedValues={linkedCategories[product.id] || []}
-                                onChange={(selected) => {
-                                  logWithTime('MultiSelect onChange', { productId: product.id, selected });
-                                  handleCategoryChange(product.id, selected);
-                                }}
-                                placeholder="Sélectionner des catégories"
-                              />
-                            </TableCell>
+                                <MultiSelect
+                                  options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
+                                  selectedValues={linkedCategories[product.id] || []}
+                                  onChange={(selected) => handleCategoryChange(product.id, selected)}
+                                  placeholder="Sélectionner des catégories"
+                                />
+                              </TableCell>
                               <TableCell>
                                 <Select
                                   value={linkedBrands[product.id] || "none"}
@@ -786,72 +766,72 @@ const ProduitsPage = () => {
                                   disabled={false}
                                   onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudouce', checked)}
                                 />
-                              </TableCell>
-                              <TableCell>
-                                  <Switch
-                                    checked={product.show_logo_eaudemer === "true"}
-                                    disabled={false}
-                                    onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
-                                  />
-                                </TableCell>
-                              <TableCell>
-                                <div className="flex flex-col gap-2">
-                                  <Button variant="outline" size="sm">Éditer</Button>
-                                  <Button variant="destructive" size="sm">Supprimer</Button>
-                                  
-                                  {/* Boutons de gestion des pages produit */}
-                                  <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    className="border-blue-500 text-blue-500 hover:bg-blue-50"
-                                    disabled={creatingPage === product.id.toString() || productPages[product.id.toString()]?.exists === true}
-                                    onClick={() => handleCreateProductPage(product)}
-                                  >
-                                    {creatingPage === product.id.toString() ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Création en cours...
-                                      </>
-                                    ) : productPages[product.id.toString()]?.exists ? (
-                                      "✓ Page déjà créée"
-                                    ) : (
-                                      "✨ Créer page produit"
-                                    )}
-                                  </Button>
-                                  
-                                  <Button 
-                                    variant="outline"
-                                    size="sm"
-                                    className="border-red-500 text-red-500 hover:bg-red-50"
-                                    disabled={deletingPage === product.id.toString() || productPages[product.id.toString()]?.exists === false}
-                                    onClick={() => handleDeleteProductPage(product)}
-                                  >
-                                    {deletingPage === product.id.toString() ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Suppression en cours...
-                                      </>
-                                    ) : !productPages[product.id.toString()]?.exists ? (
-                                      "❌ Pas de page à supprimer"
-                                    ) : (
-                                      "🗑️ Supprimer page produit"
-                                    )}
-                                  </Button>
-                                  
-                                  <Button 
-                                    variant="link" 
-                                    size="sm"
-                                    onClick={() => {
-                                        const slug = slugify(product.title, { lower: true });
-                                        window.open(`/produits/${slug}?id=${product.id}`, '_blank');
-                                    }}
-                                  >
-                                    Voir la page
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
+                            </TableCell>
+                            <TableCell>
+                                <Switch
+                                  checked={product.show_logo_eaudemer === "true"}
+                                  disabled={false}
+                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
+                                />
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-2">
+                                <Button variant="outline" size="sm">Éditer</Button>
+                                <Button variant="destructive" size="sm">Supprimer</Button>
+                                
+                                {/* Boutons de gestion des pages produit */}
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  className="border-blue-500 text-blue-500 hover:bg-blue-50"
+                                  disabled={creatingPage === product.id.toString() || productPages[product.id.toString()]?.exists === true}
+                                  onClick={() => handleCreateProductPage(product)}
+                                >
+                                  {creatingPage === product.id.toString() ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Création en cours...
+                                    </>
+                                  ) : productPages[product.id.toString()]?.exists ? (
+                                    "✓ Page déjà créée"
+                                  ) : (
+                                    "✨ Créer page produit"
+                                  )}
+                                </Button>
+                                
+                                <Button 
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-red-500 text-red-500 hover:bg-red-50"
+                                  disabled={deletingPage === product.id.toString() || productPages[product.id.toString()]?.exists === false}
+                                  onClick={() => handleDeleteProductPage(product)}
+                                >
+                                  {deletingPage === product.id.toString() ? (
+                                    <>
+                                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                      Suppression en cours...
+                                    </>
+                                  ) : !productPages[product.id.toString()]?.exists ? (
+                                    "❌ Pas de page à supprimer"
+                                  ) : (
+                                    "🗑️ Supprimer page produit"
+                                  )}
+                                </Button>
+                                
+                                <Button 
+                                  variant="link" 
+                                  size="sm"
+                                  onClick={() => {
+                                      const slug = slugify(product.title, { lower: true });
+                                      window.open(`/produits/${slug}?id=${product.id}`, '_blank');
+                                  }}
+                                >
+                                  Voir la page
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
                       )}
                     </TableBody>
                   </Table>
