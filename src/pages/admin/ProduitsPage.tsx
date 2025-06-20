@@ -373,6 +373,16 @@ const ProduitsPage = () => {
         ...prev,
         [productId]: selectedCategoryIds,
       }));
+      // ✅ Enregistre la première catégorie comme "catégorie de référence"
+      if (selectedCategoryIds.length > 0) {
+        const refCategoryId = selectedCategoryIds[0];
+        await supabase
+          .from('editable_content')
+          .upsert(
+            { content_key: `product_${productId}_related_category`, content: refCategoryId },
+            { onConflict: 'content_key' }
+          );
+      }
       toast({
         title: "Succès",
         description: "Catégories mises à jour avec succès.",
