@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import Stripe from 'https://esm.sh/stripe@12.0.0?target=deno'
+import Stripe from 'https://esm.sh/stripe@12.16.0?target=deno&no-dts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,10 +35,9 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer tous les produits Stripe
+    // Récupérer tous les produits Stripe (sans expand !)
     const products = await stripe.products.list({
-      active: true,
-      expand: ['data.default_price']
+      active: true
     })
 
     const logs: string[] = []
@@ -82,29 +81,29 @@ serve(async (req) => {
           logs.push(`⚠️ Stock général invalide pour ${product.id}: ${product.metadata?.stock}`)
         } else {
           logs.push(`✅ Stock général pour ${product.id}: ${generalStock}`)
-      }
+        }
 
         // Mettre à jour le produit dans Supabase
-      const { error } = await supabase
-        .from('products')
-          .upsert({
-            id: product.id,
-            title: product.name,
-            price: product.default_price?.unit_amount ? product.default_price.unit_amount / 100 : 0,
-            image: product.images[0] || '',
-            description: product.description || '',
-            brand: product.metadata?.brand || '',
-            reference: product.metadata?.reference || '',
-            metadata: product.metadata,
-            variantStocks,
-            stock: generalStock || 0,
-            prices: pricesData,
-            updated_at: new Date().toISOString()
-          }, {
-            onConflict: 'id'
-          })
+        const { error } = await supabase
+          .from('products')
+            .upsert({
+              id: product.id,
+              title: product.name,
+              price: product.default_price?.unit_amount ? product.default_price.unit_amount / 100 : 0,
+              image: product.images[0] || '',
+              description: product.description || '',
+              brand: product.metadata?.brand || '',
+              reference: product.metadata?.reference || '',
+              metadata: product.metadata,
+              variantStocks,
+              stock: generalStock || 0,
+              prices: pricesData,
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'id'
+            })
 
-      if (error) {
+        if (error) {
           logs.push(`❌ Erreur Supabase pour ${product.id}: ${error.message}`)
         } else {
           logs.push(`✅ Produit ${product.id} synchronisé`)
@@ -118,14 +117,14 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        logs
+        logs,
+        products: products.data
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 200
       }
     )
-
   } catch (error) {
     return new Response(
       JSON.stringify({
@@ -133,7 +132,7 @@ serve(async (req) => {
         error: error.message
       }),
       {
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 500
       }
     )
