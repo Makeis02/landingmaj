@@ -389,8 +389,6 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
-  // Ajout : récupération dynamique de la catégorie de référence et chargement des produits similaires via Supabase
-  const [relatedProducts, setRelatedProducts] = useState([]);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -1335,7 +1333,7 @@ const Modele = ({ categoryParam = null }) => {
                 console.log(`💰 [SIMILAR-PROMO] Prix pour ${id}: ${priceMap[id].min} - ${priceMap[id].max} €`);
             }
           } catch (e) {
-              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e, content);
+              console.warn(`❌ [SIMILAR-PROMO] Erreur parsing price_map pour ${id}:`, e);
             }
           }
         });
@@ -1416,12 +1414,6 @@ const Modele = ({ categoryParam = null }) => {
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
-        if (!refCategoryId) {
-          console.log("❌ Aucune catégorie trouvée pour ce produit, impossible de charger les produits similaires.");
-          setSimilarProducts([]);
-          setDebugSimilar({ error: 'Aucune catégorie de référence.' });
-          return;
-        }
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
         // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
@@ -1434,6 +1426,7 @@ const Modele = ({ categoryParam = null }) => {
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
         setSimilarProducts(enrichedProducts);
+        
         setDebugSimilar({
           relatedCategory,
           refCategoryId,
@@ -2727,33 +2720,6 @@ const Modele = ({ categoryParam = null }) => {
       });
     }
   };
-
-  useEffect(() => {
-    const fetchRelatedProducts = async () => {
-      if (!product?.id) return;
-      // 1. Charger les catégories liées au produit
-      const { data: productCategories, error: catError } = await supabase
-        .from("product_categories")
-        .select("category_id")
-        .eq("product_id", product.id);
-      const refCategoryId = productCategories?.[0]?.category_id || null;
-      console.log("🎯 refCategoryId utilisé pour similaires :", refCategoryId);
-      let relatedProducts = [];
-      if (refCategoryId) {
-        // 2. Charger les produits similaires via cette catégorie
-        const { data: similarProducts, error } = await supabase
-          .from("products")
-          .select("*")
-          .contains("category_ids", [refCategoryId])
-          .neq("id", product.id)
-          .limit(4);
-        relatedProducts = similarProducts || [];
-        console.log("Produits similaires chargés :", relatedProducts);
-      }
-      setRelatedProducts(relatedProducts);
-    };
-    fetchRelatedProducts();
-  }, [product?.id]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -4049,39 +4015,211 @@ const Modele = ({ categoryParam = null }) => {
         </div>
         
         {/* Dans la même catégorie */}
-        {(isEditMode || relatedProducts.length > 0) && (
+        {(isEditMode || similarProducts.length > 0) && (
           <div className="mb-12">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold">Dans la même catégorie</h2>
-            </div>
-            {relatedProducts.length > 0 ? (
-              <div className="grid md:grid-cols-4 gap-4">
-                {relatedProducts.map((prod) => (
-                  <Card key={prod.id} className="overflow-hidden hover:shadow-md transition-shadow duration-300 group">
-                    <div className="relative h-48 bg-gray-100">
-                      <img
-                        src={prod.image || 'https://placehold.co/300x300?text=Image'}
-                        alt={prod.title || prod.name}
-                        className="w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
-                      />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium line-clamp-2 mb-1 h-12">{prod.title || prod.name}</h3>
-                      <p className="text-sm text-gray-500 mb-2">{prod.brand}</p>
-                      <div className="flex items-baseline justify-between">
-                        <span className="text-lg font-bold text-slate-900">{prod.price?.toFixed ? prod.price.toFixed(2) : prod.price}€</span>
-                        <Button variant="ghost" size="sm">
-                          <ShoppingCart size={16} />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+          <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+            <h2 className="text-xl font-bold">Dans la même catégorie</h2>
+                {isEditMode && (
+                  <div className="mb-0">
+                    <label className="font-medium mr-2">Catégorie de référence :</label>
+                    <select
+                      className="border rounded px-2 py-1"
+                      value={relatedCategory || ''}
+                      onChange={async (e) => {
+                        setRelatedCategory(e.target.value);
+                        await supabase.from('editable_content').upsert({
+                          content_key: `product_${product.id}_related_category`,
+                          content: e.target.value
+                        }, { onConflict: 'content_key' });
+                      }}
+                    >
+                      <option value="">(Catégorie parente par défaut)</option>
+                      {allCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {getCategoryPath(cat, allCategories)}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
-            ) : (
-              <p className="text-gray-500">Aucun produit similaire trouvé.</p>
-            )}
+              <Link
+                to={`/categories/${relatedCategory || breadcrumbCategory?.parent?.slug || ''}`}
+                className="text-blue-600 hover:underline flex items-center text-sm"
+              >
+              Voir tout
+              <ArrowRight size={14} className="ml-1" />
+            </Link>
           </div>
+            {/* Bloc debug visible en mode édition */}
+            {isEditMode && (
+              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-xs mb-4">
+                <div><b>Debug "Dans la même catégorie"</b></div>
+                <div><b>relatedCategory :</b> {debugSimilar.relatedCategory || '(aucune)'}</div>
+                <div><b>refCategoryId utilisée :</b> {debugSimilar.refCategoryId || '(aucune)'}</div>
+                
+                {/* Section debug pour les réductions */}
+                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                  <div><b>🎯 Debug Réductions produits similaires :</b></div>
+                  {similarProducts.length > 0 ? (
+                    <div className="mt-2 space-y-1">
+                      {similarProducts.map(prod => (
+                        <div key={prod.id} className={`text-xs p-2 rounded ${prod.hasDiscount ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                          <div><b>ID:</b> {prod.id}</div>
+                          <div><b>Nom:</b> {prod.title || prod.name}</div>
+                          <div><b>hasDiscount:</b> {prod.hasDiscount ? '✅ OUI' : '❌ NON'}</div>
+                          {prod.hasDiscount && <div className="font-bold text-green-600">🏷️ Badge Promo affiché</div>}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-gray-500 italic">Aucun produit similaire chargé</div>
+                  )}
+                </div>
+
+                <div><b>Catégories liées à chaque produit :</b></div>
+                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.categoriesByProduct, null, 2)}</pre>
+                <div><b>Produits filtrés :</b></div>
+                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.filteredProducts, null, 2)}</pre>
+                <div><b>Tous les produits (pour debug) :</b></div>
+                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.allProducts, null, 2)}</pre>
+                {debugSimilar.error && <div className="text-red-600">Erreur: {debugSimilar.error}</div>}
+              </div>
+            )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 items-stretch">
+            {similarProducts.length > 0 ? similarProducts.map((prod) => (
+              <Link
+                to={`/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`}
+                className="block h-full"
+                key={prod.id}
+              >
+                <div className="rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 bg-white flex flex-col gap-2 h-full">
+                  <div className="relative">
+                    {prod.hasDiscount && <PromoBadge />}
+                    <img
+                      src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
+                      alt={prod.name || prod.title}
+                      className="mx-auto h-32 object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 mt-2 flex-grow">
+                    <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
+                      {prod.name || prod.title}
+                    </h3>
+                    <ProductReviewSummary productId={prod.id} />
+                    <div className="text-lg font-semibold text-gray-800 min-h-[2.5rem] flex items-center">
+                      {prod.variantPriceRange ? (
+                        `De ${prod.variantPriceRange.min.toFixed(2)} € à ${prod.variantPriceRange.max.toFixed(2)} €`
+                      ) : (
+                        (() => {
+                          const promo = similarProductPromoPrices[prod.id];
+                          const isPromo = !!promo && promo.discount_percentage;
+                          if (isPromo) {
+                            return (
+                              <div className="flex flex-row items-center gap-2">
+                                <span className="text-gray-500 line-through text-sm">{promo.original_price.toFixed(2)}€</span>
+                                <span className="text-red-600 font-bold">{promo.price.toFixed(2)}€</span>
+                                <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">-{promo.discount_percentage}%</span>
+                              </div>
+                            );
+                          }
+                          const price = prod.default_price?.unit_amount 
+                            ? (prod.default_price.unit_amount / 100).toFixed(2) 
+                            : prod.price 
+                              ? Number(prod.price).toFixed(2) 
+                              : '—';
+                          return (
+                            <div className="flex flex-row items-center">
+                              <span>{price} €</span>
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  </div>
+                  <button
+                    className="mt-auto bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold flex items-center justify-center gap-2 w-full"
+                    type="button"
+                    tabIndex={-1}
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      // 🎯 AJOUT : Logique d'ajout au panier avec gestion des promotions
+                      if (prod.hasVariant) {
+                        // Pour les produits avec variantes, rediriger vers la page produit
+                        window.location.href = `/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`;
+                        return;
+                      }
+                      
+                      // Pour les produits sans variante, ajouter directement au panier
+                      const { addItem } = useCartStore.getState();
+                      const promo = similarProductPromoPrices[prod.id];
+                      const isPromo = !!promo && promo.discount_percentage;
+                      
+                      try {
+                        if (isPromo) {
+                          await addItem({
+                            id: prod.id,
+                            title: prod.title || prod.name || 'Produit',
+                            price: promo.price,
+                            original_price: promo.original_price,
+                            discount_percentage: promo.discount_percentage,
+                            has_discount: true,
+                            image_url: similarProductImages[prod.id] || prod.image || '',
+                            quantity: 1,
+                            stripe_price_id: promo.stripe_price_id,
+                            stripe_discount_price_id: promo.stripe_discount_price_id
+                          });
+                          toast({
+                            title: "Produit ajouté au panier",
+                            description: `${prod.title || prod.name} ajouté avec ${promo.discount_percentage}% de réduction !`,
+                          });
+                        } else {
+                          const price = prod.default_price?.unit_amount 
+                            ? prod.default_price.unit_amount / 100 
+                            : prod.price || 0;
+                          
+                          await addItem({
+                            id: prod.id,
+                            title: prod.title || prod.name || 'Produit',
+                            price: price,
+                            image_url: similarProductImages[prod.id] || prod.image || '',
+                            quantity: 1
+                          });
+                          toast({
+                            title: "Produit ajouté au panier",
+                            description: `${prod.title || prod.name} ajouté au panier.`,
+                          });
+                        }
+                      } catch (error) {
+                        console.error("Erreur ajout au panier:", error);
+                        toast({
+                          variant: "destructive",
+                          title: "Erreur",
+                          description: "Impossible d'ajouter le produit au panier."
+                        });
+                      }
+                    }}
+                  >
+                    {prod.hasVariant ? 'Voir le produit' : (
+                      <>
+                        <ShoppingCart size={16} />
+                        Ajouter
+                      </>
+                    )}
+                  </button>
+                </div>
+              </Link>
+            )) : (
+              <div className="col-span-4 text-center text-red-500 italic py-8">
+                Aucun produit trouvé dans la catégorie sélectionnée (ID: {debugSimilar.refCategoryId || '(aucune)'})<br />
+                {debugSimilar.refCategoryId && <span>Vérifiez que les produits sont bien liés à cette catégorie dans Supabase.</span>}
+              </div>
+            )}
+                </div>
+                  </div>
         )}
       </main>
       
