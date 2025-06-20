@@ -888,6 +888,8 @@ const Modele = ({ categoryParam = null }) => {
           await ensureBasePriceId(productData.id, updated.price);
         }
         
+        // Ajout de logs ultra-précis dans le useEffect qui charge le produit
+        console.log('[DEBUG PRODUIT] Produit fetché:', updated);
         setProduct(updated);
         setIsLoading(false);
       } catch (error) {
@@ -1403,12 +1405,17 @@ const Modele = ({ categoryParam = null }) => {
 
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
+    console.log('[SIMILAR DEBUG] product:', product);
+    console.log('[SIMILAR DEBUG] relatedCategory:', relatedCategory);
+    console.log('[SIMILAR DEBUG] breadcrumbCategory:', breadcrumbCategory);
+    console.log('[SIMILAR DEBUG] allCategories:', allCategories);
+
     if (!product) {
-      console.warn("[SIMILAR] Pas de produit chargé !");
+      console.warn('[SIMILAR] Pas de produit chargé !');
       return;
     }
     if (!relatedCategory && !breadcrumbCategory?.parent?.id) {
-      console.warn("[SIMILAR] Pas de catégorie liée trouvée ! relatedCategory:", relatedCategory, "breadcrumbCategory:", breadcrumbCategory);
+      console.warn('[SIMILAR] Pas de catégorie liée trouvée ! relatedCategory:', relatedCategory, 'breadcrumbCategory:', breadcrumbCategory);
       return;
     }
     console.log("[SIMILAR] Début du chargement des produits similaires...");
