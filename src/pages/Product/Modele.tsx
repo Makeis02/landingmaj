@@ -37,6 +37,7 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
+import ProductCard from "@/components/ProductCard";
 
 // Types
 interface Product {
@@ -389,6 +390,7 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
+  const [relatedProducts, setRelatedProducts] = useState([]);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -2720,6 +2722,32 @@ const Modele = ({ categoryParam = null }) => {
       });
     }
   };
+
+  useEffect(() => {
+    async function fetchRelated() {
+      if (!product?.id) return;
+      // 1. Charger les catégories liées au produit
+      const { data: productCategories, error: catError } = await supabase
+        .from("product_categories")
+        .select("category_id")
+        .eq("product_id", product.id);
+      const refCategoryId = productCategories?.[0]?.category_id || null;
+      console.log("🎯 refCategoryId utilisé pour similaires :", refCategoryId);
+      let related = [];
+      if (refCategoryId) {
+        const { data: similarProducts, error } = await supabase
+          .from("products")
+          .select("*")
+          .contains("category_ids", [refCategoryId])
+          .neq("id", product.id)
+          .limit(4);
+        related = similarProducts || [];
+        console.log("Produits similaires chargés :", related);
+      }
+      setRelatedProducts(related);
+    }
+    fetchRelated();
+  }, [product?.id]);
 
   return (
     <div className="min-h-screen flex flex-col">
