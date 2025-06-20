@@ -851,8 +851,7 @@ const ProduitsPage = () => {
                                 </div>
                               </TableCell>
                             </TableRow>
-                          );
-                        })
+                          ))
                       )}
                     </TableBody>
                   </Table>
