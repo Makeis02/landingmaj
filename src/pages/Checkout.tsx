@@ -255,7 +255,7 @@ const Checkout = () => {
   useEffect(() => {
     const summary = getTotalWithPromo();
     setOrderSummary(summary);
-  }, [items.length, appliedPromoCode?.code]); // ✅ Dépendances plus stables
+  }, [items, appliedPromoCode]); // Réactif à tout changement d'items ou de code promo
 
   // Formulaire d'adresse
   const [shippingForm, setShippingForm] = useState({
