@@ -2721,6 +2721,26 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
+  // Charger les catégories liées au produit (DEBUG)
+  useEffect(() => {
+    if (!product) return;
+    const debug = async () => {
+      console.log('[MODELE-CAT-DEBUG] product.id =', product.id);
+      try {
+        const cats = await fetchCategoriesForProducts([product.id]);
+        console.log('[MODELE-CAT-DEBUG] fetchCategoriesForProducts([product.id]) =', cats);
+        if (cats && cats[product.id] && cats[product.id].length > 0) {
+          console.log('[MODELE-CAT-DEBUG] Catégories trouvées pour ce produit :', cats[product.id]);
+        } else {
+          console.warn('[MODELE-CAT-DEBUG] AUCUNE catégorie trouvée pour ce produit dans product_categories !');
+        }
+      } catch (e) {
+        console.error('[MODELE-CAT-DEBUG] Erreur lors du fetchCategoriesForProducts:', e);
+      }
+    };
+    debug();
+  }, [product]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
