@@ -1403,30 +1403,49 @@ const Modele = ({ categoryParam = null }) => {
 
   // Modifie le useEffect pour charger les produits similaires avec la catégorie liée ET ses sous-catégories
   useEffect(() => {
-    if (!product) return;
-    if (!relatedCategory && !breadcrumbCategory?.parent?.id) return;
-    
+    if (!product) {
+      console.warn("[SIMILAR] Pas de produit chargé !");
+      return;
+    }
+    if (!relatedCategory && !breadcrumbCategory?.parent?.id) {
+      console.warn("[SIMILAR] Pas de catégorie liée trouvée ! relatedCategory:", relatedCategory, "breadcrumbCategory:", breadcrumbCategory);
+      return;
+    }
+    console.log("[SIMILAR] Début du chargement des produits similaires...");
     const loadSimilarProducts = async () => {
       try {
         const apiBaseUrl = getApiBaseUrl();
+        console.log("[SIMILAR] Appel API produits:", `${apiBaseUrl}/api/stripe/products`);
         const response = await fetch(`${apiBaseUrl}/api/stripe/products`);
         const data = await response.json();
+        console.log("[SIMILAR] Produits reçus:", data.products?.length, data.products?.map(p => p.id));
         const productIds = data.products.map(p => p.id);
         const categoriesByProduct = await fetchCategoriesForProducts(productIds);
+        console.log("[SIMILAR] categoriesByProduct:", categoriesByProduct);
         const refCategoryId = relatedCategory || breadcrumbCategory?.parent?.id;
+        console.log("[SIMILAR] refCategoryId:", refCategoryId);
         // Récupère tous les IDs de sous-catégories (récursif)
         const allRelevantCategoryIds = getAllSubCategoryIds(refCategoryId, allCategories).map(String);
+        console.log("[SIMILAR] allRelevantCategoryIds:", allRelevantCategoryIds);
         // Filtre les produits qui ont au moins un de ces IDs dans leur tableau de catégories
         const filtered = data.products.filter(p => {
-          if (p.id === product.id) return false;
+          if (p.id === product.id) {
+            console.log(`[SIMILAR] Produit courant ignoré: ${p.id}`);
+            return false;
+          }
           const productCategories = (categoriesByProduct[p.id] || []).map(String);
-          return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
+          const match = productCategories.some(catId => allRelevantCategoryIds.includes(catId));
+          if (match) {
+            console.log(`[SIMILAR] Produit ${p.id} match:`, productCategories);
+          } else {
+            console.log(`[SIMILAR] Produit ${p.id} PAS match:`, productCategories);
+          }
+          return match;
         });
-
+        console.log("[SIMILAR] Produits filtrés:", filtered.map(p => p.id));
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
         setSimilarProducts(enrichedProducts);
-        
         setDebugSimilar({
           relatedCategory,
           refCategoryId,
@@ -1436,7 +1455,7 @@ const Modele = ({ categoryParam = null }) => {
           allProducts: data.products.map(p => ({id: p.id, title: p.title || p.name, categories: categoriesByProduct[p.id]})),
         });
       } catch (error) {
-        console.error("Erreur lors du chargement des produits similaires:", error);
+        console.error("[SIMILAR] Erreur lors du chargement des produits similaires:", error);
         setDebugSimilar({ error: error.message });
         setSimilarProducts([]);
       }
@@ -2720,26 +2739,6 @@ const Modele = ({ categoryParam = null }) => {
       });
     }
   };
-
-  // Charger les catégories liées au produit (DEBUG)
-  useEffect(() => {
-    if (!product) return;
-    const debug = async () => {
-      console.log('[MODELE-CAT-DEBUG] product.id =', product.id);
-      try {
-        const cats = await fetchCategoriesForProducts([product.id]);
-        console.log('[MODELE-CAT-DEBUG] fetchCategoriesForProducts([product.id]) =', cats);
-        if (cats && cats[product.id] && cats[product.id].length > 0) {
-          console.log('[MODELE-CAT-DEBUG] Catégories trouvées pour ce produit :', cats[product.id]);
-        } else {
-          console.warn('[MODELE-CAT-DEBUG] AUCUNE catégorie trouvée pour ce produit dans product_categories !');
-        }
-      } catch (e) {
-        console.error('[MODELE-CAT-DEBUG] Erreur lors du fetchCategoriesForProducts:', e);
-      }
-    };
-    debug();
-  }, [product]);
 
   return (
     <div className="min-h-screen flex flex-col">
