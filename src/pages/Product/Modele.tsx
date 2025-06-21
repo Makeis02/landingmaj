@@ -87,13 +87,13 @@ interface Variant {
 
 // Utilitaire de debug
 const logDebug = (label: string, data?: any) => {
-  if (import.meta.env.DEV) {
-    if (data !== undefined) {
-      console.debug(`🛠️ ${label}:`, data);
-    } else {
-      console.debug(`🛠️ ${label}`);
-    }
-  }
+  // if (import.meta.env.DEV) {
+  //   if (data !== undefined) {
+  //     console.debug(`🛠️ ${label}:`, data);
+  //   } else {
+  //     console.debug(`🛠️ ${label}`);
+  //   }
+  // }
 };
 
 // Fonction pour obtenir l'ID du produit depuis les query params
@@ -3239,14 +3239,6 @@ const Modele = ({ categoryParam = null }) => {
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="specifications">Caractéristiques</TabsTrigger>
-              {isEditMode && (
-                <>
-              <TabsTrigger value="debug">🛠 Debug</TabsTrigger>
-                  <TabsTrigger value="stripe">🚀 Stripe</TabsTrigger>
-                  <TabsTrigger value="debug-similar">🐞 Debug Catégories similaires</TabsTrigger>
-                  <TabsTrigger value="debug-stock">📦 Stock</TabsTrigger>
-                </>
-              )}
             </TabsList>
             
             <TabsContent value="description" className="p-4 bg-white rounded-lg shadow-sm">
@@ -3321,6 +3313,26 @@ const Modele = ({ categoryParam = null }) => {
                   </div>
                 ))}
               </div>
+
+              {isEditMode && (
+                <div className="mt-4">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            if (!product) return;
+                            const newSpec = { name: "Nouvelle ligne", value: "Valeur" };
+                            setProduct(prevProduct => {
+                                if (!prevProduct) return prevProduct;
+                                const updatedSpecifications = [...(prevProduct.specifications || []), newSpec];
+                                return { ...prevProduct, specifications: updatedSpecifications };
+                            });
+                        }}
+                    >
+                        + Ajouter une caractéristique
+                    </Button>
+                </div>
+              )}
 
               {isEditMode && (
                 <div className="mt-6">
@@ -3778,249 +3790,6 @@ const Modele = ({ categoryParam = null }) => {
               )}
             </TabsContent>
             
-            {isEditMode && (
-            <TabsContent value="stripe" className="bg-white p-4 rounded-lg shadow-sm">
-              <h3 className="font-bold mb-3">📦 Logs API Stripe</h3>
-              {stripeLogs.length === 0 ? (
-                <p className="text-sm text-gray-500 italic">Aucun appel Stripe encore effectué.</p>
-              ) : (
-                <ul className="text-xs space-y-1 max-h-[300px] overflow-auto bg-gray-50 border p-3 rounded">
-                  {stripeLogs.map((log, i) => (
-                    <li key={i} className="text-gray-700 whitespace-pre-wrap font-mono">{log}</li>
-                  ))}
-                </ul>
-              )}
-            </TabsContent>
-            )}
-            {isEditMode && (
-              <TabsContent value="debug-similar">
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-sm">
-                  <h3 className="font-bold mb-2">🐞 Debug Catégories similaires</h3>
-                  <div className="mb-2">
-                    <strong>Catégorie sélectionnée (relatedCategory):</strong> {relatedCategory || '(parente par défaut)'}
-                  </div>
-                  <div className="mb-2">
-                    <strong>Catégorie parente du fil d'Ariane:</strong> {breadcrumbCategory?.parent?.id} / {breadcrumbCategory?.parent?.name}
-                  </div>
-                  <div className="mb-2">
-                    <strong>Catégories liées à ce produit:</strong> <pre>{JSON.stringify(allCategories.filter(cat => (breadcrumbCategory?.parent && cat.id === breadcrumbCategory.parent.id) || (relatedCategory && cat.id === relatedCategory)), null, 2)}</pre>
-                  </div>
-                  <div className="mb-2">
-                    <strong>Produits similaires trouvés:</strong> {similarProducts.length}
-                    <ul className="list-disc ml-6">
-                      {similarProducts.map(p => (
-                        <li key={p.id}>
-                          <span className="font-mono">{p.id}</span> - {p.title || p.name} (catégories liées: <span className="font-mono">{JSON.stringify(p.categories || [])}</span>)
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="mb-2">
-                    <strong>Debug complet catégories liées à chaque produit Stripe :</strong>
-                    <pre className="overflow-x-auto bg-yellow-100 p-2 rounded text-xs max-h-64">{JSON.stringify(similarProducts.map(p => ({id: p.id, title: p.title || p.name, categories: p.categories})), null, 2)}</pre>
-                  </div>
-                </div>
-            </TabsContent>
-            )}
-            {isEditMode && (
-              <TabsContent value="debug-stock" className="bg-white p-4 rounded-lg shadow-sm">
-                <h3 className="font-bold mb-2">📦 Debug Stock</h3>
-                <p><strong>ID produit courant :</strong> {product.id}</p>
-                
-                <div className="mt-4">
-                  <p><strong>VariantStocks complets :</strong></p>
-                  <pre className="bg-gray-100 p-2 text-sm rounded overflow-x-auto text-xs leading-tight">
-                    {JSON.stringify(product.variantStocks, null, 2)}
-                  </pre>
-                </div>
-
-                <div className="mt-4">
-                  <p><strong>Variantes sélectionnées :</strong></p>
-                  <pre className="bg-gray-100 p-2 text-sm rounded overflow-x-auto text-xs leading-tight">
-                    {JSON.stringify(selectedVariants, null, 2)}
-                  </pre>
-                </div>
-
-                <div className="mt-4">
-                  <p><strong>Clé recherchée :</strong></p>
-                  <pre className="bg-gray-100 p-2 text-sm rounded overflow-x-auto text-xs leading-tight">
-                    {Object.entries(selectedVariants)
-                      .map(([label, value]) => `${label}:${value}`)
-                      .join('|')}
-                  </pre>
-                </div>
-
-                <div className="mt-4">
-                  <p><strong>🔍 Analyse détaillée des variantes et options :</strong></p>
-                  <ul className="list-disc ml-6 text-xs">
-                    {variants.map((variant, vIdx) => (
-                      <li key={vIdx}>
-                        <b>Variante {vIdx}</b>: label=<code>{variant.label}</code>, options=<code>{JSON.stringify(variant.options)}</code>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-4">
-                  <p><strong>🧪 Matching Supabase vs Clé calculée :</strong></p>
-                  <ul className="list-disc ml-6 text-xs">
-                    {Object.entries(product.variantStocks || {}).map(([key, val], i) => (
-                      <li key={i}>
-                        <code>{key}</code> =&gt; stock = <b>{val}</b> {key === Object.entries(selectedVariants).map(([label, opt]) => `${label}:${opt}`).join('|') ? '✅ (match)' : ''}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="mt-4">
-                  <p><strong>Stock trouvé :</strong></p>
-                  <pre className="bg-gray-100 p-2 text-sm rounded overflow-x-auto text-xs leading-tight">
-                    {(() => {
-                      const stock = getSupabaseStock();
-                      if (stock === null) {
-                        return "❌ Aucun stock trouvé pour cette combinaison";
-                      }
-                      return stock > 0 ? `✅ ${stock} en stock` : '❌ Rupture de stock';
-                    })()}
-                  </pre>
-                </div>
-
-                {(() => {
-                  const key = Object.entries(selectedVariants)
-                    .map(([label, value]) => `${label}:${value}`)
-                    .join('|');
-                  const stock = product.variantStocks?.[key];
-                  if (typeof stock === 'undefined') {
-                    return (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-sm">
-                        <p className="font-bold text-red-700">⚠️ Clé non trouvée dans variantStocks</p>
-                        <p className="text-red-600 mt-1">
-                          La clé "{key}" n'existe pas dans l'objet variantStocks.
-                          Vérifiez que le lookup_key dans Stripe correspond exactement à ce format.
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-              </TabsContent>
-            )}
-            {/* Interface de réduction pour produits SANS variantes */}
-            {isEditMode && variants.length === 0 && (
-              <div className="mt-4">
-                <h5 className="font-semibold mb-2">Réduction du produit</h5>
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded">
-                  <div className="mb-3">
-                    <div className="font-medium text-blue-800 mb-2">Prix original : {product.price?.toFixed(2) || '0.00'} €</div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      className="border rounded px-2 py-1 w-20 text-sm"
-                      value={productReduction}
-                      onChange={e => setProductReduction(Number(e.target.value))}
-                      placeholder="0"
-                    />
-                    <span className="text-sm">% de réduction</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-2 bg-blue-100 hover:bg-blue-200 text-blue-800"
-                      onClick={() => saveProductDiscount(product.id, productReduction)}
-                    >
-                      {productReduction === 0 ? '🗑️ Supprimer réduction' : '💰 Appliquer réduction'}
-                    </Button>
-                  </div>
-                  
-                  {/* Aperçu du prix réduit */}
-                  {productReduction > 0 && product.price && (
-                    <div className="mt-3 p-2 bg-white rounded border">
-                      <div className="font-medium text-blue-700 mb-1">Aperçu du prix réduit :</div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl font-bold text-red-600">
-                          {(product.price * (1 - productReduction / 100)).toFixed(2)} €
-                        </span>
-                        <span className="line-through text-gray-400">
-                          {product.price.toFixed(2)} €
-                        </span>
-                        <Badge variant="destructive" className="text-xs">
-                          -{productReduction}%
-                        </Badge>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Interface de gestion du stock pour produits SANS variantes */}
-            {isEditMode && variants.length === 0 && (
-              <div className="mt-4">
-                <h5 className="font-semibold mb-2">📦 Gestion du stock</h5>
-                <div className="p-4 bg-green-50 border border-green-200 rounded">
-                  <div className="mb-3">
-                    <div className="font-medium text-green-800 mb-2">Stock actuel : {product.stock ?? 0} unités</div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 mb-3">
-                    <input
-                      type="number"
-                      min="0"
-                      step="1"
-                      className="border rounded px-2 py-1 w-24 text-sm"
-                      value={product.stock ?? 0}
-                      onChange={e => {
-                        const newStock = Number(e.target.value);
-                        setProduct(prev => ({ ...prev, stock: newStock }));
-                      }}
-                      placeholder="0"
-                    />
-                    <span className="text-sm">unités en stock</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="ml-2 bg-green-100 hover:bg-green-200 text-green-800"
-                      onClick={() => saveGeneralStock(product.id, String(product.stock ?? 0))}
-                    >
-                      💾 Sauvegarder stock
-                    </Button>
-                  </div>
-                  
-                  {/* Aperçu du statut de stock */}
-                  <div className="mt-3 p-2 bg-white rounded border">
-                    <div className="font-medium text-green-700 mb-1">Statut de stock :</div>
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const currentStock = product.stock ?? 0;
-                        if (currentStock > 3) {
-                          return (
-                            <span className="inline-block px-3 py-1 bg-green-100 text-green-800 text-sm font-semibold rounded-full">
-                              ✅ En stock ({currentStock})
-                            </span>
-                          );
-                        } else if (currentStock > 0) {
-                          return (
-                            <span className="inline-block px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded-full">
-                              ⚠️ Bientôt épuisé ({currentStock})
-                            </span>
-                          );
-                        } else {
-                          return (
-                            <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-sm font-semibold rounded-full">
-                              ❌ Rupture de stock
-                            </span>
-                          );
-                        }
-                      })()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </Tabs>
         </div>
         
