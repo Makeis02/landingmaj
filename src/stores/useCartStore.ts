@@ -203,46 +203,103 @@ export const useCartStore = create<CartStore>()(
       if (typeof patchedItem.variant === 'undefined') {
         patchedItem.variant = null;
       }
-          
-          const existingItem = get().items.find((i) => {
+
+      // === NOUVEAU : Vérification du stock ===
+      let stock = null;
+      let stockKey = null;
+      if (patchedItem.variant) {
+        // Variante : chercher le stock de la combinaison
+        const variantParts = patchedItem.variant.split('|');
+        if (variantParts.length > 0) {
+          const [label, opt] = variantParts[0].split(':');
+          // Chercher l'index de la variante
+          const { data: labelData } = await supabase
+            .from('editable_content')
+            .select('content_key')
+            .like('content_key', `product_%_variant_%_label`)
+            .eq('content', label);
+          let variantIdx = 0;
+          if (labelData && labelData.length > 0) {
+            const match = labelData[0].content_key.match(/product_(.+?)_variant_(\d+)_label/);
+            if (match) {
+              variantIdx = parseInt(match[2]);
+            }
+          }
+          stockKey = `product_${patchedItem.id}_variant_${variantIdx}_option_${opt}_stock`;
+        }
+      } else {
+        // Produit simple : stock général
+        stockKey = `product_${patchedItem.id}_stock`;
+      }
+      if (stockKey) {
+        const { data: stockData } = await supabase
+          .from('editable_content')
+          .select('content')
+          .eq('content_key', stockKey)
+          .maybeSingle();
+        if (stockData && stockData.content !== undefined && stockData.content !== null) {
+          stock = parseInt(stockData.content);
+        }
+      }
+      // Calculer la quantité totale demandée (déjà dans le panier + ajout)
+      const existingItem = get().items.find((i) => {
         if (i.id === patchedItem.id) {
           if (patchedItem.variant && i.variant) {
             return i.variant === patchedItem.variant;
-              }
-              return true;
-            }
-            return false;
-          });
-      const quantity = patchedItem.quantity || 1;
-          let updatedItems;
-          if (existingItem) {
-            updatedItems = get().items.map((i) => {
-          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
-                return { ...i, quantity: i.quantity + quantity };
-              }
-              return i;
-            });
-          } else {
-        updatedItems = [...get().items, { ...patchedItem, quantity }];
           }
-          set({ items: updatedItems });
-          // Synchro serveur si connecté
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            try {
+          return true;
+        }
+        return false;
+      });
+      let quantity = patchedItem.quantity || 1;
+      const currentQty = existingItem ? existingItem.quantity : 0;
+      const totalQty = currentQty + quantity;
+      if (stock !== null && totalQty > stock) {
+        toast({
+          title: "Stock insuffisant",
+          description: `Stock disponible : ${stock}. Vous ne pouvez pas ajouter plus d'unités de ce produit.`,
+          variant: "destructive",
+        });
+        // Limiter à la quantité max possible
+        if (stock > currentQty) {
+          quantity = stock - currentQty;
+          patchedItem.quantity = quantity;
+        } else {
+          // Déjà au max, ne rien ajouter
+          set({ isLoading: false });
+          return;
+        }
+      }
+      let updatedItems;
       if (existingItem) {
-                await supabase
-          .from("cart_items")
-                  .update({ quantity: existingItem.quantity + quantity })
-          .eq("user_id", session.user.id)
-              .eq("product_id", patchedItem.id);
+        updatedItems = get().items.map((i) => {
+          if (i.id === patchedItem.id && i.variant === patchedItem.variant) {
+            return { ...i, quantity: i.quantity + quantity };
+          }
+          return i;
+        });
       } else {
-                await supabase
-          .from("cart_items")
-          .insert({
-            user_id: session.user.id,
+        updatedItems = [...get().items, { ...patchedItem, quantity }];
+      }
+      set({ items: updatedItems });
+      // Synchro serveur si connecté
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      if (session) {
+        try {
+          if (existingItem) {
+            await supabase
+              .from("cart_items")
+              .update({ quantity: existingItem.quantity + quantity })
+              .eq("user_id", session.user.id)
+              .eq("product_id", patchedItem.id);
+          } else {
+            await supabase
+              .from("cart_items")
+              .insert({
+                user_id: session.user.id,
                 product_id: patchedItem.id,
-                    quantity,
+                quantity,
                 variant: patchedItem.variant,
                 price_id: patchedItem.stripe_price_id,
                 discount_price_id: patchedItem.stripe_discount_price_id,
@@ -250,13 +307,13 @@ export const useCartStore = create<CartStore>()(
                 discount_percentage: patchedItem.discount_percentage,
                 has_discount: patchedItem.has_discount,
                 title: patchedItem.title
-          });
-      }
-      await get().manageGiftItem();
-            } catch (error) {
-              console.error("Error syncing with Supabase:", error);
-            }
+              });
           }
+          await get().manageGiftItem();
+        } catch (error) {
+          console.error("Error syncing with Supabase:", error);
+        }
+      }
     } catch (error) {
       console.error("Error adding item to cart:", error);
       toast({
@@ -299,25 +356,67 @@ export const useCartStore = create<CartStore>()(
   updateQuantity: async (id, quantity) => {
     try {
       set({ isLoading: true });
-          
-          // Mettre à jour la copie locale
-          set((state) => ({
-            items: state.items.map((item) => 
-              item.id === id ? { ...item, quantity } : item
-            )
-          }));
-          
-          // Synchro serveur si connecté
-      const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("user_id", session.user.id)
-        .eq("product_id", id);
-
-      await get().manageGiftItem();
+      // === NOUVEAU : Vérification du stock ===
+      const item = get().items.find((i) => i.id === id);
+      if (!item) return;
+      let stock = null;
+      let stockKey = null;
+      if (item.variant) {
+        const variantParts = item.variant.split('|');
+        if (variantParts.length > 0) {
+          const [label, opt] = variantParts[0].split(':');
+          // Chercher l'index de la variante
+          const { data: labelData } = await supabase
+            .from('editable_content')
+            .select('content_key')
+            .like('content_key', `product_%_variant_%_label`)
+            .eq('content', label);
+          let variantIdx = 0;
+          if (labelData && labelData.length > 0) {
+            const match = labelData[0].content_key.match(/product_(.+?)_variant_(\d+)_label/);
+            if (match) {
+              variantIdx = parseInt(match[2]);
+            }
           }
+          stockKey = `product_${item.id}_variant_${variantIdx}_option_${opt}_stock`;
+        }
+      } else {
+        stockKey = `product_${item.id}_stock`;
+      }
+      if (stockKey) {
+        const { data: stockData } = await supabase
+          .from('editable_content')
+          .select('content')
+          .eq('content_key', stockKey)
+          .maybeSingle();
+        if (stockData && stockData.content !== undefined && stockData.content !== null) {
+          stock = parseInt(stockData.content);
+        }
+      }
+      if (stock !== null && quantity > stock) {
+        toast({
+          title: "Stock insuffisant",
+          description: `Stock disponible : ${stock}. Vous ne pouvez pas sélectionner plus d'unités de ce produit.`,
+          variant: "destructive",
+        });
+        quantity = stock;
+      }
+      // Mettre à jour la copie locale
+      set((state) => ({
+        items: state.items.map((item) =>
+          item.id === id ? { ...item, quantity } : item
+        )
+      }));
+      // Synchro serveur si connecté
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        await supabase
+          .from("cart_items")
+          .update({ quantity })
+          .eq("user_id", session.user.id)
+          .eq("product_id", id);
+        await get().manageGiftItem();
+      }
     } catch (error) {
           console.error("Error updating item quantity:", error);
     } finally {
