@@ -35,11 +35,23 @@ serve(async (req) => {
   }
 
   try {
-    // Récupérer tous les produits Stripe
-    const products = await stripe.products.list({
-      active: true,
-      expand: ['data.default_price']
-    })
+    // Pagination Stripe pour récupérer tous les produits
+    let allProducts = [];
+    let hasMore = true;
+    let startingAfter = undefined;
+
+    while (hasMore) {
+      const response = await stripe.products.list({
+        active: true,
+        expand: ['data.default_price'],
+        limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {})
+      });
+      allProducts = allProducts.concat(response.data);
+      hasMore = response.has_more;
+      if (hasMore) startingAfter = response.data[response.data.length - 1].id;
+    }
+    const products = { data: allProducts };
 
     const logs: string[] = []
     logs.push(`📦 Synchronisation de ${products.data.length} produits`)
