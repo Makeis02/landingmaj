@@ -467,10 +467,10 @@ const CategoryPage = () => {
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
-  // Reset page when filters change
+  // Reset page when filters change (catégories, marques, prix, stock, promos)
   useEffect(() => {
     setCurrentPage(1);
-  }, [filteredProducts]);
+  }, [selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   // État pour le mode édition et toast notifications
   const { isEditMode } = useEditStore();
