@@ -471,11 +471,6 @@ const EaudouceNourriturePage = () => {
   );
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredProducts]);
-
   // État pour le mode édition et toast notifications
   const { isEditMode } = useEditStore();
   const { toast } = useToast();
@@ -1216,6 +1211,11 @@ const EaudouceNourriturePage = () => {
       [key]: value
     }));
   };
+
+  // Reset page when filters change (catégories, marques, prix, stock, promos)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
   return (
     <div className="min-h-screen flex flex-col">
