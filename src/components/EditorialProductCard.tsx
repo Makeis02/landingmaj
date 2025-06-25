@@ -453,7 +453,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         <CardContent className="p-6">
           <div className="mb-3">
             <Badge className={`${editorialData.categoryColor} text-white text-xs font-medium px-3 py-1 rounded-full`}>
-              {editorialData.category}
+              {editorialData.category === 'Guide pratique' ? 'Alimentation' : editorialData.category}
             </Badge>
           </div>
           <h3 className="font-bold text-lg mb-4 transition-colors group-hover:text-[#0074b3] leading-tight">
