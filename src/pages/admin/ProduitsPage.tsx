@@ -20,6 +20,8 @@ import { createProductPage, deleteProductPage, checkProductPageExists, PageGener
 import { Switch } from "@/components/ui/switch";
 import { EditableImage } from "@/components/EditableImage";
 import { supabase } from "@/integrations/supabase/client";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { VariantStockManager } from "@/components/admin/VariantStockManager";
 
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
@@ -69,6 +71,12 @@ const ProduitsPage = () => {
     eauMer: ''
   });
   const lastFlagsRef = useRef<string>("");
+  const [productDetails, setProductDetails] = useState<Record<string, {
+    image?: string;
+    stock?: number;
+    hasVariants?: boolean;
+  }>>({});
+  const [stockModal, setStockModal] = useState<{ open: boolean; productId: string | null; productTitle: string | null }>({ open: false, productId: null, productTitle: null });
   
   // Fonction pour générer une page produit
   const handleCreateProductPage = async (product: StripeProduct) => {
@@ -245,26 +253,103 @@ const ProduitsPage = () => {
     );
   }
   
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        setIsLoading(true);
+  const loadProductData = async () => {
+    try {
+      setIsLoading(true);
+      const stripeProducts = await fetchStripeProducts();
+      setProducts(stripeProducts);
+
+      if (stripeProducts.length > 0) {
+        const productIds = stripeProducts.map(p => p.id.toString());
         
-        // Utilisation de l'API Stripe
-        const data = await fetchStripeProducts();
-        
-        setProducts(data);
-        setError(null);
-      } catch (err) {
-        console.error("Erreur lors du chargement des produits:", err);
-        setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
-      } finally {
-        setIsLoading(false);
+        // Fetch details (image, stock, variant flag)
+        const imageKeys = productIds.map(id => `product_${id}_image_0`);
+        const stockKeys = productIds.map(id => `product_${id}_stock`);
+        const variantLabelKeys = productIds.map(id => `product_${id}_variant_0_label`);
+
+        const { data: detailData, error: detailError } = await supabase
+          .from('editable_content')
+          .select('content_key, content')
+          .in('content_key', [...imageKeys, ...stockKeys, ...variantLabelKeys]);
+
+        if (detailError) throw detailError;
+
+        // Fetch all variant stocks to calculate totals
+        const { data: variantStockData, error: variantStockError } = await supabase
+          .from('editable_content')
+          .select('content_key, content')
+          .like('content_key', '%_variant_%_stock');
+
+        if (variantStockError) throw variantStockError;
+
+        const newDetails = {};
+        for (const p of stripeProducts) {
+          const id = p.id.toString();
+          const hasVariants = !!detailData.find(d => d.content_key === `product_${id}_variant_0_label`);
+          let stockValue;
+
+          if (hasVariants) {
+            stockValue = variantStockData
+              .filter(d => d.content_key.startsWith(`product_${id}_`))
+              .reduce((sum, item) => sum + (Number(item.content) || 0), 0);
+          } else {
+            const generalStock = detailData.find(d => d.content_key === `product_${id}_stock`)?.content;
+            stockValue = generalStock !== undefined ? Number(generalStock) : p.stock;
+          }
+
+          newDetails[id] = {
+            image: detailData.find(d => d.content_key === `product_${id}_image_0`)?.content,
+            stock: stockValue,
+            hasVariants,
+          };
+        }
+        setProductDetails(newDetails);
       }
-    };
-    
-    loadProducts();
+      setError(null);
+    } catch (err) {
+      console.error("Erreur chargement produits:", err);
+      setError("Impossible de charger les produits.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProductData();
   }, []);
+
+  const handleRefresh = () => {
+    loadProductData();
+  };
+  
+  const handleStockChange = async (productId: string, newStock: string) => {
+    const stockValue = parseInt(newStock, 10);
+    if (isNaN(stockValue) || stockValue < 0) {
+      toast({ variant: "destructive", title: "Stock invalide", description: "Veuillez entrer un nombre positif." });
+      return;
+    }
+
+    if (productDetails[productId]?.hasVariants) {
+      toast({ variant: "destructive", title: "Action non supportée", description: "Utilisez le bouton 'Gérer' pour les produits avec variantes." });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from('editable_content').upsert(
+        { content_key: `product_${productId}_stock`, content: stockValue.toString() },
+        { onConflict: 'content_key' }
+      );
+      if (error) throw error;
+
+      setProductDetails(prev => ({
+        ...prev,
+        [productId]: { ...prev[productId], stock: stockValue }
+      }));
+      toast({ title: "Stock mis à jour" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Erreur", description: "Impossible de sauvegarder le stock." });
+    }
+  };
   
   // Charger les catégories liées aux produits
   useEffect(() => {
@@ -349,20 +434,6 @@ const ProduitsPage = () => {
     
     checkAllProductPages();
   }, [products]);
-  
-  const handleRefresh = async () => {
-    try {
-      setIsLoading(true);
-      const data = await fetchStripeProducts();
-      setProducts(data);
-      setError(null);
-    } catch (err) {
-      console.error("Erreur lors du rafraîchissement :", err);
-      setError("Impossible de rafraîchir les produits.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
   
   // Gérer la modification des catégories d'un produit
   const handleCategoryChange = async (productId: string, selectedCategoryIds: string[]) => {
@@ -697,7 +768,7 @@ const ProduitsPage = () => {
                             <TableCell>
                               <div className="w-16 h-16 bg-gray-100 rounded-md overflow-hidden">
                                 <img 
-                                  src={product.image || "https://placehold.co/100x100?text=No+Image"} 
+                                  src={productDetails[product.id]?.image || product.image || "https://placehold.co/100x100?text=No+Image"} 
                                   alt={product.title} 
                                   className="w-full h-full object-cover"
                                 />
@@ -706,15 +777,24 @@ const ProduitsPage = () => {
                             <TableCell className="font-medium">{product.title}</TableCell>
                               <TableCell>{product.price.toFixed(2)} €</TableCell>
                             <TableCell>
-                              <span className={`px-2 py-1 rounded-full text-xs ${
-                                product.stock > 10 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : product.stock > 0 
-                                    ? 'bg-yellow-100 text-yellow-800' 
-                                    : 'bg-red-100 text-red-800'
-                              }`}>
-                                {product.stock > 0 ? `${product.stock} en stock` : 'Rupture de stock'}
-                              </span>
+                              {productDetails[product.id] === undefined ? <Loader2 className="h-4 w-4 animate-spin"/> :
+                                productDetails[product.id]?.hasVariants ? (
+                                  <div className="flex flex-col items-start gap-1">
+                                    <span className="text-xs text-gray-500">Total: {productDetails[product.id]?.stock ?? 0}</span>
+                                    <Button variant="outline" size="xs" onClick={() => setStockModal({ open: true, productId: product.id.toString(), productTitle: product.title })}>
+                                      Gérer
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    className="w-20 h-8"
+                                    defaultValue={productDetails[product.id]?.stock}
+                                    onBlur={(e) => handleStockChange(product.id.toString(), e.target.value)}
+                                  />
+                                )
+                              }
                             </TableCell>
                             <TableCell>
                               {productPages[product.id.toString()]?.isLoading ? (
@@ -854,6 +934,24 @@ const ProduitsPage = () => {
           </div>
         </div>
       </div>
+
+      <Dialog open={stockModal.open} onOpenChange={(isOpen) => setStockModal({ ...stockModal, open: isOpen })}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Gérer les stocks des variantes</DialogTitle>
+          </DialogHeader>
+          {stockModal.productId && (
+            <VariantStockManager
+              productId={stockModal.productId}
+              productTitle={stockModal.productTitle || ''}
+              onSave={() => {
+                setStockModal({ open: false, productId: null, productTitle: null });
+                handleRefresh(); // Re-fetch data to show updated total
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
