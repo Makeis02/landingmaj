@@ -52,6 +52,7 @@ console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini
 app.use(bodyParser.json());
 app.use(cors({
   origin: [
+    'https://aqua-reve.com',
     'https://majemsiteteste.netlify.app',
     'https://landingmaj-production.up.railway.app',
     'http://localhost:5173',
