@@ -9,10 +9,12 @@ import { Link } from "react-router-dom";
 import { EditableImage } from "./EditableImage";
 import { useCartStore } from "@/stores/useCartStore";
 import { useToast } from "@/components/ui/use-toast";
+import { useEffect, useState } from "react";
 
 const BestSellers = () => {
   const { toast } = useToast();
   const { items: cartItems, addItem } = useCartStore();
+  const [ddmFlags, setDdmFlags] = useState<Record<string, boolean>>({});
 
   const { data: bestSellers } = useQuery({
     queryKey: ["bestSellers"],
@@ -42,6 +44,24 @@ const BestSellers = () => {
       return data?.content || "/products";
     },
   });
+
+  useEffect(() => {
+    if (!bestSellers?.length) return;
+    const fetchDdmFlags = async () => {
+      const keys = bestSellers.map((product: any) => `product_${product.id}_ddm_exceeded`);
+      const { data } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', keys);
+      const flags: Record<string, boolean> = {};
+      data?.forEach(item => {
+        const id = item.content_key.replace('product_', '').replace('_ddm_exceeded', '');
+        flags[id] = item.content === 'true';
+      });
+      setDdmFlags(flags);
+    };
+    fetchDdmFlags();
+  }, [bestSellers]);
 
   const handleAddToCart = async (product: any) => {
     await addItem({
@@ -75,6 +95,7 @@ const BestSellers = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-8">
           {bestSellers.map((product) => {
             const isInCart = cartItems.some(item => item.id === product.shopify_id);
+            const showDdm = ddmFlags[product.id?.toString?.() || product.id] === true;
             
             return (
               <Card key={product.id} className="group hover:shadow-lg transition-shadow flex flex-col">
@@ -84,12 +105,18 @@ const BestSellers = () => {
                     initialUrl={product.image_url || "https://images.unsplash.com/photo-1584267651117-32aacc26307b"}
                     className="w-full aspect-square object-cover rounded-t-lg"
                   />
-                  <div className="absolute top-2 right-2">
-                    <span className="bg-orange-500 text-white px-2 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
-                      <Flame className="h-4 w-4" />
-                      Best-Seller
+                  {showDdm ? (
+                    <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-orange-500 text-white border-transparent flex items-center">
+                      DDM DÉPASSÉE
                     </span>
-                  </div>
+                  ) : (
+                    <div className="absolute top-2 right-2">
+                      <span className="bg-orange-500 text-white px-2 py-1 rounded-full text-sm font-semibold flex items-center gap-1">
+                        <Flame className="h-4 w-4" />
+                        Best-Seller
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <CardContent className="p-6 flex-grow">

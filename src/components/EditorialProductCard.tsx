@@ -70,6 +70,8 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPaths, setCategoryPaths] = useState<Record<string, string>>({});
   const [promoPrice, setPromoPrice] = useState<any>(null);
+  const [ddmExceeded, setDdmExceeded] = useState(false);
+  const [ddmDate, setDdmDate] = useState<string | null>(null);
 
   // Fonction pour construire le chemin complet d'une catégorie
   const buildCategoryPath = (category: Category, allCategories: Category[]): string => {
@@ -146,6 +148,8 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       setSelectedProduct(null);
       setProductImage(null);
       setVariantPriceRange(null);
+      setDdmExceeded(false);
+      setDdmDate(null);
       return;
     }
     const prod = allProducts.find(p => p.id === selectedProductId);
@@ -192,6 +196,18 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       }
     };
     fetchPriceMap();
+    // Récupérer le flag DDM et la date DDM
+    const fetchDdm = async () => {
+      const key = `product_${selectedProductId}_ddm_exceeded`;
+      const dateKey = `product_${selectedProductId}_ddm_date`;
+      const { data: ddmData } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', [key, dateKey]);
+      setDdmExceeded(!!ddmData?.find(d => d.content_key === key && d.content === 'true'));
+      setDdmDate(ddmData?.find(d => d.content_key === dateKey)?.content || null);
+    };
+    fetchDdm();
     // Récupérer les avis pour le produit sélectionné
     const fetchReviews = async () => {
       const { data, error } = await supabase
@@ -454,11 +470,16 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         <div className={`h-2 ${editorialData.categoryColor}`}></div>
         <a href={`/produits/${slugify(selectedProduct?.title || '', { lower: true })}?id=${selectedProduct?.id}`} className="block">
           <div className="relative h-48 overflow-hidden flex items-center justify-center bg-white cursor-pointer group-hover:scale-105 transition-transform duration-300">
-            {hasPromo && (
-              <div className="absolute top-2 left-2 z-10">
+            {/* Badge DDM prioritaire, sinon promo */}
+            {ddmExceeded ? (
+              <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-orange-500 text-white border-transparent flex items-center">
+                DDM DÉPASSÉE
+              </span>
+            ) : hasPromo ? (
+              <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
                 <PromoBadge />
-              </div>
-            )}
+              </span>
+            ) : null}
             {isEditMode ? (
               <EditableImage
                 imageKey={`product_${selectedProductId}_image_0`}
