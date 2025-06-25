@@ -1217,6 +1217,38 @@ const EaudouceNourriturePage = () => {
     setCurrentPage(1);
   }, [selectedSubCategories, selectedBrandIds, priceRange, inStock, promoOnly]);
 
+  // Ajout : état pour les flags DDM et dates DDM
+  const [ddmFlags, setDdmFlags] = useState<Record<string, boolean>>({});
+  const [ddmDates, setDdmDates] = useState<Record<string, string>>({});
+
+  // Charger les flags DDM pour tous les produits affichés
+  useEffect(() => {
+    if (filteredProducts.length === 0) return;
+    const fetchDdmFlags = async () => {
+      const ddmKeys = filteredProducts.map(p => `product_${p.id}_ddm_exceeded`);
+      const ddmDateKeys = filteredProducts.map(p => `product_${p.id}_ddm_date`);
+      const { data: ddmData } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', [...ddmKeys, ...ddmDateKeys]);
+      const flags: Record<string, boolean> = {};
+      const dates: Record<string, string> = {};
+      ddmData?.forEach(item => {
+        if (item.content_key.endsWith('_ddm_exceeded')) {
+          const id = item.content_key.replace(/^product_|_ddm_exceeded$/g, '');
+          flags[id] = item.content === 'true';
+        }
+        if (item.content_key.endsWith('_ddm_date')) {
+          const id = item.content_key.replace(/^product_|_ddm_date$/g, '');
+          dates[id] = item.content;
+        }
+      });
+      setDdmFlags(flags);
+      setDdmDates(dates);
+    };
+    fetchDdmFlags();
+  }, [filteredProducts]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -1817,7 +1849,18 @@ const EaudouceNourriturePage = () => {
                   return (
                     <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                       <div className="relative h-56 bg-white flex items-center justify-center">
-                        {(product.hasDiscount || product.onSale) && <PromoBadge />}
+                        {/* Badge DDM prioritaire sur promo */}
+                        {ddmFlags[product.id] && ddmDates[product.id] ? (
+                          <div className="absolute top-2 left-2 z-10">
+                            <span className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
+                              DDM DÉPASSÉE
+                            </span>
+                          </div>
+                        ) : (product.hasDiscount || product.onSale) ? (
+                          <div className="absolute top-2 left-2 z-10">
+                            <PromoBadge />
+                          </div>
+                        ) : null}
                         <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${rawSlug}`}>
                           <img 
                             src={product.image || "/placeholder.svg"} 
