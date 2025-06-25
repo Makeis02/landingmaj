@@ -3224,6 +3224,14 @@ const Modele = ({ categoryParam = null }) => {
                 ) : (
                   <span className="text-3xl font-bold text-slate-900">{computedPrice.toFixed(2)} €</span>
                 )}
+                {/* Section DDM informative à droite du prix */}
+                {product.ddmExceeded && product.ddmDate && (
+                  <div className="ml-6 bg-orange-50 border border-orange-200 rounded px-4 py-2 text-sm text-orange-900 max-w-xs">
+                    <b>Déstockage DDM :</b><br />
+                    Ce produit est proposé en déstockage car sa Date de Durabilité Minimale (DDM) est fixée au <b>{new Date(product.ddmDate).toLocaleDateString()}</b>.<br />
+                    Il reste parfaitement consommable et sans danger pour vos poissons, conformément à la réglementation.
+                  </div>
+                )}
               </div>
               {/* Stock badge stylisé */}
               {(() => {
