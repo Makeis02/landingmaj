@@ -27,6 +27,7 @@ interface ExtendedStripeProduct extends StripeProduct {
   discount?: number;
   badge?: string;
   brand?: string;
+  ddmExceeded?: boolean;
 }
 
 interface PopularProductsProps {
@@ -253,7 +254,8 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
         hasVariant: variantPrices && variantPrices.min !== variantPrices.max,
         isInStock,
         stock: totalStock, // Ajouter le stock total
-        variantPriceRange: variantPrices || null // Ajouter le price range des variantes
+        variantPriceRange: variantPrices || null, // Ajouter le price range des variantes
+        ddmExceeded: false,
       };
     });
 
@@ -675,7 +677,20 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
           {visibleProducts.map((product) => (
             <Card key={product.id} className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
               <div className="relative h-56 bg-white flex items-center justify-center">
-                {(product.hasDiscount || product.onSale) && <PromoBadge />}
+                {/* Badge DDM prioritaire, sinon promo, sinon badge custom */}
+                {product.ddmExceeded ? (
+                  <span className="absolute top-2 left-2 z-10 bg-orange-500 text-white text-xs px-2 py-1 rounded uppercase shadow">
+                    DDM DÉPASSÉE
+                  </span>
+                ) : product.hasDiscount ? (
+                  <span className="absolute top-2 left-2 z-10 bg-red-500 text-white text-xs px-2 py-1 rounded uppercase shadow">
+                    Promo
+                  </span>
+                ) : product.badge ? (
+                  <span className="absolute top-2 left-2 z-10 bg-blue-500 text-white text-xs px-2 py-1 rounded uppercase shadow">
+                    {product.badge}
+                  </span>
+                ) : null}
                 <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}>
                   <img 
                     src={product.image || "/placeholder.svg"} 
