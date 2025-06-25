@@ -697,8 +697,8 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {visibleProducts.map((product) => (
-            <Card key={product.id} className="relative group overflow-hidden">
-              <div className="relative">
+            <Card key={product.id} className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+              <div className="relative h-56 bg-white flex items-center justify-center">
                 {/* Badge DDM prioritaire sur promo */}
                 {ddmFlags[product.id] && ddmDates[product.id] ? (
                   <div className="absolute top-2 left-2 z-10">
@@ -713,9 +713,9 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
                 ) : null}
                 <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}>
                   <img 
-                    src={product.image || "/placeholder.svg"} 
-                    alt={product.title} 
-                    className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                    src={product.image}
+                    alt={product.title}
+                    className="h-32 object-contain mx-auto"
                   />
                 </RouterLink>
               </div>
