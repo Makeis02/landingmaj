@@ -55,7 +55,6 @@ interface Product {
   variantStocks?: Record<string, number>;
   stock?: number;
   ddmExceeded?: boolean;
-  destockage?: boolean;
 }
 
 // Type étendu pour les produits similaires avec les données de variantes
@@ -75,6 +74,7 @@ interface SimilarProduct {
   };
   categories?: string[]; // Pour le debug
   hasDiscount?: boolean;
+  ddmExceeded?: boolean; // <--- Ajout du flag DDM
 }
 
 // Ajout du type Variant
@@ -737,9 +737,6 @@ const Modele = ({ categoryParam = null }) => {
         }
         if (field === 'ddm_exceeded') {
           updatedProduct.ddmExceeded = (item.content === 'true');
-        }
-        if (field === 'destockage') {
-          updatedProduct.destockage = (item.content === 'true');
         }
       });
 
@@ -1449,9 +1446,29 @@ const Modele = ({ categoryParam = null }) => {
           return productCategories.some(catId => allRelevantCategoryIds.includes(catId));
         });
 
+        // === AJOUT : Récupérer les flags DDM pour les produits similaires ===
+        const ddmKeys = filtered.map(p => `product_${p.id}_ddm_exceeded`);
+        let ddmFlags = {};
+        if (ddmKeys.length > 0) {
+          const { data: ddmData } = await supabase
+            .from('editable_content')
+            .select('content_key, content')
+            .in('content_key', ddmKeys);
+          if (ddmData) {
+            ddmFlags = Object.fromEntries(
+              ddmData.map(item => [item.content_key.replace(/^product_|_ddm_exceeded$/g, ''), item.content === 'true'])
+            );
+          }
+        }
+
         // Enrichir les produits similaires avec variantPriceRange
         const enrichedProducts = await enrichSimilarProducts(filtered.slice(0, 4));
-        setSimilarProducts(enrichedProducts);
+        // Injecter le flag DDM dans chaque produit similaire
+        const enrichedWithDdm = enrichedProducts.map(p => ({
+          ...p,
+          ddmExceeded: ddmFlags[p.id] || false
+        }));
+        setSimilarProducts(enrichedWithDdm);
         
         setDebugSimilar({
           relatedCategory,
@@ -2890,11 +2907,6 @@ const Modele = ({ categoryParam = null }) => {
                       DDM DÉPASSÉE
                     </Badge>
                   )}
-                  {product.destockage && (
-                    <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent uppercase">
-                      Destockage
-                    </Badge>
-                  )}
                 </div>
                 <img
                   src={selectedImage}
@@ -4211,7 +4223,14 @@ const Modele = ({ categoryParam = null }) => {
               >
                 <div className="rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 bg-white flex flex-col gap-2 h-full">
                   <div className="relative">
-                    {prod.hasDiscount && <PromoBadge />}
+                    {/* Affichage prioritaire du badge DDM, sinon promo */}
+                    {prod.ddmExceeded ? (
+                      <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-2 left-2 z-10">
+                        DDM DÉPASSÉE
+                      </Badge>
+                    ) : prod.hasDiscount ? (
+                      <PromoBadge />
+                    ) : null}
                     <img
                       src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
                       alt={prod.name || prod.title}
