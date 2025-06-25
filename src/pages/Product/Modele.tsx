@@ -55,6 +55,7 @@ interface Product {
   variantStocks?: Record<string, number>;
   stock?: number;
   ddmExceeded?: boolean;
+  ddmDate?: string;
 }
 
 // Type étendu pour les produits similaires avec les données de variantes
@@ -737,6 +738,9 @@ const Modele = ({ categoryParam = null }) => {
         }
         if (field === 'ddm_exceeded') {
           updatedProduct.ddmExceeded = (item.content === 'true');
+        }
+        if (field === 'ddm_date') {
+          updatedProduct.ddmDate = item.content;
         }
       });
 

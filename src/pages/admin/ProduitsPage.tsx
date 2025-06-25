@@ -77,6 +77,7 @@ const ProduitsPage = () => {
     stock?: number;
     hasVariants?: boolean;
     ddmExceeded?: boolean;
+    ddmDate?: string;
   }>>({});
   const [stockModal, setStockModal] = useState<{ open: boolean; productId: string | null; productTitle: string | null }>({ open: false, productId: null, productTitle: null });
   
@@ -306,6 +307,7 @@ const ProduitsPage = () => {
             stock: stockValue,
             hasVariants,
             ddmExceeded,
+            ddmDate: detailData.find(d => d.content_key === `product_${id}_ddm_date`)?.content,
           };
         }
         setProductDetails(newDetails);
@@ -685,6 +687,29 @@ const ProduitsPage = () => {
     }
   };
   
+  const handleDdmDateChange = async (productId: string, date: string) => {
+    try {
+      const { error } = await supabase.from('editable_content').upsert(
+        { content_key: `product_${productId}_ddm_date`, content: date },
+        { onConflict: 'content_key' }
+      );
+      if (error) throw error;
+
+      setProductDetails(prev => ({
+        ...prev,
+        [productId]: { ...prev[productId], ddmDate: date }
+      }));
+      toast({ title: "Date DDM mise à jour" });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour de la date DDM:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour la date DDM.",
+      });
+    }
+  };
+  
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -799,6 +824,7 @@ const ProduitsPage = () => {
                           <TableHead>Logo Eau Douce</TableHead>
                           <TableHead>Logo Eau de Mer</TableHead>
                         <TableHead>DDM Dépassée</TableHead>
+                        <TableHead>Date DDM</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -907,6 +933,16 @@ const ProduitsPage = () => {
                                 onCheckedChange={(checked: boolean) => {
                                   handleDdmChange(product.id.toString(), checked);
                                 }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <input
+                                type="date"
+                                className="border rounded px-2 py-1 text-xs"
+                                value={productDetails[product.id]?.ddmDate || ''}
+                                onChange={e => handleDdmDateChange(product.id.toString(), e.target.value)}
+                                disabled={!productDetails[product.id]?.ddmExceeded}
+                                style={{ minWidth: 110 }}
                               />
                             </TableCell>
                             <TableCell>
