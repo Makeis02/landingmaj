@@ -4222,20 +4222,22 @@ const Modele = ({ categoryParam = null }) => {
                 key={prod.id}
               >
                 <div className="rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 bg-white flex flex-col gap-2 h-full">
-                  <div className="relative">
-                    {/* Affichage prioritaire du badge DDM, sinon promo */}
-                    {prod.ddmExceeded ? (
-                      <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-2 left-2 z-10">
-                        DDM DÉPASSÉE
-                      </Badge>
-                    ) : prod.hasDiscount ? (
-                      <PromoBadge />
-                    ) : null}
-                    <img
-                      src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
-                      alt={prod.name || prod.title}
-                      className="mx-auto h-32 object-contain"
-                    />
+                  <div className="h-32 flex justify-center items-center">
+                    <div className="relative">
+                      {/* Affichage prioritaire du badge DDM, sinon promo */}
+                      {prod.ddmExceeded ? (
+                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-2 left-2 z-10">
+                          DDM DÉPASSÉE
+                        </Badge>
+                      ) : prod.hasDiscount ? (
+                        <PromoBadge />
+                      ) : null}
+                      <img
+                        src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
+                        alt={prod.name || prod.title}
+                        className="max-h-32 object-contain"
+                      />
+                    </div>
                   </div>
                   <div className="flex flex-col gap-1 mt-2 flex-grow">
                     <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
