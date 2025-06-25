@@ -390,7 +390,6 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
-  const [isDdmExceeded, setIsDdmExceeded] = useState(false);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -736,7 +735,7 @@ const Modele = ({ categoryParam = null }) => {
           setProductDiscount(discountPrice);
         }
         if (field === 'ddm_exceeded') {
-          updatedProduct.ddmExceeded = item.content === 'true';
+          updatedProduct.ddmExceeded = (item.content === 'true');
         }
       });
 
@@ -894,7 +893,6 @@ const Modele = ({ categoryParam = null }) => {
         }
         
         setProduct(updated);
-        setIsDdmExceeded(updated.ddmExceeded || false);
         setIsLoading(false);
       } catch (error) {
         console.error("Erreur lors du chargement du produit:", error);
@@ -2881,15 +2879,14 @@ const Modele = ({ categoryParam = null }) => {
             {/* Image principale (galerie) */}
             {selectedImage ? (
               <div className="relative">
-                {hasDiscount && <PromoBadge />}
-                {isDdmExceeded && (
-                    <Badge
-                        variant="destructive"
-                        className="absolute top-2 right-2 z-10 bg-orange-500 text-white border-orange-600 shadow-lg"
-                    >
-                        DDM DÉPASSÉE
+                <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+                  {hasDiscount && <PromoBadge />}
+                  {product.ddmExceeded && (
+                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase">
+                      DDM DÉPASSÉE
                     </Badge>
-                )}
+                  )}
+                </div>
                 <img
                   src={selectedImage}
                   alt={product.title}
