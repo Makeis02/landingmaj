@@ -152,8 +152,19 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       setDdmDate(null);
       return;
     }
-    const prod = allProducts.find(p => p.id === selectedProductId);
-    setSelectedProduct(prod || null);
+    const loadProductWithDescription = async () => {
+      const prod = allProducts.find(p => p.id === selectedProductId);
+      if (!prod) {
+        setSelectedProduct(null);
+        return;
+      }
+      // Charger la description depuis Supabase
+      const cleanId = getCleanProductId(selectedProductId);
+      const descriptions = await fetchProductDescriptions([cleanId]);
+      const desc = descriptions[cleanId] || "";
+      setSelectedProduct({ ...prod, description: desc });
+    };
+    loadProductWithDescription();
     // Récupérer l'image du produit via Supabase
     const fetchImage = async () => {
       const key = `product_${selectedProductId}_image_0`;
@@ -254,7 +265,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
           setPromoPrice(null);
         }
       }
-      
       // Vérifie la promo globale (pour le badge)
       const globalKey = `product_${selectedProductId}_discount_percentage`;
       const { data: globalPromo } = await supabase
@@ -279,18 +289,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     };
     fetchPromo();
   }, [selectedProductId, allProducts]);
-
-  // Charger la description Supabase du produit sélectionné
-  useEffect(() => {
-    const loadDescription = async () => {
-      if (!selectedProductId) return;
-      const cleanId = getCleanProductId(selectedProductId);
-      const descriptions = await fetchProductDescriptions([cleanId]);
-      const desc = descriptions[cleanId] || "";
-      setSelectedProduct(prev => prev ? { ...prev, description: desc } : prev);
-    };
-    loadDescription();
-  }, [selectedProductId]);
 
   // 🎯 NOUVELLE FONCTION : Gestion complète de l'ajout au panier avec promotions
   const handleAddToCart = async () => {
