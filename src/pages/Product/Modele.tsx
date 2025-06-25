@@ -4225,11 +4225,13 @@ const Modele = ({ categoryParam = null }) => {
                   <div className="relative">
                     {/* Affichage prioritaire du badge DDM, sinon promo */}
                     {prod.ddmExceeded ? (
-                      <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-1 left-1 z-10 text-xs px-2 py-0.5 rounded-md shadow-sm">
+                      <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm">
                         DDM DÉPASSÉE
                       </Badge>
                     ) : prod.hasDiscount ? (
-                      <PromoBadge />
+                      <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
+                        <PromoBadge />
+                      </span>
                     ) : null}
                     <img
                       src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
