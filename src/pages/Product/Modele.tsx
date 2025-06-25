@@ -55,6 +55,7 @@ interface Product {
   variantStocks?: Record<string, number>;
   stock?: number;
   ddmExceeded?: boolean;
+  destockage?: boolean;
 }
 
 // Type étendu pour les produits similaires avec les données de variantes
@@ -736,6 +737,9 @@ const Modele = ({ categoryParam = null }) => {
         }
         if (field === 'ddm_exceeded') {
           updatedProduct.ddmExceeded = (item.content === 'true');
+        }
+        if (field === 'destockage') {
+          updatedProduct.destockage = (item.content === 'true');
         }
       });
 
@@ -2884,6 +2888,11 @@ const Modele = ({ categoryParam = null }) => {
                   {product.ddmExceeded && (
                     <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase">
                       DDM DÉPASSÉE
+                    </Badge>
+                  )}
+                  {product.destockage && (
+                    <Badge className="bg-red-600 hover:bg-red-700 text-white border-transparent uppercase">
+                      Destockage
                     </Badge>
                   )}
                 </div>

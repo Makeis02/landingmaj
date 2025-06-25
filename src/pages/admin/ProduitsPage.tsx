@@ -77,6 +77,7 @@ const ProduitsPage = () => {
     stock?: number;
     hasVariants?: boolean;
     ddmExceeded?: boolean;
+    destockage?: boolean;
   }>>({});
   const [stockModal, setStockModal] = useState<{ open: boolean; productId: string | null; productTitle: string | null }>({ open: false, productId: null, productTitle: null });
   
@@ -269,11 +270,12 @@ const ProduitsPage = () => {
         const stockKeys = productIds.map(id => `product_${id}_stock`);
         const variantLabelKeys = productIds.map(id => `product_${id}_variant_0_label`);
         const ddmKeys = productIds.map(id => `product_${id}_ddm_exceeded`);
+        const destockageKeys = productIds.map(id => `product_${id}_destockage`);
 
         const { data: detailData, error: detailError } = await supabase
           .from('editable_content')
           .select('content_key, content')
-          .in('content_key', [...imageKeys, ...stockKeys, ...variantLabelKeys, ...ddmKeys]);
+          .in('content_key', [...imageKeys, ...stockKeys, ...variantLabelKeys, ...ddmKeys, ...destockageKeys]);
 
         if (detailError) throw detailError;
 
@@ -291,6 +293,7 @@ const ProduitsPage = () => {
           const hasVariants = !!detailData.find(d => d.content_key === `product_${id}_variant_0_label`);
           let stockValue;
           const ddmExceeded = detailData.find(d => d.content_key === `product_${id}_ddm_exceeded`)?.content === 'true';
+          const destockage = detailData.find(d => d.content_key === `product_${id}_destockage`)?.content === 'true';
 
           if (hasVariants) {
             stockValue = variantStockData
@@ -306,6 +309,7 @@ const ProduitsPage = () => {
             stock: stockValue,
             hasVariants,
             ddmExceeded,
+            destockage,
           };
         }
         setProductDetails(newDetails);
@@ -644,6 +648,47 @@ const ProduitsPage = () => {
     fetchLogoFlags();
   }, [products]);
   
+  const handleDestockageChange = async (productId: string, checked: boolean) => {
+    setProductDetails(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        destockage: checked,
+      }
+    }));
+
+    try {
+      const contentKey = `product_${productId}_destockage`;
+      if (checked) {
+        await supabase.from('editable_content').upsert({
+          content_key: contentKey,
+          content: 'true',
+        }, { onConflict: 'content_key' });
+      } else {
+        await supabase.from('editable_content').delete().eq('content_key', contentKey);
+      }
+      toast({
+        title: "Statut Destockage mis à jour",
+        description: `La pastille Destockage sera ${checked ? 'affichée' : 'masquée'}.`,
+      });
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du statut Destockage:", error);
+      toast({
+        variant: "destructive",
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut Destockage.",
+      });
+      // Rollback optimistic update
+      setProductDetails(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          destockage: !checked,
+        }
+      }));
+    }
+  };
+  
   const handleDdmChange = async (productId: string, checked: boolean) => {
     setProductDetails(prev => ({
       ...prev,
@@ -799,13 +844,14 @@ const ProduitsPage = () => {
                           <TableHead>Logo Eau Douce</TableHead>
                           <TableHead>Logo Eau de Mer</TableHead>
                         <TableHead>DDM Dépassée</TableHead>
+                        <TableHead>Destockage</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredProducts.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={9} className="text-center py-8">
+                          <TableCell colSpan={10} className="text-center py-8">
                             Aucun produit trouvé
                           </TableCell>
                         </TableRow>
@@ -906,6 +952,14 @@ const ProduitsPage = () => {
                                 checked={productDetails[product.id]?.ddmExceeded || false}
                                 onCheckedChange={(checked: boolean) => {
                                   handleDdmChange(product.id.toString(), checked);
+                                }}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Checkbox
+                                checked={productDetails[product.id]?.destockage || false}
+                                onCheckedChange={(checked: boolean) => {
+                                  handleDestockageChange(product.id.toString(), checked);
                                 }}
                               />
                             </TableCell>
