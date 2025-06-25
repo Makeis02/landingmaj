@@ -70,7 +70,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPaths, setCategoryPaths] = useState<Record<string, string>>({});
   const [promoPrice, setPromoPrice] = useState<any>(null);
-  const [ddmExceeded, setDdmExceeded] = useState<boolean>(false);
+  const [ddmExceeded, setDdmExceeded] = useState(false);
   const [ddmDate, setDdmDate] = useState<string | null>(null);
 
   // Fonction pour construire le chemin complet d'une catégorie
@@ -196,6 +196,24 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       }
     };
     fetchPriceMap();
+    // Récupérer le flag DDM et la date
+    const fetchDdm = async () => {
+      const keyFlag = `product_${selectedProductId}_ddm_exceeded`;
+      const keyDate = `product_${selectedProductId}_ddm_date`;
+      const { data: flagData } = await supabase
+        .from('editable_content')
+        .select('content')
+        .eq('content_key', keyFlag)
+        .maybeSingle();
+      setDdmExceeded(flagData?.content === 'true');
+      const { data: dateData } = await supabase
+        .from('editable_content')
+        .select('content')
+        .eq('content_key', keyDate)
+        .maybeSingle();
+      setDdmDate(dateData?.content || null);
+    };
+    fetchDdm();
     // Récupérer les avis pour le produit sélectionné
     const fetchReviews = async () => {
       const { data, error } = await supabase
@@ -260,24 +278,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
       setHasPromo(false);
     };
     fetchPromo();
-    // Charger le flag DDM et la date
-    const fetchDdm = async () => {
-      const key = `product_${selectedProductId}_ddm_exceeded`;
-      const dateKey = `product_${selectedProductId}_ddm_date`;
-      const { data: ddmFlag } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', key)
-        .maybeSingle();
-      setDdmExceeded(ddmFlag?.content === 'true');
-      const { data: ddmDateData } = await supabase
-        .from('editable_content')
-        .select('content')
-        .eq('content_key', dateKey)
-        .maybeSingle();
-      setDdmDate(ddmDateData?.content || null);
-    };
-    fetchDdm();
   }, [selectedProductId, allProducts]);
 
   // Charger la description Supabase du produit sélectionné
@@ -476,18 +476,18 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         <div className={`h-2 ${editorialData.categoryColor}`}></div>
         <a href={`/produits/${slugify(selectedProduct?.title || '', { lower: true })}?id=${selectedProduct?.id}`} className="block">
           <div className="relative h-48 overflow-hidden flex items-center justify-center bg-white cursor-pointer group-hover:scale-105 transition-transform duration-300">
-            {/* Badge DDM prioritaire, sinon promo */}
-            {ddmExceeded ? (
+            {/* Badge DDM prioritaire sur promo */}
+            {ddmExceeded && ddmDate ? (
               <div className="absolute top-2 left-2 z-10">
                 <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
                   DDM DÉPASSÉE
                 </Badge>
               </div>
-            ) : hasPromo && (
+            ) : hasPromo ? (
               <div className="absolute top-2 left-2 z-10">
                 <PromoBadge />
               </div>
-            )}
+            ) : null}
             {isEditMode ? (
               <EditableImage
                 imageKey={`product_${selectedProductId}_image_0`}
@@ -621,8 +621,6 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
     </Card>
   );
 };
-
-export default EditorialProductCard;
 
 // Interface pour la carte catégorie éditoriale
 interface EditorialCategoryCardProps {
@@ -1001,4 +999,60 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
         {isEditMode ? (
           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
             <EditableImage
-              imageKey={`
+              imageKey={`editorial_card_${cardIndex}_image`}
+              initialUrl={imageUrl}
+              className="w-full h-full object-cover"
+              onUpdate={handleImageUpdate}
+            />
+          </div>
+        ) : (
+          <img
+            src={imageUrl}
+            alt={editorialData.title}
+            className="w-full h-full object-cover"
+          />
+        )}
+      </div>
+      {/* Colonne contenu avec fond dégradé bleu */}
+      <div className={`flex-1 flex flex-col justify-center px-6 py-6 bg-gradient-to-br ${gradient} relative`}>
+        {/* Badge */}
+        <Badge className="absolute top-6 left-6 bg-white/90 text-[#0074b3] font-bold text-xs px-3 py-1 rounded-full shadow-md">
+          {editorialData.category}
+        </Badge>
+        <div className="pl-0 pt-10 pb-2">
+          <h3 className="font-bold text-2xl text-white mb-2 drop-shadow-lg">{editorialData.title}</h3>
+          <Button
+            variant="outline"
+            className="bg-white text-[#0074b3] font-bold rounded-xl px-6 py-2 mt-2 shadow hover:bg-blue-100 hover:text-[#005a8c] transition"
+            asChild
+            disabled={!link}
+          >
+            <a href={link || '#'} target="_blank" rel="noopener noreferrer">Voir les packs</a>
+          </Button>
+          {isEditMode && (
+            <div className="mt-4">
+              {isEditingLink ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={link}
+                    onChange={e => setLink(e.target.value)}
+                    className="px-2 py-1 rounded border text-sm w-64"
+                    placeholder="/packs/mon-pack"
+                  />
+                  <Button size="sm" onClick={() => setIsEditingLink(false)}>OK</Button>
+                </div>
+              ) : (
+                <Button variant="outline" size="sm" onClick={() => setIsEditingLink(true)}>
+                  Modifier le lien de redirection
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+export default EditorialProductCard; 

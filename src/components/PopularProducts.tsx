@@ -47,6 +47,8 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [showEditModal, setShowEditModal] = useState(false);
   const [promoPrices, setPromoPrices] = useState<Record<string, any>>({});
+  const [ddmFlags, setDdmFlags] = useState<Record<string, boolean>>({});
+  const [ddmDates, setDdmDates] = useState<Record<string, string>>({});
   
   const itemsPerSlide = 4;
 
@@ -197,6 +199,28 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
 
       // Charger les produits sélectionnés depuis la configuration
       await loadSelectedProducts();
+
+      // Récupérer les flags DDM et dates pour tous les produits affichés
+      const ddmKeys = enrichedProducts.map(p => `product_${p.id}_ddm_exceeded`);
+      const ddmDateKeys = enrichedProducts.map(p => `product_${p.id}_ddm_date`);
+      const { data: ddmData } = await supabase
+        .from('editable_content')
+        .select('content_key, content')
+        .in('content_key', [...ddmKeys, ...ddmDateKeys]);
+      const flags: Record<string, boolean> = {};
+      const dates: Record<string, string> = {};
+      ddmData?.forEach(item => {
+        if (item.content_key.endsWith('_ddm_exceeded')) {
+          const id = item.content_key.replace(/^product_|_ddm_exceeded$/g, '');
+          flags[id] = item.content === 'true';
+        }
+        if (item.content_key.endsWith('_ddm_date')) {
+          const id = item.content_key.replace(/^product_|_ddm_date$/g, '');
+          dates[id] = item.content;
+        }
+      });
+      setDdmFlags(flags);
+      setDdmDates(dates);
 
     } catch (error) {
       console.error('Erreur lors du chargement des produits:', error);
@@ -673,9 +697,20 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
           {visibleProducts.map((product) => (
-            <Card key={product.id} className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
-              <div className="relative h-56 bg-white flex items-center justify-center">
-                {(product.hasDiscount || product.onSale) && <PromoBadge />}
+            <Card key={product.id} className="relative group overflow-hidden">
+              <div className="relative">
+                {/* Badge DDM prioritaire sur promo */}
+                {ddmFlags[product.id] && ddmDates[product.id] ? (
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
+                      DDM DÉPASSÉE
+                    </span>
+                  </div>
+                ) : product.hasDiscount ? (
+                  <div className="absolute top-2 left-2 z-10">
+                    <PromoBadge />
+                  </div>
+                ) : null}
                 <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}>
                   <img 
                     src={product.image || "/placeholder.svg"} 
