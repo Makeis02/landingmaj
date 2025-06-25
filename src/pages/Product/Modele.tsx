@@ -54,6 +54,7 @@ interface Product {
   show_logo_eaudemer: string;
   variantStocks?: Record<string, number>;
   stock?: number;
+  ddmExceeded?: boolean;
 }
 
 // Type étendu pour les produits similaires avec les données de variantes
@@ -389,6 +390,7 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
+  const [isDdmExceeded, setIsDdmExceeded] = useState(false);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -733,6 +735,9 @@ const Modele = ({ categoryParam = null }) => {
           const discountPrice = Number(item.content);
           setProductDiscount(discountPrice);
         }
+        if (field === 'ddm_exceeded') {
+          updatedProduct.ddmExceeded = item.content === 'true';
+        }
       });
 
       // Charger les images supplémentaires
@@ -889,6 +894,7 @@ const Modele = ({ categoryParam = null }) => {
         }
         
         setProduct(updated);
+        setIsDdmExceeded(updated.ddmExceeded || false);
         setIsLoading(false);
       } catch (error) {
         console.error("Erreur lors du chargement du produit:", error);
@@ -2876,6 +2882,14 @@ const Modele = ({ categoryParam = null }) => {
             {selectedImage ? (
               <div className="relative">
                 {hasDiscount && <PromoBadge />}
+                {isDdmExceeded && (
+                    <Badge
+                        variant="destructive"
+                        className="absolute top-2 right-2 z-10 bg-orange-500 text-white border-orange-600 shadow-lg"
+                    >
+                        DDM DÉPASSÉE
+                    </Badge>
+                )}
                 <img
                   src={selectedImage}
                   alt={product.title}

@@ -22,6 +22,8 @@ import { EditableImage } from "@/components/EditableImage";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { VariantStockManager } from "@/components/admin/VariantStockManager";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircledIcon, CrossCircledIcon } from "@radix-ui/react-icons";
 
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
@@ -75,6 +77,9 @@ const ProduitsPage = () => {
     image?: string;
     stock?: number;
     hasVariants?: boolean;
+    pageSlug?: string;
+    isPromo?: boolean;
+    ddmExceeded?: boolean;
   }>>({});
   const [stockModal, setStockModal] = useState<{ open: boolean; productId: string | null; productTitle: string | null }>({ open: false, productId: null, productTitle: null });
   
@@ -639,6 +644,35 @@ const ProduitsPage = () => {
     fetchLogoFlags();
   }, [products]);
   
+  const handleDdmChange = async (productId: string, isChecked: boolean) => {
+    try {
+        const contentKey = `product_${productId}_ddm_exceeded`;
+        await supabase
+            .from('editable_content')
+            .upsert({ content_key: contentKey, content: String(isChecked) }, { onConflict: 'content_key' });
+        
+        setProductDetails(prev => ({
+            ...prev,
+            [productId]: {
+                ...prev[productId],
+                ddmExceeded: isChecked
+            }
+        }));
+
+        toast({
+            title: "Statut DDM mis à jour",
+            description: `La pastille "DDM Dépassée" a été ${isChecked ? 'activée' : 'désactivée'}.`
+        });
+    } catch (error) {
+        console.error("Erreur lors de la mise à jour du statut DDM:", error);
+        toast({
+            variant: "destructive",
+            title: "Erreur",
+            description: "Impossible de mettre à jour le statut DDM."
+        });
+    }
+  };
+  
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -747,11 +781,11 @@ const ProduitsPage = () => {
                         <TableHead>Nom du produit</TableHead>
                         <TableHead>Prix</TableHead>
                         <TableHead>Stock</TableHead>
-                        <TableHead>Page</TableHead>
-                          <TableHead>Catégories</TableHead>
+                        <TableHead>Catégories</TableHead>
                         <TableHead>Marque</TableHead>
-                          <TableHead>Logo Eau Douce</TableHead>
-                          <TableHead>Logo Eau de Mer</TableHead>
+                        <TableHead>Promo</TableHead>
+                        <TableHead>DDM Dépassée</TableHead>
+                        <TableHead>Lien Page</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -797,24 +831,6 @@ const ProduitsPage = () => {
                               }
                             </TableCell>
                             <TableCell>
-                              {productPages[product.id.toString()]?.isLoading ? (
-                                <div className="flex items-center">
-                                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                  <span className="text-xs text-gray-500">Chargement...</span>
-                                </div>
-                              ) : productPages[product.id.toString()]?.exists ? (
-                                <div className="flex items-center">
-                                  <span className="text-green-500 font-bold text-xl">✓</span>
-                                  <span className="ml-2 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">Page créée</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center">
-                                  <span className="text-red-500 font-bold text-xl">✗</span>
-                                  <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded-full">Pas de page</span>
-                                </div>
-                              )}
-                            </TableCell>
-                            <TableCell>
                                 <MultiSelect
                                   options={categories.map(cat => ({ value: cat.id, label: cat.name }))}
                                   selectedValues={linkedCategories[product.id] || []}
@@ -841,20 +857,33 @@ const ProduitsPage = () => {
                                 </Select>
                               </TableCell>
                               <TableCell>
-                                <Switch
-                                  checked={product.show_logo_eaudouce === "true"}
-                                  disabled={false}
-                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudouce', checked)}
-                                />
-                            </TableCell>
-                            <TableCell>
-                                <Switch
-                                  checked={product.show_logo_eaudemer === "true"}
-                                  disabled={false}
-                                  onCheckedChange={(checked) => handleLogoVisibilityChange(product.id.toString(), 'eaudemer', checked)}
-                                />
-                            </TableCell>
-                            <TableCell>
+                                <div className="flex items-center justify-center">
+                                    <Checkbox
+                                        checked={productDetails[product.id]?.isPromo ?? false}
+                                        onCheckedChange={(checked) => handleDdmChange(product.id, checked === true)}
+                                        id={`ddm-${product.id}`}
+                                    />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center justify-center">
+                                    <Checkbox
+                                        checked={productDetails[product.id]?.ddmExceeded ?? false}
+                                        onCheckedChange={(checked) => handleDdmChange(product.id, checked === true)}
+                                        id={`ddm-${product.id}`}
+                                    />
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                {productDetails[product.id]?.pageSlug ? (
+                                  <a href={`/produits/${productDetails[product.id]?.pageSlug}?id=${product.id}`} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">
+                                    Voir la page
+                                  </a>
+                                ) : (
+                                  <span className="text-red-500">Pas de page</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
                               <div className="flex flex-col gap-2">
                                 <Button variant="outline" size="sm">Éditer</Button>
                                 <Button variant="destructive" size="sm">Supprimer</Button>
@@ -896,17 +925,6 @@ const ProduitsPage = () => {
                                   ) : (
                                     "🗑️ Supprimer page produit"
                                   )}
-                                </Button>
-                                
-                                <Button 
-                                  variant="link" 
-                                  size="sm"
-                                  onClick={() => {
-                                      const slug = slugify(product.title, { lower: true });
-                                      window.open(`/produits/${slug}?id=${product.id}`, '_blank');
-                                  }}
-                                >
-                                  Voir la page
                                 </Button>
                               </div>
                             </TableCell>
