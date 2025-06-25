@@ -442,6 +442,8 @@ const EaudemerNourriturePage = () => {
   const [priceRange, setPriceRange] = useState<number[]>([0, 800]);
   const [priceInput, setPriceInput] = useState<number[]>([0, 800]);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [ddmFlags, setDdmFlags] = useState<Record<string, boolean>>({});
+  const [ddmDates, setDdmDates] = useState<Record<string, string>>({});
   const [selectedBrandIds, setSelectedBrandIds] = useState<string[]>([]);
   const [inStock, setInStock] = useState(true);
   const [promoOnly, setPromoOnly] = useState(false);
@@ -1781,7 +1783,18 @@ const EaudemerNourriturePage = () => {
                   return (
                     <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                       <div className="relative h-56 bg-white flex items-center justify-center">
-                        {(product.hasDiscount || product.onSale) && <PromoBadge />}
+                        /* Badge DDM prioritaire sur promo */
+{ddmFlags[product.id] && ddmDates[product.id] ? (
+  <div className="absolute top-2 left-2 z-10">
+    <span className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
+      DDM DÉPASSÉE
+    </span>
+  </div>
+) : (product.hasDiscount || product.onSale) ? (
+  <div className="absolute top-2 left-2 z-10">
+    <PromoBadge />
+  </div>
+) : null}
                         <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>
                           <img 
                             src={product.image || "/placeholder.svg"} 
