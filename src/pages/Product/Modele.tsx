@@ -4226,7 +4226,7 @@ const Modele = ({ categoryParam = null }) => {
                     <div className="relative">
                       {/* Affichage prioritaire du badge DDM, sinon promo */}
                       {prod.ddmExceeded ? (
-                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-2 left-2 z-10">
+                        <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-1 left-1 z-10 text-xs px-2 py-1">
                           DDM DÉPASSÉE
                         </Badge>
                       ) : prod.hasDiscount ? (
