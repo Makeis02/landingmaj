@@ -62,13 +62,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
-app.options('*', cors()); // Support complet pour pré-requêtes OPTIONS
-
-// Middleware de debug pour log chaque requête
-app.use((req, res, next) => {
-  console.log(`📥 Requête reçue: ${req.method} ${req.url}`);
-  next();
-});
 
 // 🚀 Démarrage WebSocket
 const wss = new WebSocketServer({ port: WS_PORT });
@@ -185,11 +178,6 @@ app.get('/api/shopify/products', async (req, res) => {
 
 // 💳 **API Stripe pour les produits**
 app.get('/api/stripe/products', async (req, res) => {
-  // DEBUG temporaire :
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('❌ Variable d\'environnement STRIPE_SECRET_KEY manquante');
     return res.status(500).json({ 
