@@ -18,6 +18,8 @@ interface SEOProps {
       ratingValue: string;
       reviewCount: string;
     };
+    shippingDetails?: any;
+    hasMerchantReturnPolicy?: any;
   };
 }
 
@@ -69,7 +71,9 @@ const SEO = ({
       "url": url,
       "price": product.price,
       "priceCurrency": "EUR",
-      "availability": `https://schema.org/${product.availability || 'InStock'}`
+      "availability": `https://schema.org/${product.availability || 'InStock'}`,
+      ...(product.shippingDetails && { shippingDetails: product.shippingDetails }),
+      ...(product.hasMerchantReturnPolicy && { hasMerchantReturnPolicy: product.hasMerchantReturnPolicy })
     }
   } : null;
 

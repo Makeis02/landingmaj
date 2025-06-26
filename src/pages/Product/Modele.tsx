@@ -395,6 +395,8 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
+  const [brandName, setBrandName] = useState<string>("");
+  const [shippingPrices, setShippingPrices] = useState<{colissimo: number, mondial_relay: number}>({colissimo: 0, mondial_relay: 0});
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -2843,6 +2845,27 @@ const Modele = ({ categoryParam = null }) => {
     },
   };
 
+  useEffect(() => {
+    // Récupérer le nom de la marque
+    if (product?.brand) {
+      fetchBrands().then(brands => {
+        const found = brands.find(b => b.id === product.brand || b.name === product.brand);
+        setBrandName(found?.name || product.brand || "Marque inconnue");
+      });
+    } else {
+      setBrandName("Marque inconnue");
+    }
+    // Récupérer les prix de livraison
+    supabase.from("checkout_settings").select("settings").single().then(({ data }) => {
+      if (data && data.settings) {
+        setShippingPrices({
+          colissimo: data.settings.colissimo.base_price,
+          mondial_relay: data.settings.mondial_relay.base_price
+        });
+      }
+    });
+  }, [product]);
+
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
@@ -2857,12 +2880,82 @@ const Modele = ({ categoryParam = null }) => {
           description: product.description,
           image: product.image || "/og-image.png",
           sku: product.reference,
-          brand: product.brand,
+          brand: brandName,
           availability: product.stock && product.stock > 0 ? "InStock" : "OutOfStock",
           review: product.averageRating && product.reviewCount ? {
             ratingValue: product.averageRating.toString(),
             reviewCount: product.reviewCount.toString()
-          } : undefined
+          } : undefined,
+          shippingDetails: [
+            {
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": shippingPrices.colissimo,
+                "currency": "EUR"
+              },
+              "shippingDestination": {
+                "@type": "DefinedRegion",
+                "addressCountry": "FR"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 2,
+                  "unitCode": "d"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 2,
+                  "maxValue": 4,
+                  "unitCode": "d"
+                }
+              },
+              "name": "Colissimo"
+            },
+            {
+              "@type": "OfferShippingDetails",
+              "shippingRate": {
+                "@type": "MonetaryAmount",
+                "value": shippingPrices.mondial_relay,
+                "currency": "EUR"
+              },
+              "shippingDestination": {
+                "@type": "DefinedRegion",
+                "addressCountry": "FR"
+              },
+              "deliveryTime": {
+                "@type": "ShippingDeliveryTime",
+                "handlingTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 1,
+                  "maxValue": 2,
+                  "unitCode": "d"
+                },
+                "transitTime": {
+                  "@type": "QuantitativeValue",
+                  "minValue": 2,
+                  "maxValue": 5,
+                  "unitCode": "d"
+                }
+              },
+              "name": "Mondial Relay"
+            }
+          ],
+          hasMerchantReturnPolicy: {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "FR",
+            "returnPolicyCategory": "https://schema.org/Refundable",
+            "returnMethod": "https://schema.org/ReturnByMail",
+            "returnFees": "https://schema.org/FreeReturn",
+            "returnWindow": {
+              "@type": "QuantitativeValue",
+              "value": 14,
+              "unitCode": "d"
+            }
+          }
         }}
       />
       <script type="application/ld+json">
