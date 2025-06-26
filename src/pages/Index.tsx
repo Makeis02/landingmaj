@@ -304,8 +304,8 @@ const Index = () => {
   return (
     <>
       <SEO
-        title="Aqua Marketplace - Accueil"
-        description="Boutique en ligne spécialisée dans l'aquariophilie, matériel, accessoires, conseils et inspiration pour aquariums d'eau douce et d'eau de mer."
+        title="Aqua Rêve - Boutique aquariophilie, matériel, conseils et inspiration"
+        description="Découvrez Aqua Rêve, la boutique en ligne dédiée à l'aquariophilie : matériel, accessoires, conseils, inspiration et packs pour aquariums d'eau douce et d'eau de mer."
         image="/og-image.png"
       />
       <script type="application/ld+json">
