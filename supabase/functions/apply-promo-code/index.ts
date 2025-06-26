@@ -173,31 +173,58 @@ serve(async (req) => {
       )
     }
 
-    // Vérifier l'utilisation unique par client
-    if (promoCode.one_time_per_client && userId) {
-      const { data: usage, error: usageError } = await supabase
-        .from('promo_code_usages')
-        .select('id')
-        .eq('promo_code_id', promoCode.id)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      if (usage) {
-        logs.push('[APPLY-PROMO] ❌ Code déjà utilisé par ce client');
-        return new Response(
-          JSON.stringify({
-            valid: false,
-            discount: 0,
-            finalTotal: cartTotal,
-            appliedItems: [],
-            message: 'Ce code a déjà été utilisé par votre compte.',
-            logs
-          }),
-          {
-            status: 200,
-            headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
-          }
-        );
+    // Vérifier l'utilisation unique par client (user_id OU user_email)
+    if (promoCode.one_time_per_client) {
+      if (userId) {
+        // Cas utilisateur connecté
+        const { data: usage, error: usageError } = await supabase
+          .from('promo_code_usages')
+          .select('id')
+          .eq('promo_code_id', promoCode.id)
+          .eq('user_id', userId)
+          .maybeSingle();
+        if (usage) {
+          logs.push('[APPLY-PROMO] ❌ Code déjà utilisé par ce client (user_id)');
+          return new Response(
+            JSON.stringify({
+              valid: false,
+              discount: 0,
+              finalTotal: cartTotal,
+              appliedItems: [],
+              message: 'Ce code a déjà été utilisé par votre compte.',
+              logs
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            }
+          );
+        }
+      } else if (userEmail) {
+        // Cas invité (par email)
+        const { data: usage, error: usageError } = await supabase
+          .from('promo_code_usages')
+          .select('id')
+          .eq('promo_code_id', promoCode.id)
+          .eq('user_email', userEmail)
+          .maybeSingle();
+        if (usage) {
+          logs.push('[APPLY-PROMO] ❌ Code déjà utilisé par cet email invité');
+          return new Response(
+            JSON.stringify({
+              valid: false,
+              discount: 0,
+              finalTotal: cartTotal,
+              appliedItems: [],
+              message: 'Ce code a déjà été utilisé avec cet email.',
+              logs
+            }),
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
+            }
+          );
+        }
       }
     }
 
@@ -280,11 +307,17 @@ serve(async (req) => {
       }
     }
 
-    // À la toute fin, après application du code promo, enregistrer l'utilisation si besoin
-    if (promoCode.one_time_per_client && userId) {
-      await supabase
-        .from('promo_code_usages')
-        .insert({ promo_code_id: promoCode.id, user_id: userId });
+    // À la toute fin, après application du code promo, enregistrer l'utilisation si besoin (user_id OU user_email)
+    if (promoCode.one_time_per_client) {
+      if (userId) {
+        await supabase
+          .from('promo_code_usages')
+          .insert({ promo_code_id: promoCode.id, user_id: userId });
+      } else if (userEmail) {
+        await supabase
+          .from('promo_code_usages')
+          .insert({ promo_code_id: promoCode.id, user_email: userEmail });
+      }
     }
 
     return new Response(

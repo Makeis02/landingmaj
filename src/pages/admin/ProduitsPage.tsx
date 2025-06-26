@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -859,12 +859,10 @@ const ProduitsPage = () => {
                                     </Button>
                                   </div>
                                 ) : (
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    className="w-20 h-8"
-                                    defaultValue={productDetails[product.id]?.stock}
-                                    onBlur={(e) => handleStockChange(product.id.toString(), e.target.value)}
+                                  <StockInputWithSave
+                                    productId={product.id.toString()}
+                                    initialStock={productDetails[product.id]?.stock ?? 0}
+                                    onSave={handleStockChange}
                                   />
                                 )
                               }
@@ -1046,5 +1044,45 @@ const ProduitsPage = () => {
     </div>
   );
 };
+
+function StockInputWithSave({ productId, initialStock, onSave }: { productId: string, initialStock: number, onSave: (productId: string, newStock: string) => Promise<void> }) {
+  const [editStock, setEditStock] = useState(initialStock);
+  const [saving, setSaving] = useState(false);
+  const [dirty, setDirty] = useState(false);
+
+  useEffect(() => {
+    setEditStock(initialStock);
+    setDirty(false);
+  }, [initialStock]);
+
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    await onSave(productId, editStock.toString());
+    setSaving(false);
+    setDirty(false);
+  }, [onSave, productId, editStock]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        type="number"
+        min="0"
+        className="w-20 h-8"
+        value={editStock}
+        onChange={e => {
+          setEditStock(Number(e.target.value));
+          setDirty(true);
+        }}
+      />
+      <Button
+        size="sm"
+        disabled={saving || !dirty || editStock === initialStock}
+        onClick={handleSave}
+      >
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Enregistrer"}
+      </Button>
+    </div>
+  );
+}
 
 export default ProduitsPage; 
