@@ -702,11 +702,11 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
                 {/* Badge DDM prioritaire sur promo */}
                 {ddmFlags[product.id] && ddmDates[product.id] ? (
                   <div className="absolute top-2 left-2 z-10">
-                    <span className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
                       DDM DÉPASSÉE
                     </span>
                   </div>
-                ) : product.hasDiscount ? (
+                ) : (product.hasDiscount || product.onSale) ? (
                   <div className="absolute top-2 left-2 z-10">
                     <PromoBadge />
                   </div>
