@@ -472,12 +472,33 @@ const EauDouceEntretienPage = () => {
       handleResize(); // Appeler une fois au montage
       window.addEventListener('resize', handleResize);
       
-      <SEO
-        title="EauDouceEntretien"
-        description="Découvrez notre sélection EauDouceEntretien"
-        canonical={typeof window !== 'undefined' ? window.location.href : ''}
-        ogImage="/og-image.png"
-      />
+      <>
+        <SEO
+          title={categoryTitle}
+          description={categoryDescription}
+          image="/og-image.png"
+        />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Accueil",
+                "item": "https://aqua-reve.com/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": categoryTitle,
+                "item": `https://aqua-reve.com/categories/${currentSlug}`
+              }
+            ]
+          })}
+        </script>
+      </>
   
 return () => window.removeEventListener('resize', handleResize);
     }
