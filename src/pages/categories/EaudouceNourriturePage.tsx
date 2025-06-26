@@ -82,6 +82,8 @@ type ExtendedStripeProduct = StripeProduct & {
   priceRange?: [number, number];
   variantPriceRange?: { min: number, max: number }; // ← AJOUT pour les prix des variantes
   hasDiscount?: boolean; // ← AJOUT pour la détection des promotions
+  ddmExceeded?: boolean; // Ajouté
+  ddmDate?: string;      // Ajouté
 };
 
 // Données de filtres
@@ -410,28 +412,28 @@ const getEmojiForCategory = (slug: string) => {
 
 // Ajoute cette fonction utilitaire pour charger les DDM
 const fetchDdmFlagsAndDates = async (productList) => {
-  const ids = productList.map(p => getCleanProductId(p.id));
-  const ddmKeys = [
-    ...ids.map(id => `product_${id}_ddm_exceeded`),
-    ...ids.map(id => `product_${id}_ddm_date`)
-  ];
+  const keys = [];
+  for (const p of productList) {
+    const id = getCleanProductId(p.id);
+    keys.push(`product_${id}_ddm_exceeded`);
+    keys.push(`product_${id}_ddm_date`);
+  }
   const { data, error } = await supabase
-    .from('editable_content')
-    .select('content_key, content')
-    .in('content_key', ddmKeys);
+    .from("editable_content")
+    .select("content_key, content")
+    .in("content_key", keys);
 
   if (error) {
     console.error("Erreur chargement DDM:", error);
     return {};
   }
-
-  // On construit un mapping { [id]: { ddmExceeded, ddmDate } }
   const ddmMap = {};
-  ids.forEach(id => {
-    const exceeded = data.find(d => d.content_key === `product_${id}_ddm_exceeded`)?.content === 'true';
-    const date = data.find(d => d.content_key === `product_${id}_ddm_date`)?.content || '';
+  for (const p of productList) {
+    const id = getCleanProductId(p.id);
+    const exceeded = data.find(d => d.content_key === `product_${id}_ddm_exceeded`)?.content === "true";
+    const date = data.find(d => d.content_key === `product_${id}_ddm_date`)?.content || "";
     ddmMap[id] = { ddmExceeded: exceeded, ddmDate: date };
-  });
+  }
   return ddmMap;
 };
 
@@ -605,17 +607,15 @@ const EaudouceNourriturePage = () => {
                 if (grandParent) {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
-                    mainNavCats = childrenOfGrandparent.filter(cat =>
-                        categoriesData.some(child => child.parent_id === cat.id)
-                    );
+                    mainNavCats = childrenOfGrandparent;
+                } else {
+                    // Si la catégorie actuelle a un parent mais pas de grand-parent, utiliser les enfants du parent
+                    const childrenOfParent = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
+                    mainNavCats = childrenOfParent;
                 }
             } else {
-                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
-                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
-                mainNavCats = categoriesData.filter(cat =>
-                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
-                );
+                // Si la catégorie actuelle est une catégorie racine, utiliser ses enfants directs
+                mainNavCats = cleanedChildCategories;
             }
         }
         setHeaderNavCategories(mainNavCats);
@@ -702,8 +702,20 @@ const EaudouceNourriturePage = () => {
         // 🔁 Finalisation de produits avec isInStock, variantPriceRange ET promotions
         setProducts(productsWithPromotions);
 
+        // 🎯 Enrichir les produits avec la détection des promotions
+        const ddmMap = await fetchDdmFlagsAndDates(productsWithPromotions);
+        const productsWithDdm = productsWithPromotions.map(p => {
+          const id = getCleanProductId(p.id);
+          return {
+            ...p,
+            ddmExceeded: ddmMap[id]?.ddmExceeded || false,
+            ddmDate: ddmMap[id]?.ddmDate || "",
+          };
+        });
+        setProducts(productsWithDdm);
+
         // ✅ Appliquer filtrage MAINTENANT, après setProducts
-        const filtered = productsWithPromotions.filter((product) => {
+        const filtered = productsWithDdm.filter((product) => {
           const productId = product.id;
           const linked = categoriesByProduct[productId] || [];
           const productBrandId = brandsByProduct[productId];
@@ -730,17 +742,6 @@ const EaudouceNourriturePage = () => {
 
         setFilteredProducts(filtered);
         setError(null);
-
-        // Ajoute cette fonction utilitaire pour charger les DDM
-        const ddmMap = await fetchDdmFlagsAndDates(finalProducts);
-        const finalProductsWithDdm = finalProducts.map(p => {
-          const id = getCleanProductId(p.id);
-          return {
-            ...p,
-            ddmExceeded: ddmMap[id]?.ddmExceeded || false,
-            ddmDate: ddmMap[id]?.ddmDate || ''
-          };
-        });
       } catch (err) {
         setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
       } finally {
