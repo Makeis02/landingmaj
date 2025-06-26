@@ -408,6 +408,35 @@ const getEmojiForCategory = (slug: string) => {
   return "✨"; // Emoji par défaut
 };
 
+// Ajoute cette fonction utilitaire pour charger les DDM
+const fetchDdmFlagsAndDates = async (productList) => {
+  const keys = [];
+  for (const p of productList) {
+    const id = getCleanProductId(p.id);
+    keys.push(`product_${id}_ddm_exceeded`);
+    keys.push(`product_${id}_ddm_date`);
+  }
+  const { data, error } = await supabase
+    .from('editable_content')
+    .select('content_key, content')
+    .in('content_key', keys);
+  if (error) {
+    console.error('Erreur chargement DDM:', error);
+    return {};
+  }
+  const ddmMap = {};
+  for (const p of productList) {
+    const id = getCleanProductId(p.id);
+    const exceeded = data.find(d => d.content_key === `product_${id}_ddm_exceeded`);
+    const date = data.find(d => d.content_key === `product_${id}_ddm_date`);
+    ddmMap[id] = {
+      ddmExceeded: exceeded?.content === 'true',
+      ddmDate: date?.content || '',
+    };
+  }
+  return ddmMap;
+};
+
 const EaudouceNourriturePage = () => {
   const rawSlug = useParams<{ slug: string }>()?.slug || "eaudoucenourriture";
   const [searchParams] = useSearchParams();
@@ -701,6 +730,17 @@ const EaudouceNourriturePage = () => {
 
         setFilteredProducts(filtered);
         setError(null);
+
+        // Ajoute cette fonction utilitaire pour charger les DDM
+        const ddmMap = await fetchDdmFlagsAndDates(extendedProducts);
+        let updatedWithDdm = updatedWithRatings.map(p => {
+          const id = getCleanProductId(p.id);
+          return {
+            ...p,
+            ddmExceeded: ddmMap[id]?.ddmExceeded || false,
+            ddmDate: ddmMap[id]?.ddmDate || '',
+          };
+        });
       } catch (err) {
         setError("Impossible de charger les produits. Veuillez réessayer plus tard.");
       } finally {
