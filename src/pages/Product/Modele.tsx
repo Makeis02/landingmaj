@@ -2835,7 +2835,7 @@ const Modele = ({ categoryParam = null }) => {
     description: product.description?.replace(/<[^>]+>/g, '') || "Découvrez ce produit sur Aqua Rêve.",
     image: extraImages[0] || product.image,
     sku: product.id,
-    brand: brand?.name,
+    brand: brand?.name || "Marque inconnue",
     availability: ((product.stock ?? 0) > 0 ? "InStock" : "OutOfStock") as "InStock" | "OutOfStock",
     review: {
       ratingValue: productReviewAverage?.toFixed(1) || "0",
@@ -2857,7 +2857,7 @@ const Modele = ({ categoryParam = null }) => {
           description: product.description,
           image: product.image || "/og-image.png",
           sku: product.reference,
-          brand: product.brand,
+          brand: brand?.name || "Marque inconnue",
           availability: product.stock && product.stock > 0 ? "InStock" : "OutOfStock",
           review: product.averageRating && product.reviewCount ? {
             ratingValue: product.averageRating.toString(),
