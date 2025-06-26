@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
+import sitemap from 'vite-plugin-sitemap';
 import { componentTagger } from "lovable-tagger";
 import type { ViteDevServer } from 'vite';
 
@@ -52,6 +53,7 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    sitemap({ hostname: 'https://aqua-reve.com' }),
     mode === 'development' &&
     componentTagger(),
     mockApiPlugin(),

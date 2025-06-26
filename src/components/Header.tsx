@@ -290,7 +290,7 @@ const Header = () => {
       {/* Bannière rouge statique : visible uniquement sur les fiches produit */}
       {isProductPage && (
       <div className="w-full bg-red-500 text-white text-center text-sm font-semibold py-1">
-        Livraison gratuite à partir de 50€ – -10% sur votre 1ère commande avec le code WELCOME
+        🌟 Livraison gratuite à partir de 35€ d'achat ! 🎁 -10% sur votre première commande avec le code WELCOME 📦 Expédition sous 48h
       </div>
       )}
       <div className="h-2" />
