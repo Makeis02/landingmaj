@@ -395,7 +395,6 @@ const Modele = ({ categoryParam = null }) => {
   const { addItem: addFavoriteItem, removeItem: removeFavoriteItem, isInFavorites } = useFavoritesStore();
   // 🎯 AJOUT : État pour les prix promotionnels des produits similaires
   const [similarProductPromoPrices, setSimilarProductPromoPrices] = useState<Record<string, any>>({});
-  const [brandName, setBrandName] = useState<string | null>(null);
 
   // Récupérer l'utilisateur connecté au montage
   useEffect(() => {
@@ -2844,25 +2843,6 @@ const Modele = ({ categoryParam = null }) => {
     },
   };
 
-  useEffect(() => {
-    const loadBrand = async () => {
-      if (!product?.id) return;
-      try {
-        const brandId = await fetchProductBrand(product.id);
-        if (brandId) {
-          const brands = await fetchBrands();
-          const brand = brands.find(b => b.id === brandId);
-          setBrandName(brand?.name || null);
-        } else {
-          setBrandName(null);
-        }
-      } catch (e) {
-        setBrandName(null);
-      }
-    };
-    loadBrand();
-  }, [product]);
-
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
@@ -2877,7 +2857,7 @@ const Modele = ({ categoryParam = null }) => {
           description: product.description,
           image: product.image || "/og-image.png",
           sku: product.reference,
-          brand: brandName || undefined,
+          brand: product.brand,
           availability: product.stock && product.stock > 0 ? "InStock" : "OutOfStock",
           review: product.averageRating && product.reviewCount ? {
             ratingValue: product.averageRating.toString(),
@@ -2885,6 +2865,27 @@ const Modele = ({ categoryParam = null }) => {
           } : undefined
         }}
       />
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org/",
+          "@type": "Product",
+          "name": product?.title,
+          "image": [product?.image || "/og-image.png"],
+          "description": product?.description,
+          "sku": product?.reference,
+          "brand": {
+            "@type": "Brand",
+            "name": product?.brand
+          },
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "EUR",
+            "price": product?.price,
+            "availability": product?.stock && product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "url": typeof window !== "undefined" ? window.location.href : ""
+          }
+        })}
+      </script>
 
       <Header />
       {isEditMode && <FloatingHeader />}
