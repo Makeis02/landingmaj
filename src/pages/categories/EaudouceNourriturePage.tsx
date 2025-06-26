@@ -1826,7 +1826,17 @@ const EaudouceNourriturePage = () => {
                     return (
                       <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                         <div className="relative h-56 bg-white flex items-center justify-center">
-                          {(product.hasDiscount || product.onSale) && <PromoBadge />}
+                          {product.ddmExceeded && product.ddmDate ? (
+                            <div className="absolute top-2 left-2 z-10">
+                              <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
+                                DDM DÉPASSÉE
+                              </span>
+                            </div>
+                          ) : (product.hasDiscount || product.onSale) ? (
+                            <div className="absolute top-2 left-2 z-10">
+                              <PromoBadge />
+                            </div>
+                          ) : null}
                           <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${rawSlug}`}>
                             <img 
                               src={product.image || "/placeholder.svg"} 
