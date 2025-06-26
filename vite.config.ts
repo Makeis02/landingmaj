@@ -44,12 +44,31 @@ export default defineConfig(async ({ mode }) => {
 
   const supabase = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
 
-  // 1. Fetch categories
-  const { data: categoriesData, error: categoriesError } = await supabase
+  // 1. Fetch categories to determine hierarchy
+  const { data: allCategories, error: categoriesError } = await supabase
     .from('categories')
-    .select('slug');
-  if (categoriesError) console.error('Sitemap: Error fetching categories', categoriesError);
-  const categoryRoutes = categoriesData?.map(cat => `/categories/${cat.slug}`).filter(Boolean) || [];
+    .select('id, slug, parent_id');
+  
+  let categoryRoutes: string[] = [];
+  if (categoriesError) {
+    console.error('Sitemap: Error fetching categories', categoriesError);
+  } else if (allCategories) {
+    // Find all IDs that are used as a parent_id
+    const parentIds = new Set(
+      allCategories
+        .map(cat => cat.parent_id)
+        .filter((id): id is string => id !== null)
+    );
+
+    // Filter for categories that are parents (i.e., their ID is in the parentIds set)
+    const parentCategories = allCategories.filter(cat => parentIds.has(cat.id));
+    const excludedCategories = allCategories.filter(cat => !parentIds.has(cat.id));
+
+    console.log(`Sitemap: Including ${parentCategories.length} parent categories.`);
+    console.log(`Sitemap: Excluding ${excludedCategories.length} leaf categories.`);
+
+    categoryRoutes = parentCategories.map(cat => `/categories/${cat.slug}`);
+  }
 
   // 2. Fetch products
   const { data: productsData, error: productsError } = await supabase
