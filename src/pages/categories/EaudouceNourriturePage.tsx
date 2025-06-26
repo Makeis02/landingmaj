@@ -410,30 +410,28 @@ const getEmojiForCategory = (slug: string) => {
 
 // Ajoute cette fonction utilitaire pour charger les DDM
 const fetchDdmFlagsAndDates = async (productList) => {
-  const keys = [];
-  for (const p of productList) {
-    const id = getCleanProductId(p.id);
-    keys.push(`product_${id}_ddm_exceeded`);
-    keys.push(`product_${id}_ddm_date`);
-  }
+  const ids = productList.map(p => getCleanProductId(p.id));
+  const ddmKeys = [
+    ...ids.map(id => `product_${id}_ddm_exceeded`),
+    ...ids.map(id => `product_${id}_ddm_date`)
+  ];
   const { data, error } = await supabase
     .from('editable_content')
     .select('content_key, content')
-    .in('content_key', keys);
+    .in('content_key', ddmKeys);
+
   if (error) {
-    console.error('Erreur chargement DDM:', error);
+    console.error("Erreur chargement DDM:", error);
     return {};
   }
+
+  // On construit un mapping { [id]: { ddmExceeded, ddmDate } }
   const ddmMap = {};
-  for (const p of productList) {
-    const id = getCleanProductId(p.id);
-    const exceeded = data.find(d => d.content_key === `product_${id}_ddm_exceeded`);
-    const date = data.find(d => d.content_key === `product_${id}_ddm_date`);
-    ddmMap[id] = {
-      ddmExceeded: exceeded?.content === 'true',
-      ddmDate: date?.content || '',
-    };
-  }
+  ids.forEach(id => {
+    const exceeded = data.find(d => d.content_key === `product_${id}_ddm_exceeded`)?.content === 'true';
+    const date = data.find(d => d.content_key === `product_${id}_ddm_date`)?.content || '';
+    ddmMap[id] = { ddmExceeded: exceeded, ddmDate: date };
+  });
   return ddmMap;
 };
 
@@ -607,15 +605,17 @@ const EaudouceNourriturePage = () => {
                 if (grandParent) {
                     // Obtenir tous les enfants du grand-parent
                     const childrenOfGrandparent = categoriesData.filter(cat => cat.parent_id === grandParent.id);
-                    mainNavCats = childrenOfGrandparent;
-                } else {
-                    // Si la catégorie actuelle a un parent mais pas de grand-parent, utiliser les enfants du parent
-                    const childrenOfParent = categoriesData.filter(cat => cat.parent_id === parentCategory.parent_id);
-                    mainNavCats = childrenOfParent;
+                    // Filtrer pour inclure uniquement les catégories qui sont elles-mêmes des parents (ont des enfants)
+                    mainNavCats = childrenOfGrandparent.filter(cat =>
+                        categoriesData.some(child => child.parent_id === cat.id)
+                    );
                 }
             } else {
-                // Si la catégorie actuelle est une catégorie racine, utiliser ses enfants directs
-                mainNavCats = cleanedChildCategories;
+                // Si la catégorie actuelle n'a pas de parent (c'est une catégorie de premier niveau),
+                // montrer les autres catégories de premier niveau qui ont aussi des enfants.
+                mainNavCats = categoriesData.filter(cat =>
+                    !cat.parent_id && categoriesData.some(child => child.parent_id === cat.id)
+                );
             }
         }
         setHeaderNavCategories(mainNavCats);
@@ -732,13 +732,13 @@ const EaudouceNourriturePage = () => {
         setError(null);
 
         // Ajoute cette fonction utilitaire pour charger les DDM
-        const ddmMap = await fetchDdmFlagsAndDates(extendedProducts);
-        let updatedWithDdm = updatedWithRatings.map(p => {
+        const ddmMap = await fetchDdmFlagsAndDates(finalProducts);
+        const finalProductsWithDdm = finalProducts.map(p => {
           const id = getCleanProductId(p.id);
           return {
             ...p,
             ddmExceeded: ddmMap[id]?.ddmExceeded || false,
-            ddmDate: ddmMap[id]?.ddmDate || '',
+            ddmDate: ddmMap[id]?.ddmDate || ''
           };
         });
       } catch (err) {
