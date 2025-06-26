@@ -173,7 +173,7 @@ serve(async (req) => {
       )
     }
 
-    // Vérifier l'utilisation unique par client (user_id OU user_email)
+E    // Vérifier l'utilisation unique par client (user_id OU user_email)
     if (promoCode.one_time_per_client) {
       if (userId) {
         // Cas utilisateur connecté
