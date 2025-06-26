@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { persist } from "zustand/middleware";
+import { useUserStore } from "@/stores/useUserStore";
 
 interface CartItem {
   id: string;
@@ -837,6 +838,7 @@ export const useCartStore = create<CartStore>()(
     set({ isApplyingPromo: true });
     try {
       const { items } = get();
+      const user = useUserStore.getState().user;
       const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
       
       if (payableItems.length === 0) {
@@ -865,8 +867,8 @@ export const useCartStore = create<CartStore>()(
           code,
           cartItems: cartItemsForAPI,
           cartTotal,
-          userId: null, // Sera rempli côté serveur si l'utilisateur est connecté
-          userEmail: null
+          userId: user?.id || null,
+          userEmail: user?.email || null
         })
       });
 

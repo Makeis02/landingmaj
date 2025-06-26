@@ -33,6 +33,7 @@ interface PromoCode {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  one_time_per_client: boolean;
 }
 
 const PromoCodesPage = () => {
@@ -60,7 +61,8 @@ const PromoCodesPage = () => {
     maximum_discount: '',
     usage_limit: '',
     expires_at: '',
-    is_active: true
+    is_active: true,
+    one_time_per_client: false
   });
 
   const loadAvailableProducts = async () => {
@@ -151,7 +153,8 @@ const PromoCodesPage = () => {
       maximum_discount: '',
       usage_limit: '',
       expires_at: '',
-      is_active: true
+      is_active: true,
+      one_time_per_client: false
     });
     setEditingCode(null);
   };
@@ -171,7 +174,8 @@ const PromoCodesPage = () => {
         maximum_discount: code.maximum_discount?.toString() || '',
         usage_limit: code.usage_limit?.toString() || '',
         expires_at: code.expires_at ? code.expires_at.split('T')[0] : '',
-        is_active: code.is_active
+        is_active: code.is_active,
+        one_time_per_client: code.one_time_per_client || false
       });
     } else {
       resetForm();
@@ -237,7 +241,8 @@ const PromoCodesPage = () => {
         maximum_discount: formData.maximum_discount ? parseFloat(formData.maximum_discount) : null,
         usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
         expires_at: formData.expires_at ? new Date(formData.expires_at + 'T23:59:59').toISOString() : null,
-        is_active: formData.is_active
+        is_active: formData.is_active,
+        one_time_per_client: formData.one_time_per_client
       };
 
       if (editingCode) {
@@ -565,6 +570,15 @@ const PromoCodesPage = () => {
                     onCheckedChange={(checked) => setFormData({ ...formData, is_active: checked })}
                   />
                   <Label htmlFor="is_active">Code actif</Label>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="one_time_per_client"
+                    checked={formData.one_time_per_client}
+                    onCheckedChange={(checked) => setFormData({ ...formData, one_time_per_client: checked })}
+                  />
+                  <Label htmlFor="one_time_per_client">Utilisable une seule fois par client</Label>
                 </div>
 
                 <div className="flex gap-2 pt-4">
