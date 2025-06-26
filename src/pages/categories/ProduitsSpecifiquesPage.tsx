@@ -1810,7 +1810,6 @@ const ProduitsSpecifiquesPage = () => {
                   return (
                     <Card className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
                       <div className="relative h-56 bg-white flex items-center justify-center">
-                        /* Badge DDM prioritaire sur promo */
 {ddmFlags[product.id] && ddmDates[product.id] ? (
   <div className="absolute top-2 left-2 z-10">
     <span className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase text-xs px-3 py-1 rounded-full shadow">
