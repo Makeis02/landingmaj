@@ -2885,27 +2885,6 @@ const Modele = ({ categoryParam = null }) => {
           } : undefined
         }}
       />
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org/",
-          "@type": "Product",
-          "name": product?.title,
-          "image": [product?.image || "/og-image.png"],
-          "description": product?.description,
-          "sku": product?.reference,
-          "brand": {
-            "@type": "Brand",
-            "name": product?.brand
-          },
-          "offers": {
-            "@type": "Offer",
-            "priceCurrency": "EUR",
-            "price": product?.price,
-            "availability": product?.stock && product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-            "url": typeof window !== "undefined" ? window.location.href : ""
-          }
-        })}
-      </script>
 
       <Header />
       {isEditMode && <FloatingHeader />}
