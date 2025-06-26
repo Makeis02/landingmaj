@@ -1,5 +1,6 @@
 import slugify from 'slugify';
 
+import SEO from "@/components/SEO";
 import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
 import { fetchProductDescriptions } from "@/lib/api/products";
 import PromoBadge from "@/components/PromoBadge";
@@ -197,7 +198,15 @@ const DecorationPage = () => {
     }
   };
 
-  return (
+  
+      <SEO
+        title="Decoration"
+        description="Découvrez notre sélection Decoration"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Catégorie : Décoration</h1>
       <p>Bienvenue sur la page test de la catégorie "Décoration".</p>

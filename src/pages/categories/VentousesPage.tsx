@@ -1,5 +1,6 @@
 import React from "react";
 
+import SEO from "@/components/SEO";
 import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import slugify from 'slugify';
@@ -157,7 +158,15 @@ const VentousesPage = () => {
     }
   };
 
-  return (
+  
+      <SEO
+        title="Ventouses"
+        description="Découvrez notre sélection Ventouses"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Catégorie : Ventouses</h1>
       <p>Bienvenue sur la page dédiée aux ventouses pour aquarium.</p>

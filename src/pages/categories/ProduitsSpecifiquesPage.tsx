@@ -7,6 +7,7 @@ declare global {
 }
 
 import { useState, useEffect, useRef } from "react";
+import SEO from "@/components/SEO";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -488,7 +489,15 @@ const ProduitsSpecifiquesPage = () => {
     if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
       handleResize(); // Appeler une fois au montage
       window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      
+      <SEO
+        title="ProduitsSpecifiques"
+        description="Découvrez notre sélection ProduitsSpecifiques"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
 

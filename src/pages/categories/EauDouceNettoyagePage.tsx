@@ -1,5 +1,6 @@
 import React from "react";
 
+import SEO from "@/components/SEO";
 import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import slugify from 'slugify';
@@ -157,7 +158,15 @@ const EauDouceNettoyagePage = () => {
     }
   };
 
-  return (
+  
+      <SEO
+        title="EauDouceNettoyage"
+        description="Découvrez notre sélection EauDouceNettoyage"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Catégorie : Nettoyage Aquarium</h1>
       <p>Bienvenue sur la page dédiée aux produits de nettoyage pour aquariums d'eau douce.</p>

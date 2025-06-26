@@ -7,6 +7,7 @@ declare global {
 }
 
 import { useState, useEffect, useRef } from "react";
+import SEO from "@/components/SEO";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -838,7 +839,15 @@ const EaudemerNourriturePage = () => {
       }
     }, 300); // attends 300ms
 
-    return () => clearTimeout(timeout);
+    
+      <SEO
+        title="EaudemerNourriture"
+        description="Découvrez notre sélection EaudemerNourriture"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return () => clearTimeout(timeout);
   }, [initialSubCategorySlug, subCategories, selectedSubCategories]);
 
   // Les filtres sont désactivés pour l'instant

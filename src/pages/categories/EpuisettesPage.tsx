@@ -1,5 +1,6 @@
 import React from "react";
 
+import SEO from "@/components/SEO";
 import PromoBadge from '@/components/PromoBadge';import { Link as RouterLink } from "react-router-dom";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import slugify from 'slugify';
@@ -157,7 +158,15 @@ const EpuisettesPage = () => {
     }
   };
 
-  return (
+  
+      <SEO
+        title="Epuisettes"
+        description="Découvrez notre sélection Epuisettes"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return (
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-4">Catégorie : Épuisettes</h1>
       <p>Bienvenue sur la page dédiée aux épuisettes pour aquarium.</p>

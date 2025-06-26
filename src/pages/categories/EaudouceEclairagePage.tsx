@@ -7,6 +7,7 @@ declare global {
 }
 
 import { useState, useEffect, useRef } from "react";
+import SEO from "@/components/SEO";
 import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle, ChevronDown, Filter, Star, ShoppingCart, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -489,7 +490,15 @@ const EaudouceEclairagePage = () => {
     if (typeof window !== 'undefined') { // S'assurer que window est disponible (côté client)
       handleResize(); // Appeler une fois au montage
       window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
+      
+      <SEO
+        title="EaudouceEclairage"
+        description="Découvrez notre sélection EaudouceEclairage"
+        canonical={typeof window !== 'undefined' ? window.location.href : ''}
+        ogImage="/og-image.png"
+      />
+  
+return () => window.removeEventListener('resize', handleResize);
     }
   }, []);
 
