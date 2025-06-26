@@ -37,6 +37,7 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
+import SEO from "@/components/SEO"; // Importer le composant SEO
 
 // Types
 interface Product {
@@ -2825,10 +2826,34 @@ const Modele = ({ categoryParam = null }) => {
     }
   };
 
+  // Construction de l'objet SEO, maintenant que `product` est garanti d'exister.
+  const productSeoData = {
+    name: product.title,
+    price: computedPrice.toFixed(2),
+    description: product.description?.replace(/<[^>]+>/g, '') || "Découvrez ce produit sur Aqua Rêve.",
+    image: extraImages[0] || product.image,
+    sku: product.id,
+    brand: brand?.name,
+    availability: (product.stock ?? 0) > 0 ? "InStock" : "OutOfStock",
+    review: {
+      ratingValue: productReviewAverage?.toFixed(1) || "0",
+      reviewCount: productReviewCount.toString(),
+    },
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO
+        title={product.title}
+        description={product.description?.replace(/<[^>]+>/g, '').substring(0, 160)}
+        image={extraImages[0] || product.image}
+        url={window.location.href}
+        type="product"
+        product={productSeoData}
+      />
+
       <Header />
-      <FloatingHeader />
+      {isEditMode && <FloatingHeader />}
       
       {/* Debug Panel en mode admin */}
       {isEditMode && (
