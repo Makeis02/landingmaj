@@ -2834,7 +2834,7 @@ const Modele = ({ categoryParam = null }) => {
     image: extraImages[0] || product.image,
     sku: product.id,
     brand: brand?.name,
-    availability: (product.stock ?? 0) > 0 ? "InStock" : "OutOfStock",
+    availability: ((product.stock ?? 0) > 0 ? "InStock" : "OutOfStock") as "InStock" | "OutOfStock",
     review: {
       ratingValue: productReviewAverage?.toFixed(1) || "0",
       reviewCount: productReviewCount.toString(),
@@ -2929,14 +2929,16 @@ const Modele = ({ categoryParam = null }) => {
             {/* Image principale (galerie) */}
             {selectedImage ? (
               <div className="relative">
-                <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
-                  {hasDiscount && <PromoBadge />}
-                  {product.ddmExceeded && (
-                    <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase">
+                {/* Badge DDM prioritaire sur promo */}
+                {product.ddmExceeded && product.ddmDate ? (
+                  <div className="absolute top-2 left-2 z-10">
+                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
                       DDM DÉPASSÉE
-                    </Badge>
-                  )}
-                </div>
+                    </span>
+                  </div>
+                ) : hasDiscount ? (
+                  <PromoBadge />
+                ) : null}
                 <img
                   src={selectedImage}
                   alt={product.title}
