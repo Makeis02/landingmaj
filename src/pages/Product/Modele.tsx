@@ -57,6 +57,8 @@ interface Product {
   stock?: number;
   ddmExceeded?: boolean;
   ddmDate?: string;
+  averageRating?: number;
+  reviewCount?: number;
 }
 
 // Type étendu pour les produits similaires avec les données de variantes
@@ -2844,13 +2846,46 @@ const Modele = ({ categoryParam = null }) => {
   return (
     <div className="min-h-screen flex flex-col">
       <SEO
-        title={product.title}
-        description={product.description?.replace(/<[^>]+>/g, '').substring(0, 160)}
-        image={extraImages[0] || product.image}
-        url={window.location.href}
+        title={product?.title || "Produit"}
+        description={product?.description || "Découvrez ce produit sur aqua rêve"}
+        image={product?.image || "/og-image.png"}
+        url={typeof window !== "undefined" ? window.location.href : undefined}
         type="product"
-        product={productSeoData}
+        product={product && {
+          name: product.title,
+          price: product.price?.toString(),
+          description: product.description,
+          image: product.image || "/og-image.png",
+          sku: product.reference,
+          brand: product.brand,
+          availability: product.stock && product.stock > 0 ? "InStock" : "OutOfStock",
+          review: product.averageRating && product.reviewCount ? {
+            ratingValue: product.averageRating.toString(),
+            reviewCount: product.reviewCount.toString()
+          } : undefined
+        }}
       />
+      <script type="application/ld+json">
+        {JSON.stringify({
+          "@context": "https://schema.org/",
+          "@type": "Product",
+          "name": product?.title,
+          "image": [product?.image || "/og-image.png"],
+          "description": product?.description,
+          "sku": product?.reference,
+          "brand": {
+            "@type": "Brand",
+            "name": product?.brand
+          },
+          "offers": {
+            "@type": "Offer",
+            "priceCurrency": "EUR",
+            "price": product?.price,
+            "availability": product?.stock && product.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+            "url": typeof window !== "undefined" ? window.location.href : ""
+          }
+        })}
+      </script>
 
       <Header />
       {isEditMode && <FloatingHeader />}
