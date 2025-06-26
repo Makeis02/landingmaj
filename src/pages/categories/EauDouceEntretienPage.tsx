@@ -1815,9 +1815,9 @@ const EauDouceEntretienPage = () => {
                       <CardContent className="flex flex-col flex-1 p-4">
                         <h3 className="font-semibold text-base leading-snug mb-1 line-clamp-1">{product.title}</h3>
                         <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
-                          {/* Affiche la description en texte brut, sans HTML et sans commentaires JS */}
+                          {/* Affiche la description en texte brut, sans HTML */}
                           {product.description
-                            ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\/\*.*?\*\//g, '').trim()
+                            ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
                             : <span className="italic text-gray-400">Aucune description</span>}
                         </div>
                         <div className="flex items-center mb-2">
