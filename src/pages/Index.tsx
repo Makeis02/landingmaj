@@ -332,268 +332,268 @@ const Index = () => {
           }
         })}
       </script>
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <AdminHeader />
-        <FloatingHeader />
-        <EditableCarousel />
-        
-        <main className="flex-grow">
-          {/* Univers Grid - Dynamique depuis Supabase */}
-          <DynamicUniverseGrid />
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <AdminHeader />
+      <FloatingHeader />
+      <EditableCarousel />
+      
+      <main className="flex-grow">
+        {/* Univers Grid - Dynamique depuis Supabase */}
+        <DynamicUniverseGrid />
 
-          {/* Popular Products - Dynamique depuis Supabase avec sélection en mode édition */}
-          <PopularProducts />
+        {/* Popular Products - Dynamique depuis Supabase avec sélection en mode édition */}
+        <PopularProducts />
             
-          {/* Packs Section - Choisis le pack qui te correspond */}
-          <section className="relative">
-            {isEditing && (
-              <div className="absolute right-0 top-0 z-10 bg-white/80 p-2 rounded shadow">
-                <span className="text-xs font-semibold mr-2">Lien global packs :</span>
-                <EditableText
-                  contentKey="homepage_packs_global_url"
-                  initialContent={homepagePacksUrl}
-                  onUpdate={setHomepagePacksUrl}
-                  className="inline-block min-w-[120px]"
-                />
-              </div>
-            )}
-            <PacksSection homepageGlobalUrl={homepagePacksUrl} />
-          </section>
+        {/* Packs Section - Choisis le pack qui te correspond */}
+        <section className="relative">
+          {isEditing && (
+            <div className="absolute right-0 top-0 z-10 bg-white/80 p-2 rounded shadow">
+              <span className="text-xs font-semibold mr-2">Lien global packs :</span>
+              <EditableText
+                contentKey="homepage_packs_global_url"
+                initialContent={homepagePacksUrl}
+                onUpdate={setHomepagePacksUrl}
+                className="inline-block min-w-[120px]"
+              />
+                      </div>
+                    )}
+          <PacksSection homepageGlobalUrl={homepagePacksUrl} />
+        </section>
 
-          {/* Editorial Grid */}
-          <section className="py-20 bg-gray-50">
-            <div className="container mx-auto px-4">
-              <div className="text-center mb-16">
-                <h2 className="text-4xl font-bold text-slate-900 mb-4">
-                  <EditableText
-                    contentKey="editorial_section_title"
-                    initialContent={editorialTitle}
-                    onUpdate={setEditorialTitle}
-                  />
-                </h2>
-                <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                  <EditableText
-                    contentKey="editorial_section_subtitle"
-                    initialContent={editorialSubtitle}
-                    onUpdate={setEditorialSubtitle}
-                  />
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {orderedCards.map((card, idx) => {
-                  if (card.category === "CATÉGORIE") {
-                    return (
-                      <EditorialCategoryCard
-                        key={card.id}
-                        cardIndex={idx + 1}
-                        editorialData={card}
-                      />
-                    );
-                  }
-                  if (card.category === "PACKS") {
-                    return (
-                      <EditorialPackCard
-                        key={card.id}
-                        cardIndex={idx + 1}
-                        editorialData={card}
-                      />
-                    );
-                  }
+        {/* Editorial Grid */}
+        <section className="py-20 bg-gray-50">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-slate-900 mb-4">
+                <EditableText
+                  contentKey="editorial_section_title"
+                  initialContent={editorialTitle}
+                  onUpdate={setEditorialTitle}
+                />
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                <EditableText
+                  contentKey="editorial_section_subtitle"
+                  initialContent={editorialSubtitle}
+                  onUpdate={setEditorialSubtitle}
+                />
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {orderedCards.map((card, idx) => {
+                if (card.category === "CATÉGORIE") {
                   return (
-                    <EditorialProductCard
+                    <EditorialCategoryCard
                       key={card.id}
                       cardIndex={idx + 1}
-                      isSpecialCard={false}
                       editorialData={card}
                     />
                   );
-                })}
-              </div>
+                }
+                if (card.category === "PACKS") {
+                  return (
+                    <EditorialPackCard
+                      key={card.id}
+                      cardIndex={idx + 1}
+                      editorialData={card}
+                    />
+                  );
+                }
+                return (
+                  <EditorialProductCard
+                    key={card.id}
+                    cardIndex={idx + 1}
+                    isSpecialCard={false}
+                    editorialData={card}
+                  />
+                );
+              })}
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Loyalty Banner */}
-          <section className="py-8 bg-gradient-to-r from-purple-600 to-blue-600 relative overflow-hidden">
-            {!isLoyaltyFeatureActive && (
-              <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white z-10">
-                <h3 className="text-2xl font-bold mb-3">Fonctionnalité à venir !</h3>
-                <Badge className="bg-white text-purple-700 px-3 py-1 text-sm rounded-full font-semibold">
-                  Bientôt disponible
-                </Badge>
+        {/* Loyalty Banner */}
+        <section className="py-8 bg-gradient-to-r from-purple-600 to-blue-600 relative overflow-hidden">
+          {!isLoyaltyFeatureActive && (
+            <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white z-10">
+              <h3 className="text-2xl font-bold mb-3">Fonctionnalité à venir !</h3>
+              <Badge className="bg-white text-purple-700 px-3 py-1 text-sm rounded-full font-semibold">
+                Bientôt disponible
+              </Badge>
+            </div>
+          )}
+          <div className={`container mx-auto px-4 text-center ${!isLoyaltyFeatureActive ? 'opacity-50' : ''}`}>
+            <div className="flex items-center justify-center gap-2 text-white">
+              <Award className="w-8 h-8" />
+              <h3 className="text-xl font-bold">
+                <EditableText
+                  contentKey="loyalty_section_title"
+                  initialContent={loyaltyTitle}
+                  onUpdate={setLoyaltyTitle}
+                />
+              </h3>
+              <Award className="w-8 h-8" />
+            </div>
+            <p className="text-blue-100 mt-0.5">
+              <EditableText
+                contentKey="loyalty_section_subtitle"
+                initialContent={loyaltySubtitle}
+                onUpdate={setLoyaltySubtitle}
+              />
+            </p>
+            {isEditing && (
+              <div className="mt-4 flex items-center justify-center gap-2">
+                <Label htmlFor="loyalty-toggle" className="text-white">Activer le programme de fidélité :</Label>
+                <Toggle
+                  id="loyalty-toggle"
+                  pressed={isLoyaltyFeatureActive}
+                  onPressedChange={toggleLoyaltyFeature}
+                  className="bg-white data-[state=on]:bg-green-500 data-[state=off]:bg-gray-300"
+                />
               </div>
             )}
-            <div className={`container mx-auto px-4 text-center ${!isLoyaltyFeatureActive ? 'opacity-50' : ''}`}>
-              <div className="flex items-center justify-center gap-2 text-white">
-                <Award className="w-8 h-8" />
-                <h3 className="text-xl font-bold">
-                  <EditableText
-                    contentKey="loyalty_section_title"
-                    initialContent={loyaltyTitle}
-                    onUpdate={setLoyaltyTitle}
-                  />
-                </h3>
-                <Award className="w-8 h-8" />
+          </div>
+        </section>
+
+        {/* Trust Bar */}
+        <section className="py-16 bg-white border-t">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+              <div className="flex items-center justify-center text-center group">
+                <Truck className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    <EditableText
+                      contentKey="trustbar_title_1"
+                      initialContent="Livraison Gratuite"
+                    />
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    <EditableText
+                      contentKey="trustbar_desc_1"
+                      initialContent="À partir de 49€"
+                    />
+                  </p>
+                </div>
               </div>
-              <p className="text-blue-100 mt-0.5">
+              
+              <div className="flex items-center justify-center text-center group">
+                <RotateCcw className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    <EditableText
+                      contentKey="trustbar_title_2"
+                      initialContent="SAV Expert"
+                    />
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    <EditableText
+                      contentKey="trustbar_desc_2"
+                      initialContent="Conseils spécialisés"
+                    />
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center text-center group">
+                <MessageCircle className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    <EditableText
+                      contentKey="trustbar_title_3"
+                      initialContent="Contact"
+                    />
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    <EditableText
+                      contentKey="trustbar_desc_3"
+                      initialContent="Support réactif"
+                    />
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center text-center group">
+                <CreditCard className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 mb-1">
+                    <EditableText
+                      contentKey="trustbar_title_4"
+                      initialContent="PayPal & Avis Vérifiés"
+                    />
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    <EditableText
+                      contentKey="trustbar_desc_4"
+                      initialContent="Paiement sécurisé"
+                    />
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Newsletter Section */}
+        <section className="py-20 bg-gradient-to-br from-[#0074b3] via-[#005a8c] to-[#004d77] relative overflow-hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+          <div className="absolute inset-0 bg-cover bg-center opacity-10" 
+               style={{backgroundImage: "url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')"}}></div>
+          
+          <div className="relative container mx-auto px-4 text-center">
+            <div className="max-w-4xl mx-auto text-white">
+              <Mail className="w-16 h-16 mx-auto mb-6" style={{ color: '#ffffff' }} />
+              <h2 className="text-4xl font-bold mb-6">
                 <EditableText
-                  contentKey="loyalty_section_subtitle"
-                  initialContent={loyaltySubtitle}
-                  onUpdate={setLoyaltySubtitle}
+                  contentKey="newsletter_title"
+                  initialContent="Restez Connecté à l'Univers Aquatique"
+                  className="text-white"
+                />
+              </h2>
+              <p className="text-xl mb-10 text-blue-100 leading-relaxed">
+                <EditableText
+                  contentKey="newsletter_subtitle"
+                  initialContent="Recevez nos conseils d'experts, offres exclusives et nouveautés directement dans votre boîte mail"
+                  className="text-blue-100"
                 />
               </p>
-              {isEditing && (
-                <div className="mt-4 flex items-center justify-center gap-2">
-                  <Label htmlFor="loyalty-toggle" className="text-white">Activer le programme de fidélité :</Label>
-                  <Toggle
-                    id="loyalty-toggle"
-                    pressed={isLoyaltyFeatureActive}
-                    onPressedChange={toggleLoyaltyFeature}
-                    className="bg-white data-[state=on]:bg-green-500 data-[state=off]:bg-gray-300"
-                  />
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* Trust Bar */}
-          <section className="py-16 bg-white border-t">
-            <div className="container mx-auto px-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="flex items-center justify-center text-center group">
-                  <Truck className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_1"
-                        initialContent="Livraison Gratuite"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_1"
-                        initialContent="À partir de 49€"
-                      />
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center text-center group">
-                  <RotateCcw className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_2"
-                        initialContent="SAV Expert"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_2"
-                        initialContent="Conseils spécialisés"
-                      />
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center text-center group">
-                  <MessageCircle className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_3"
-                        initialContent="Contact"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_3"
-                        initialContent="Support réactif"
-                      />
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-center text-center group">
-                  <CreditCard className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_4"
-                        initialContent="PayPal & Avis Vérifiés"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_4"
-                        initialContent="Paiement sécurisé"
-                      />
-                    </p>
-                  </div>
-                </div>
+              
+              <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-6">
+                <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 w-full">
+                <input 
+                  type="email" 
+                  placeholder="Votre adresse email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="flex-1 px-6 py-4 rounded-xl text-gray-900 placeholder-gray-500 text-lg focus:outline-none focus:ring-2 focus:ring-[#0074b3] focus:ring-opacity-50 transition-all duration-300"
+                />
+                  <Button 
+                    type="submit"
+                    className="bg-white text-[#0074b3] hover:bg-blue-50 px-8 py-4 text-lg rounded-xl transition-all duration-300 hover:scale-105"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Inscription en cours..." : (
+                      <>
+                        <EditableText
+                          contentKey="newsletter_button"
+                          initialContent="S'inscrire"
+                          className="text-[#0074b3] font-semibold"
+                        />
+                        <ArrowRight className="ml-2 h-5 w-5" style={{ color: '#0074b3' }} />
+                      </>
+                    )}
+                </Button>
+                </form>
               </div>
             </div>
-          </section>
-
-          {/* Newsletter Section */}
-          <section className="py-20 bg-gradient-to-br from-[#0074b3] via-[#005a8c] to-[#004d77] relative overflow-hidden">
-            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-            <div className="absolute inset-0 bg-cover bg-center opacity-10" 
-                 style={{backgroundImage: "url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')"}}></div>
-            
-            <div className="relative container mx-auto px-4 text-center">
-              <div className="max-w-4xl mx-auto text-white">
-                <Mail className="w-16 h-16 mx-auto mb-6" style={{ color: '#ffffff' }} />
-                <h2 className="text-4xl font-bold mb-6">
-                  <EditableText
-                    contentKey="newsletter_title"
-                    initialContent="Restez Connecté à l'Univers Aquatique"
-                    className="text-white"
-                  />
-                </h2>
-                <p className="text-xl mb-10 text-blue-100 leading-relaxed">
-                  <EditableText
-                    contentKey="newsletter_subtitle"
-                    initialContent="Recevez nos conseils d'experts, offres exclusives et nouveautés directement dans votre boîte mail"
-                    className="text-blue-100"
-                  />
-                </p>
-                
-                <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-6">
-                  <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 w-full">
-                  <input 
-                    type="email" 
-                    placeholder="Votre adresse email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="flex-1 px-6 py-4 rounded-xl text-gray-900 placeholder-gray-500 text-lg focus:outline-none focus:ring-2 focus:ring-[#0074b3] focus:ring-opacity-50 transition-all duration-300"
-                  />
-                    <Button 
-                      type="submit"
-                      className="bg-white text-[#0074b3] hover:bg-blue-50 px-8 py-4 text-lg rounded-xl transition-all duration-300 hover:scale-105"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Inscription en cours..." : (
-                        <>
-                          <EditableText
-                            contentKey="newsletter_button"
-                            initialContent="S'inscrire"
-                            className="text-[#0074b3] font-semibold"
-                          />
-                          <ArrowRight className="ml-2 h-5 w-5" style={{ color: '#0074b3' }} />
-                        </>
-                      )}
-                  </Button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
-        
-        <Footer />
-      </div>
+          </div>
+        </section>
+      </main>
+      
+      <Footer />
+    </div>
     </>
   );
 };

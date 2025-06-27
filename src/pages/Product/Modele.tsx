@@ -2970,7 +2970,7 @@ const Modele = ({ categoryParam = null }) => {
                     <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
                       DDM DÉPASSÉE
                     </span>
-                  </div>
+                </div>
                 ) : hasDiscount ? (
                   <PromoBadge />
                 ) : null}

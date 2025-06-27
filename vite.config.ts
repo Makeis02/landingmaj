@@ -92,33 +92,33 @@ export default defineConfig(async ({ mode }) => {
   console.log(`Sitemap: Found ${dynamicRoutes.length} dynamic routes to generate.`);
 
   return {
-    server: {
-      host: "::",
-      port: 8080,
-      proxy: {
-        '/api': {
+  server: {
+    host: "::",
+    port: 8080,
+    proxy: {
+      '/api': {
           target: env.VITE_API_URL || 'http://localhost:3000',
-          changeOrigin: true,
+        changeOrigin: true,
           secure: mode === 'production',
-        }
       }
-    },
-    plugins: [
-      react(),
+    }
+  },
+  plugins: [
+    react(),
       sitemap({ 
         hostname: 'https://aqua-reve.com',
         dynamicRoutes
       }),
       mode === 'development' && componentTagger(),
-      mockApiPlugin(),
-    ].filter(Boolean),
-    define: {
+    mockApiPlugin(),
+  ].filter(Boolean),
+  define: {
       'process.env': env
+  },
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     },
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
-    },
+  },
   }
 });

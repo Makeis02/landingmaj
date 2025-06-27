@@ -75,37 +75,37 @@ const SEO = ({
 
   return (
     <HelmetProvider>
-      <Helmet>
-        {/* Balises de base */}
-        <title>{fullTitle}</title>
+    <Helmet>
+      {/* Balises de base */}
+      <title>{fullTitle}</title>
         <meta name="description" content={fullDescription} />
-        
-        {/* Open Graph */}
-        <meta property="og:title" content={fullTitle} />
+      
+      {/* Open Graph */}
+      <meta property="og:title" content={fullTitle} />
         <meta property="og:description" content={fullDescription} />
         <meta property="og:image" content={fullImage} />
-        <meta property="og:url" content={url} />
-        <meta property="og:type" content={type} />
+      <meta property="og:url" content={url} />
+      <meta property="og:type" content={type} />
         <meta property="og:site_name" content={siteTitle} />
-        
-        {/* Twitter Card */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={fullTitle} />
+      
+      {/* Twitter Card */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:title" content={fullTitle} />
         <meta name="twitter:description" content={fullDescription} />
         <meta name="twitter:image" content={fullImage} />
-        
-        {/* Schema.org */}
-        {productSchema && (
-          <script type="application/ld+json">
-            {JSON.stringify(productSchema)}
-          </script>
-        )}
-        
-        {/* Autres métadonnées importantes */}
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      
+      {/* Schema.org */}
+      {productSchema && (
+        <script type="application/ld+json">
+          {JSON.stringify(productSchema)}
+        </script>
+      )}
+      
+      {/* Autres métadonnées importantes */}
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#0074b3" />
-        <link rel="canonical" href={url} />
-      </Helmet>
+      <link rel="canonical" href={url} />
+    </Helmet>
     </HelmetProvider>
   );
 };
