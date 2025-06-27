@@ -94,6 +94,40 @@ const OrderConfirmation = () => {
     fetchOrder();
   }, [orderId]);
 
+  // Décrémentation du stock Supabase à la confirmation de commande
+  useEffect(() => {
+    if (!order || !orderItems.length) return;
+    // Protection : ne décrémente qu'une fois par commande et par session navigateur
+    const stockKey = `stock_decremented_${order.id}`;
+    if (window.sessionStorage.getItem(stockKey)) return;
+
+    const decrementStock = async () => {
+      for (const item of orderItems) {
+        // Ignore shipping et cadeaux
+        if (item.product_id.startsWith('shipping_')) continue;
+        if (item.is_gift === true || item.threshold_gift === true) continue;
+        // Récupère le stock actuel
+        const { data, error } = await supabase
+          .from('editable_content')
+          .select('content')
+          .eq('content_key', `product_${item.product_id}_stock`)
+          .single();
+        if (error || !data) continue;
+        const currentStock = parseInt(data.content, 10) || 0;
+        const newStock = Math.max(0, currentStock - item.quantity);
+        // Mets à jour le stock
+        await supabase
+          .from('editable_content')
+          .update({ content: newStock.toString() })
+          .eq('content_key', `product_${item.product_id}_stock`);
+      }
+      window.sessionStorage.setItem(stockKey, '1');
+      console.log(`[STOCK] Décrémentation du stock effectuée pour la commande ${order.id}`);
+    };
+
+    decrementStock();
+  }, [order, orderItems]);
+
   // Calculs totaux
   const sousTotal = orderItems.filter(i => !i.product_id.startsWith('shipping_')).reduce((sum, i) => sum + (i.price * i.quantity), 0);
   const livraison = orderItems.find(i => i.product_id.startsWith('shipping_'));
