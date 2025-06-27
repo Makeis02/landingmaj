@@ -478,6 +478,7 @@ const EauDouceEntretienPage = () => {
           description={categoryDescription}
           image="/og-image.png"
         />
+        {/* --- BREADCRUMB JSON-LD POUR GOOGLE --- */}
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -485,16 +486,22 @@ const EauDouceEntretienPage = () => {
             "itemListElement": [
               {
                 "@type": "ListItem",
-                "position": 1,
-                "name": "Accueil",
-                "item": "https://aqua-reve.com/"
+                position: 1,
+                name: "Accueil",
+                item: "https://aqua-reve.com/"
               },
               {
                 "@type": "ListItem",
-                "position": 2,
-                "name": categoryTitle,
-                "item": `https://aqua-reve.com/categories/${currentSlug}`
-              }
+                position: 2,
+                name: categoryTitle,
+                item: `https://aqua-reve.com/categories/${currentSlug}`
+              },
+              ...(selectedSubCategories.length === 1 ? [{
+                "@type": "ListItem",
+                position: 3,
+                name: subCategories.find(sc => sc.id === selectedSubCategories[0])?.name || "",
+                item: `https://aqua-reve.com/categories/${currentSlug}?souscategorie=${subCategories.find(sc => sc.id === selectedSubCategories[0])?.slug || ""}`
+              }] : [])
             ]
           })}
         </script>
