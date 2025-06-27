@@ -38,7 +38,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
-import { Helmet } from "react-helmet";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -479,30 +478,26 @@ const EauDouceEntretienPage = () => {
           description={categoryDescription}
           image="/og-image.png"
         />
-        {/* --- FIL D'ARIANE HTML + MICRODONNÉES POUR GOOGLE --- */}
-        <nav aria-label="Fil d'ariane" itemScope itemType="https://schema.org/BreadcrumbList" className="mb-4">
-          <ol className="flex flex-wrap text-sm text-gray-600">
-            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
-              <a itemProp="item" href="/" className="hover:underline"><span itemProp="name">Accueil</span></a>
-              <meta itemProp="position" content="1" />
-            </li>
-            <li className="mx-2">/</li>
-            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
-              <a itemProp="item" href="/categories/eaudouceentretien" className="hover:underline"><span itemProp="name">{categoryTitle || "Entretien Eau Douce"}</span></a>
-              <meta itemProp="position" content="2" />
-            </li>
-            {/* Si sous-catégorie sélectionnée, ajoute un niveau */}
-            {selectedSubCategories && selectedSubCategories.length === 1 && (
-              <>
-                <li className="mx-2">/</li>
-                <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
-                  <a itemProp="item" href={`/categories/eaudouceentretien?souscategorie=${selectedSubCategories[0]}`} className="hover:underline"><span itemProp="name">{selectedSubCategories[0]}</span></a>
-                  <meta itemProp="position" content="3" />
-                </li>
-              </>
-            )}
-          </ol>
-        </nav>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Accueil",
+                "item": "https://aqua-reve.com/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": categoryTitle,
+                "item": `https://aqua-reve.com/categories/${currentSlug}`
+              }
+            ]
+          })}
+        </script>
       </>
   
 return () => window.removeEventListener('resize', handleResize);
@@ -1218,20 +1213,6 @@ return () => window.removeEventListener('resize', handleResize);
       });
     }
   };
-
-  // Blocking loader: n'affiche rien tant que les données critiques ne sont pas prêtes
-  const readyForBreadcrumb = categoryTitle && currentSlug && (
-    !selectedSubCategories.length ||
-    (selectedSubCategories.length === 1 && subCategories.length > 0)
-  );
-
-  if (!readyForBreadcrumb || isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
