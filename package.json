@@ -94,23 +94,6 @@
 
 
 
-"postbuild": "cp public/robots.txt dist/robots.txt || copy public\\robots.txt dist\\robots.txt",
-  
-
-
-
-
-
-
-
-  
-
-
-
-
-
-
-
 "build:dev": "vite build --mode development",
   
 

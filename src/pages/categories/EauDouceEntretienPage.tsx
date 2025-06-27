@@ -38,7 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
-import { Helmet, HelmetProvider } from "react-helmet-async";
+import { Helmet } from "react-helmet-async";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -493,8 +493,8 @@ const EauDouceEntretienPage = () => {
               {
                 "@type": "ListItem",
                 "position": 2,
-                "name": categoryTitle,
-                "item": `https://aqua-reve.com/categories/${currentSlug}`
+                "name": "Entretien",
+                "item": "https://aqua-reve.com/categories/eaudouceentretien"
               }
             ]
           })}
@@ -1215,35 +1215,30 @@ return () => window.removeEventListener('resize', handleResize);
     }
   };
 
-  // Ajout du JSON-LD BreadcrumbList pour le SEO
-  const breadcrumbJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": [
-      {
-        "@type": "ListItem",
-        "position": 1,
-        "name": "Accueil",
-        "item": "https://aqua-reve.com/"
-      },
-      {
-        "@type": "ListItem",
-        "position": 2,
-        "name": categoryTitle,
-        "item": `https://aqua-reve.com/categories/${currentSlug}`
-      }
-    ]
-  };
-
   return (
     <>
-      <HelmetProvider>
-        <Helmet>
-          <script type="application/ld+json">
-            {JSON.stringify(breadcrumbJsonLd)}
-          </script>
-        </Helmet>
-      </HelmetProvider>
+      <Helmet>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Accueil",
+                "item": "https://aqua-reve.com/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Entretien",
+                "item": "https://aqua-reve.com/categories/eaudouceentretien"
+              }
+            ]
+          })}
+        </script>
+      </Helmet>
       <div className="min-h-screen flex flex-col">
         <Header />
         <FloatingHeader />
@@ -1763,80 +1758,123 @@ return () => window.removeEventListener('resize', handleResize);
                             checked={selectedBrandIds.includes(brand.id)}
                           onCheckedChange={() => handleBrandToggle(brand.id)}
                         />
-                        <label 
-                          htmlFor={`brand-${brand.id}`}
-                          className="ml-2 text-sm flex-grow"
-                        >
-                          {brand.name}
-                        </label>
-                      </div>
-                      ))
-                    )}
+          {/* Filtres (desktop) */}
+          <div className="hidden md:block w-64 flex-shrink-0">
+            <div className="sticky top-24 bg-white rounded-lg border p-5 shadow-sm space-y-6">
+              <h2 className="font-bold">Filtres</h2>
+              
+              {/* Prix */}
+              <div>
+                <h3 className="font-medium mb-3">Prix</h3>
+                <div className="px-2">
+                  <Slider 
+                    defaultValue={[0, 800]} 
+                    max={800} 
+                    step={1} 
+                    value={priceInput}
+                    onValueChange={handlePriceChange}
+                  />
+                  <div className="flex justify-between mt-2 text-sm">
+                    <span>{priceInput[0]}€</span>
+                    <span>{priceInput[1]}€</span>
                   </div>
-                </div>
-                
-                <Separator />
-                
-                {/* Disponibilité */}
-                <div>
-                  <h3 className="font-medium mb-3">Disponibilité</h3>
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="stock" className="text-sm">
-                      En stock uniquement
-                    </label>
-                    <Switch 
-                      id="stock"
-                      checked={inStock}
-                      onCheckedChange={setInStock}
-                    />
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                {/* Promotions */}
-                <div>
-                  <h3 className="font-medium mb-3">Promotions</h3>
-                  <div className="flex items-center justify-between">
-                    <label htmlFor="promos" className="text-sm">
-                      Articles en promotion
-                    </label>
-                    <Switch 
-                      id="promos"
-                      checked={promoOnly}
-                      onCheckedChange={setPromoOnly}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Produits */}
-            <div className="flex-grow">
-              {/* En-tête de résultats */}
-              <div className="flex justify-between items-center mb-6">
-                <div>
-                  <h2 className="text-xl font-semibold">Tous les produits</h2>
-                  <p className="text-gray-500 text-sm">{filteredProducts.length} produits trouvés</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <select className="text-sm border rounded p-2 bg-white">
-                    <option>Tri par défaut</option>
-                    <option>Prix croissant</option>
-                    <option>Prix décroissant</option>
-                    <option>Meilleures ventes</option>
-                    <option>Nouveautés</option>
-                  </select>
                 </div>
               </div>
               
-              {/* Grille de produits */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {isLoading ? (
-                  <div className="col-span-full flex justify-center items-center h-40">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+              <Separator />
+              
+              {/* Sous-catégories */}
+              {subCategories.length > 0 && (
+                <div>
+                  <h3 className="font-medium mb-3">Sous-catégories</h3>
+                  <div className="space-y-2">
+                    {subCategories.map((subCat) => (
+                      <div key={subCat.id} className="flex items-center">
+                        <Checkbox
+                          id={`subcat-${subCat.id}`}
+                          checked={selectedSubCategories.includes(subCat.id)}
+                          onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                        />
+                        <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                          {subCat.name}
+                        </label>
+                      </div>
+                    ))}
                   </div>
-                ) : error ? (
+                </div>
+              )}
+              
+              <Separator />
+              
+              {/* Marques */}
+              <div>
+                <h3 className="font-medium mb-3">Marques</h3>
+                <div className="space-y-2">
+                  {brandsLoading ? (
+                    <div className="text-center py-2">
+                      <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                      <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                    </div>
+                  ) : brandsError ? (
+                    <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                  ) : brands.length === 0 ? (
+                    <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                  ) : (
+                    brands.map((brand) => (
+                    <div key={brand.id} className="flex items-center">
+                      <Checkbox 
+                        id={`brand-${brand.id}`}
+                          checked={selectedBrandIds.includes(brand.id)}
+                        onCheckedChange={() => handleBrandToggle(brand.id)}
+                      />
+                      <label 
+                        htmlFor={`brand-${brand.id}`}
+                        className="ml-2 text-sm flex-grow"
+                      >
+                        {brand.name}
+                      </label>
+                    </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Disponibilité */}
+              <div>
+                <h3 className="font-medium mb-3">Disponibilité</h3>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="stock" className="text-sm">
+                    En stock uniquement
+                  </label>
+                  <Switch 
+                    id="stock"
+                    checked={inStock}
+                    onCheckedChange={setInStock}
+                  />
+                </div>
+              </div>
+              
+              <Separator />
+              
+              {/* Promotions */}
+              <div>
+                <h3 className="font-medium mb-3">Promotions</h3>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="promos" className="text-sm">
+                    Articles en promotion
+                  </label>
+                  <Switch 
+                    id="promos"
+                    checked={promoOnly}
+                    onCheckedChange={setPromoOnly}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Produits */}
           <div className="flex-grow">
             {/* En-tête de résultats */}

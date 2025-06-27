@@ -107,8 +107,7 @@ export default defineConfig(async ({ mode }) => {
     react(),
       sitemap({ 
         hostname: 'https://aqua-reve.com',
-        dynamicRoutes,
-        generateRobotsTxt: false
+        dynamicRoutes
       }),
       mode === 'development' && componentTagger(),
     mockApiPlugin(),
