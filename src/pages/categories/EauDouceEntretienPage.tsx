@@ -38,7 +38,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
-import { Helmet } from 'react-helmet-async';
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -1217,28 +1216,6 @@ return () => window.removeEventListener('resize', handleResize);
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Helmet>
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": "Accueil",
-                "item": "https://aqua-reve.com/"
-              },
-              {
-                "@type": "ListItem",
-                "position": 2,
-                "name": categoryTitle,
-                "item": `https://aqua-reve.com/categories/${currentSlug}`
-              }
-            ]
-          })}
-        </script>
-      </Helmet>
       <Header />
       <FloatingHeader />
       

@@ -38,7 +38,6 @@ import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
 import SEO from "@/components/SEO"; // Importer le composant SEO
-import { Helmet } from 'react-helmet-async';
 
 // Types
 interface Product {
@@ -2846,34 +2845,6 @@ const Modele = ({ categoryParam = null }) => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <Helmet>
-        <script type="application/ld+json">
-          {JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BreadcrumbList",
-            "itemListElement": [
-              {
-                "@type": "ListItem",
-                "position": 1,
-                "name": categoryName || "Accueil",
-                "item": categoryUrl || "https://aqua-reve.com/"
-              },
-              subCategoryName && subCategoryUrl ? {
-                "@type": "ListItem",
-                "position": 2,
-                "name": subCategoryName,
-                "item": subCategoryUrl
-              } : null,
-              {
-                "@type": "ListItem",
-                "position": subCategoryName ? 3 : 2,
-                "name": product?.title || "Produit",
-                "item": typeof window !== 'undefined' ? window.location.href : ""
-              }
-            ].filter(Boolean)
-          })}
-        </script>
-      </Helmet>
       <SEO
         title={product?.title || "Produit"}
         description={product?.description || "Découvrez ce produit sur aqua rêve"}
