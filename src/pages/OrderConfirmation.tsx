@@ -29,6 +29,8 @@ const OrderConfirmation = () => {
   // Tracking Facebook Pixel Purchase (PRODUCTION)
   useEffect(() => {
     if (order && orderItems.length > 0 && window.fbq) {
+      const purchaseKey = `purchase_sent_${order.id}`;
+      if (window.sessionStorage.getItem(purchaseKey)) return; // Déjà envoyé pour cette commande
       const productIds = orderItems.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id);
       window.fbq('track', 'Purchase', {
         content_ids: productIds,
@@ -37,6 +39,7 @@ const OrderConfirmation = () => {
         currency: 'EUR',
         order_id: order.id
       });
+      window.sessionStorage.setItem(purchaseKey, '1');
     }
   }, [order, orderItems]);
 
