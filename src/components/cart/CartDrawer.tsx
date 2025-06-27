@@ -3,7 +3,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CartProducts from "./CartProducts";
 import CartSuggestions from "./CartSuggestions";
 import CartProgressBar from "./CartProgressBar";
@@ -18,6 +18,7 @@ export type CartStep = "products" | "thresholds" | "summary" | "checkout";
 export const CartDrawer = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { items, isOpen, openDrawer, closeDrawer, syncWithSupabase, getTotal, fetchGiftSettings } = useCartStore();
   const [reachedThreshold, setReachedThreshold] = useState<number | null>(null);
   const prevItemsLength = useRef(items.length);
@@ -94,11 +95,13 @@ export const CartDrawer = () => {
 
   // Effect pour ouvrir automatiquement le panier quand un produit est ajouté
   useEffect(() => {
+    // Ne pas ouvrir le panier sur la page de confirmation de commande
+    if (location.pathname.includes("order-confirmation")) return;
     if (items.length > prevItemsLength.current) {
       openDrawer();
     }
     prevItemsLength.current = items.length;
-  }, [items.length]);
+  }, [items.length, location.pathname]);
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
   const total = getTotal();
