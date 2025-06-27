@@ -389,6 +389,19 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
         has_discount: hasDiscountApplied
       });
 
+      // Tracking Facebook Pixel AddToCart
+      if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [selectedProduct.id],
+          content_name: selectedProduct.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+
       toast({
         title: "Produit ajouté au panier",
         description: hasDiscountApplied 

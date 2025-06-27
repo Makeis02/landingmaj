@@ -151,6 +151,19 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
         has_discount: hasDiscountApplied
       });
 
+      // Tracking Facebook Pixel AddToCart
+      if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+
       toast({
         title: "Produit ajouté au panier",
         description: hasDiscountApplied 
