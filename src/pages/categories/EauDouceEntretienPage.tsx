@@ -479,37 +479,30 @@ const EauDouceEntretienPage = () => {
           description={categoryDescription}
           image="/og-image.png"
         />
-        {/* --- BREADCRUMB JSON-LD POUR GOOGLE (via react-helmet) --- */}
-        {categoryTitle && currentSlug && (!selectedSubCategories.length || (selectedSubCategories.length === 1 && subCategories.length > 0)) && (
-          <Helmet>
-            <script type="application/ld+json">
-              {JSON.stringify({
-                "@context": "https://schema.org",
-                "@type": "BreadcrumbList",
-                "itemListElement": [
-                  {
-                    "@type": "ListItem",
-                    position: 1,
-                    name: "Accueil",
-                    item: "https://aqua-reve.com/"
-                  },
-                  {
-                    "@type": "ListItem",
-                    position: 2,
-                    name: categoryTitle,
-                    item: `https://aqua-reve.com/categories/${currentSlug}`
-                  },
-                  ...(selectedSubCategories.length === 1 && subCategories.length > 0 ? [{
-                    "@type": "ListItem",
-                    position: 3,
-                    name: subCategories.find(sc => sc.id === selectedSubCategories[0])?.name || "",
-                    item: `https://aqua-reve.com/categories/${currentSlug}?souscategorie=${subCategories.find(sc => sc.id === selectedSubCategories[0])?.slug || ""}`
-                  }] : [])
-                ]
-              })}
-            </script>
-          </Helmet>
-        )}
+        {/* --- FIL D'ARIANE HTML + MICRODONNÉES POUR GOOGLE --- */}
+        <nav aria-label="Fil d'ariane" itemScope itemType="https://schema.org/BreadcrumbList" className="mb-4">
+          <ol className="flex flex-wrap text-sm text-gray-600">
+            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
+              <a itemProp="item" href="/" className="hover:underline"><span itemProp="name">Accueil</span></a>
+              <meta itemProp="position" content="1" />
+            </li>
+            <li className="mx-2">/</li>
+            <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
+              <a itemProp="item" href="/categories/eaudouceentretien" className="hover:underline"><span itemProp="name">{categoryTitle || "Entretien Eau Douce"}</span></a>
+              <meta itemProp="position" content="2" />
+            </li>
+            {/* Si sous-catégorie sélectionnée, ajoute un niveau */}
+            {selectedSubCategories && selectedSubCategories.length === 1 && (
+              <>
+                <li className="mx-2">/</li>
+                <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem" className="flex items-center">
+                  <a itemProp="item" href={`/categories/eaudouceentretien?souscategorie=${selectedSubCategories[0]}`} className="hover:underline"><span itemProp="name">{selectedSubCategories[0]}</span></a>
+                  <meta itemProp="position" content="3" />
+                </li>
+              </>
+            )}
+          </ol>
+        </nav>
       </>
   
 return () => window.removeEventListener('resize', handleResize);
