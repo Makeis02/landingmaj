@@ -1226,6 +1226,20 @@ return () => window.removeEventListener('resize', handleResize);
     }
   };
 
+  // Blocking loader: n'affiche rien tant que les données critiques ne sont pas prêtes
+  const readyForBreadcrumb = categoryTitle && currentSlug && (
+    !selectedSubCategories.length ||
+    (selectedSubCategories.length === 1 && subCategories.length > 0)
+  );
+
+  if (!readyForBreadcrumb || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
