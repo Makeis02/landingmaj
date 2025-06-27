@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
+import { Helmet, HelmetProvider } from "react-helmet-async";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -1214,574 +1215,628 @@ return () => window.removeEventListener('resize', handleResize);
     }
   };
 
+  // Ajout du JSON-LD BreadcrumbList pour le SEO
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Accueil",
+        "item": "https://aqua-reve.com/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": categoryTitle,
+        "item": `https://aqua-reve.com/categories/${currentSlug}`
+      }
+    ]
+  };
+
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
-      <FloatingHeader />
-      
-      <div>
-      {/* Hero Banner */}
-      <div 
-        className="relative bg-cover bg-center py-16"
-      >
-        {isEditMode ? (
-          <div className="absolute inset-0 z-0 flex items-center justify-center">
-            <EditableImage
-              imageKey={`category_${currentSlug}_banner_image`}
-              initialUrl={categoryBannerImage}
-              className="w-full max-h-[320px] h-[320px] object-cover rounded-lg shadow"
-              onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${currentSlug}_banner_image`)}
-            />
-            <div className="absolute inset-0 bg-black/50 rounded-lg"></div>
-          </div>
-        ) : (
-          <div 
-            className="absolute inset-0 bg-cover bg-center" 
-            style={{ 
-              backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${categoryInfo.bannerImage})` 
-            }}
-          ></div>
-        )}
+    <>
+      <HelmetProvider>
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify(breadcrumbJsonLd)}
+          </script>
+        </Helmet>
+      </HelmetProvider>
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <FloatingHeader />
         
-        <div className="container mx-auto text-center text-white relative z-10">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
-            <EditableText
-              contentKey={`category_${currentSlug}_title`}
-              initialContent={categoryTitle}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
-            />
-          </h1>
-          <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
-            <EditableText
-              contentKey={`category_${currentSlug}_description`}
-              initialContent={categoryDescription}
-              onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
-            />
-          </p>
-          {isMobile && categoryDescription.length > 0 && (
-            <button
-              onClick={() => setShowFullDescription(!showFullDescription)}
-              className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
-            >
-              {showFullDescription ? "Lire moins" : "Lire la suite"}
-            </button>
+        <div>
+        {/* Hero Banner */}
+        <div 
+          className="relative bg-cover bg-center py-16"
+        >
+          {isEditMode ? (
+            <div className="absolute inset-0 z-0 flex items-center justify-center">
+              <EditableImage
+                imageKey={`category_${currentSlug}_banner_image`}
+                initialUrl={categoryBannerImage}
+                className="w-full max-h-[320px] h-[320px] object-cover rounded-lg shadow"
+                onUpdate={(newUrl) => handleImageUpdate(newUrl, `category_${currentSlug}_banner_image`)}
+              />
+              <div className="absolute inset-0 bg-black/50 rounded-lg"></div>
+            </div>
+          ) : (
+            <div 
+              className="absolute inset-0 bg-cover bg-center" 
+              style={{ 
+                backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${categoryInfo.bannerImage})` 
+              }}
+            ></div>
           )}
           
-          {/* Navigation des catégories parentes / soeurs */}
-          <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
-            {headerNavCategories.map((navCat) => (
-            <Button
-                key={navCat.id}
-              asChild
-                // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
-                variant={navCat.slug === currentSlug ? "default" : "outline"}
-              className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
-                  navCat.slug === currentSlug
-                  ? "bg-primary hover:bg-primary/90"
-                  : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
-              }`}
-            >
-                <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
-                  <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
-                  <span>{navCat.name}</span>
-              </a>
-            </Button>
-            ))}
-          </div>
-          
-          {/* Breadcrumb navigation removed as requested */}
+          <div className="container mx-auto text-center text-white relative z-10">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              <EditableText
+                contentKey={`category_${currentSlug}_title`}
+                initialContent={categoryTitle}
+                onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_title`)}
+              />
+            </h1>
+            <p className={`max-w-2xl mx-auto mb-8 ${isMobile && !showFullDescription ? 'line-clamp-3' : ''}`}>
+              <EditableText
+                contentKey={`category_${currentSlug}_description`}
+                initialContent={categoryDescription}
+                onUpdate={(newText) => handleTextUpdate(newText, `category_${currentSlug}_description`)}
+              />
+            </p>
+            {isMobile && categoryDescription.length > 0 && (
+              <button
+                onClick={() => setShowFullDescription(!showFullDescription)}
+                className="text-primary hover:text-primary/90 text-sm font-semibold mb-4"
+              >
+                {showFullDescription ? "Lire moins" : "Lire la suite"}
+              </button>
+            )}
+            
+            {/* Navigation des catégories parentes / soeurs */}
+            <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-6 mb-6">
+              {headerNavCategories.map((navCat) => (
+              <Button
+                  key={navCat.id}
+                asChild
+                  // Mettre en surbrillance si le slug de la catégorie de navigation correspond au slug de la page actuelle
+                  variant={navCat.slug === currentSlug ? "default" : "outline"}
+                className={`min-w-48 h-16 md:h-20 text-lg rounded-xl shadow-md transition-all ${
+                    navCat.slug === currentSlug
+                    ? "bg-primary hover:bg-primary/90"
+                    : "bg-background/80 hover:bg-background/90 border-2 text-white hover:text-white"
+                }`}
+              >
+                  <a href={`/categories/${navCat.slug}`} className="flex flex-col items-center justify-center">
+                    <div className="text-2xl mb-1">{getEmojiForCategory(navCat.slug)}</div>
+                    <span>{navCat.name}</span>
+                </a>
+              </Button>
+              ))}
+            </div>
+            
+            {/* Breadcrumb navigation removed as requested */}
+            </div>
           </div>
         </div>
-      </div>
-      
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {/* Nouvelle section de débogage des filtres */}
-        {isEditMode && (
-          <div className="mb-6">
-            <Tabs defaultValue="products">
-              <TabsList>
-                <TabsTrigger value="products">Produits</TabsTrigger>
-                <TabsTrigger value="debug-filter">🛠️ Debug Filtres</TabsTrigger>
-                <TabsTrigger value="debug-slugs">🔍 Debug Slugs</TabsTrigger>
-                <TabsTrigger value="debug-all">🪵 Debug Tous</TabsTrigger>
-                <TabsTrigger value="debug-supabase">📊 Analyse Supabase</TabsTrigger>
-                <TabsTrigger value="debug-priceid">💳 Debug PriceID</TabsTrigger>
-              </TabsList>
-              <TabsContent value="products">
-                {/* Contenu vide - sera géré par le reste du composant */}
-              </TabsContent>
-              <TabsContent value="debug-filter" className="p-4 bg-white rounded-lg border shadow-sm">
-                <h3 className="font-bold text-lg mb-4">Débogage des filtres</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Statistiques générales */}
-                  <div className="p-3 bg-gray-50 rounded-lg border">
-                    <h4 className="font-semibold mb-2">Statistiques globales</h4>
-                    <ul className="space-y-1 text-sm">
-                      <li>Produits total: <span className="font-mono">{products.length}</span></li>
-                      <li>Produits filtrés: <span className="font-mono">{filteredProducts.length}</span></li>
-                      <li>Produits en stock: <span className="font-mono">{products.filter(p => p.isInStock).length}</span></li>
-                      <li>Produits hors stock: <span className="font-mono">{products.filter(p => !p.isInStock).length}</span></li>
-                    </ul>
-          </div>
-                  
-                  {/* État des filtres */}
-                  <div className="p-3 bg-gray-50 rounded-lg border">
-                    <h4 className="font-semibold mb-2">État des filtres</h4>
-                    <ul className="space-y-1 text-sm">
-                      <li>Filtre "En stock uniquement": <span className="font-mono font-semibold">{inStock ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
-                      <li>Filtre prix: <span className="font-mono">{priceRange[0]}€ - {priceRange[1]}€</span></li>
-                      <li>Catégories sélectionnées: <span className="font-mono">{selectedSubCategories.length}</span></li>
-                      <li>Marques sélectionnées: <span className="font-mono">{selectedBrandIds.length}</span></li>
-                      <li>Promos uniquement: <span className="font-mono">{promoOnly ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
-                    </ul>
-                  </div>
-                  
-                  {/* NOUVELLE SECTION: Debug Stock Détaillé */}
-                  <div className="col-span-1 md:col-span-2 p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
-                    <h4 className="font-semibold mb-2 text-blue-800">🔍 Debug Stock Détaillé</h4>
-                    <div className="space-y-2 text-xs">
-                      <p><strong>Format des clés de stock dans Supabase:</strong></p>
-                      <ul className="list-disc ml-5 text-blue-700">
-                        <li>Stock général: <code className="bg-white px-1 py-0.5 rounded">product_PRODUCT_ID_stock</code></li>
-                        <li>Stock variante: <code className="bg-white px-1 py-0.5 rounded">product_PRODUCT_ID_variant_IDX_option_VALUE_stock</code></li>
-                      </ul>
-                      <p className="mt-4"><strong>Formats d'IDs produits:</strong></p>
-                      <div className="bg-white p-2 rounded overflow-auto max-h-36 text-xs">
-                        {products.slice(0, 3).map(p => (
-                          <div key={p.id} className="mb-2 pb-2 border-b">
-                            <div><strong>Titre:</strong> {p.title}</div>
-                            <div><strong>ID original:</strong> <code className="bg-gray-100 px-1">{p.id}</code></div>
-                            <div><strong>ID nettoyé:</strong> <code className="bg-gray-100 px-1">{getCleanProductId(p.id)}</code></div>
-                            <div><strong>Clé stock:</strong> <code className="bg-gray-100 px-1">product_{getCleanProductId(p.id)}_stock</code></div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Détails des produits filtrés par stock */}
-                  <div className="col-span-1 md:col-span-2 p-3 bg-gray-50 rounded-lg border">
-                    <h4 className="font-semibold mb-2">Produits filtrés par stock {inStock && "(uniquement ceux hors stock)"}</h4>
-                    <div className="max-h-60 overflow-y-auto text-sm">
-                      {inStock ? (
-                        products.filter(p => !p.isInStock).length > 0 ? (
-                          <table className="min-w-full border-collapse">
-                            <thead>
-                              <tr className="bg-gray-100">
-                                <th className="border p-1 text-left">Produit</th>
-                                <th className="border p-1 text-left">ID</th>
-                                <th className="border p-1 text-left">isInStock</th>
-                                <th className="border p-1 text-left">Stock</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {products.filter(p => !p.isInStock).map(product => (
-                                <tr key={product.id} className="hover:bg-gray-100">
-                                  <td className="border p-1">{product.title}</td>
-                                  <td className="border p-1 font-mono text-xs">{getCleanProductId(product.id)}</td>
-                                  <td className="border p-1 text-center">{product.isInStock ? '✅' : '❌'}</td>
-                                  <td className="border p-1 text-center">{product.stock}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        ) : (
-                          <p className="italic text-gray-500">Aucun produit n'est filtré par le stock (tous sont en stock)</p>
-                        )
-                      ) : (
-                        <p className="italic text-gray-500">Le filtre "En stock uniquement" est désactivé</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* NOUVELLE SECTION: État de tous les produits et leurs stocks */}
-                  <div className="col-span-1 md:col-span-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <h4 className="font-semibold mb-2 text-yellow-800">📦 État de tous les produits et leurs stocks</h4>
-                    <div className="max-h-80 overflow-y-auto">
-                      <table className="min-w-full border-collapse text-xs">
-                        <thead>
-                          <tr className="bg-yellow-100">
-                            <th className="border p-1 text-left">Produit</th>
-                            <th className="border p-1 text-left">ID Clean</th>
-                            <th className="border p-1 text-left">Stock</th>
-                            <th className="border p-1 text-left">isInStock</th>
-                            <th className="border p-1 text-left">hasVariant</th>
-                            <th className="border p-1 text-left">Prix variantes</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {products.map(product => (
-                            <tr key={product.id} className="border-b hover:bg-yellow-100">
-                              <td className="border p-1">{product.title}</td>
-                              <td className="border p-1 font-mono">{getCleanProductId(product.id)}</td>
-                              <td className="border p-1 text-center">{product.stock || 0}</td>
-                              <td className="border p-1 text-center bg-opacity-20" 
-                                  style={{backgroundColor: product.isInStock ? 'rgba(0,255,0,0.2)' : 'rgba(255,0,0,0.2)'}}>
-                                {product.isInStock ? '✅' : '❌'}
-                              </td>
-                              <td className="border p-1 text-center">{product.hasVariant ? '✅' : '❌'}</td>
-                              <td className="border p-1 text-sm text-gray-600">
-                                {product.variantPriceRange
-                                  ? `${product.variantPriceRange.min} - ${product.variantPriceRange.max} €`
-                                  : '—'}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="debug-slugs" className="p-4 bg-white rounded-lg border shadow-sm">
-                <h3 className="font-bold text-lg mb-4">Débogage des Slugs</h3>
-                <div className="p-3 bg-gray-50 rounded-lg border">
-                  <table className="w-full text-sm">
-                    <tbody>
-                      <tr>
-                        <td className="py-1 font-semibold">Slug brut :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{rawSlug}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Slug nettoyé :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{currentSlug}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Slug normalisé :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{normalizedSlug}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">isEauDouce :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isEauDouce.toString()}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">isEauMer :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isEauMer.toString()}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">isUniversel :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isUniversel.toString()}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Slug sous-catégorie URL :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{initialSubCategorySlug || '(aucun)'}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Sous-catégories chargées :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{subCategories.length}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Sous-catégories IDs sélectionnées :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{selectedSubCategories.join(", ") || '(aucune)'}</td>
-                      </tr>
-                      <tr>
-                        <td className="py-1 font-semibold">Slugs disponibles :</td>
-                        <td className="py-1 font-mono bg-gray-200 px-2 rounded">{subCategories.map(s => s.slug).join(", ") || '(aucun)'}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </TabsContent>
-              <TabsContent value="debug-all" className="p-4 bg-white rounded-lg border shadow-sm">
-                <h3 className="font-bold text-lg mb-4">Débogage Supabase</h3>
-                <div className="max-h-[50vh] overflow-auto">
-                  {filteredProducts.slice(0, 5).map((product) => (
-                    <div key={product.id} className="mb-4 p-2 border-b">
-                      <h4 className="font-semibold">{product.title}</h4>
-                      <EditableDebugPanel
-                        productId={`stripe_${getCleanProductId(product.id?.toString() || "")}`}
-                      />
-                    </div>
-                  ))}
-                  {filteredProducts.length > 5 && (
-                    <div className="text-gray-500 text-sm italic">
-                      Affichage limité aux 5 premiers produits sur {filteredProducts.length}
-                    </div>
-                  )}
-                </div>
-              </TabsContent>
-              <TabsContent value="debug-supabase" className="p-4 bg-white rounded-lg border shadow-sm">
-                <h3 className="font-bold text-lg mb-4">Analyse Supabase</h3>
-                <SupabaseStockDebugger productIds={products.map(p => p.id)} />
-              </TabsContent>
-              <TabsContent value="debug-priceid" className="p-4 bg-white rounded-lg border shadow-sm">
-                <h3 className="font-bold text-lg mb-4">💳 Debug Stripe PriceID</h3>
-                <div className="space-y-6">
-                  {filteredProducts.map((product) => (
-                    <DebugPriceIdPanel key={product.id} product={product} />
-                  ))}
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
         
-        <div className="flex flex-col md:flex-row gap-8">
-          {/* Bouton filtre mobile */}
-          <div className="md:hidden mb-4">
-            <Button 
-              onClick={toggleMobileFilters}
-              variant="outline" 
-              className="w-full flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Filter size={18} className="mr-2" />
-                Filtres
-              </div>
-              <ChevronDown size={18} />
-            </Button>
-          </div>
-
-          {/* Filtres (mobile) */}
-          {mobileFiltersOpen && (
-            <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
-              <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-bold text-lg">Filtres</h2>
-                  <Button variant="ghost" size="sm" onClick={toggleMobileFilters}>
-                    <X size={24} />
-                  </Button>
-                </div>
-                {/* Contenu des filtres (même que bureau) */}
-                <div className="space-y-6">
-                  {/* Prix */}
-                  <div>
-                    <h3 className="font-medium mb-3">Prix</h3>
-                    <div className="px-2">
-                      <Slider 
-                        defaultValue={[0, 800]} 
-                        max={800} 
-                        step={1} 
-                        value={priceInput}
-                        onValueChange={handlePriceChange}
-                      />
-                      <div className="flex justify-between mt-2 text-sm">
-                        <span>{priceInput[0]}€</span>
-                        <span>{priceInput[1]}€</span>
-                      </div>
-                    </div>
-                  </div>
+        <main className="flex-grow container mx-auto px-4 py-8">
+          {/* Nouvelle section de débogage des filtres */}
+          {isEditMode && (
+            <div className="mb-6">
+              <Tabs defaultValue="products">
+                <TabsList>
+                  <TabsTrigger value="products">Produits</TabsTrigger>
+                  <TabsTrigger value="debug-filter">🛠️ Debug Filtres</TabsTrigger>
+                  <TabsTrigger value="debug-slugs">🔍 Debug Slugs</TabsTrigger>
+                  <TabsTrigger value="debug-all">🪵 Debug Tous</TabsTrigger>
+                  <TabsTrigger value="debug-supabase">📊 Analyse Supabase</TabsTrigger>
+                  <TabsTrigger value="debug-priceid">💳 Debug PriceID</TabsTrigger>
+                </TabsList>
+                <TabsContent value="products">
+                  {/* Contenu vide - sera géré par le reste du composant */}
+                </TabsContent>
+                <TabsContent value="debug-filter" className="p-4 bg-white rounded-lg border shadow-sm">
+                  <h3 className="font-bold text-lg mb-4">Débogage des filtres</h3>
                   
-                  <Separator />
-                  
-                  {/* Sous-catégories */}
-                  {subCategories.length > 0 && (
-                    <div>
-                      <h3 className="font-medium mb-3">Sous-catégories</h3>
-                      <div className="space-y-2">
-                        {subCategories.map((subCat) => (
-                          <div key={subCat.id} className="flex items-center">
-                            <Checkbox
-                              id={`subcat-mobile-${subCat.id}`}
-                              checked={selectedSubCategories.includes(subCat.id)}
-                              onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
-                            />
-                            <label htmlFor={`subcat-mobile-${subCat.id}`} className="ml-2 text-sm flex-grow">
-                              {subCat.name}
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  <Separator />
-                  
-                  {/* Marques */}
-                  <div>
-                    <h3 className="font-medium mb-3">Marques</h3>
-                    <div className="space-y-2">
-                      {brandsLoading ? (
-                        <div className="text-center py-2">
-                          <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
-                          <p className="text-xs text-gray-500 mt-1">Chargement...</p>
-                        </div>
-                      ) : brandsError ? (
-                        <div className="text-xs text-red-500 py-2">{brandsError}</div>
-                      ) : brands.length === 0 ? (
-                        <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
-                      ) : (
-                        brands.map((brand) => (
-                        <div key={brand.id} className="flex items-center">
-                          <Checkbox 
-                            id={`brand-mobile-${brand.id}`}
-                              checked={selectedBrandIds.includes(brand.id)}
-                            onCheckedChange={() => handleBrandToggle(brand.id)}
-                          />
-                          <label 
-                            htmlFor={`brand-mobile-${brand.id}`}
-                            className="ml-2 text-sm flex-grow"
-                          >
-                            {brand.name}
-                          </label>
-                        </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  {/* Disponibilité */}
-                  <div>
-                    <h3 className="font-medium mb-3">Disponibilité</h3>
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="stock-mobile" className="text-sm">
-                        En stock uniquement
-                      </label>
-                      <Switch 
-                        id="stock-mobile"
-                        checked={inStock}
-                        onCheckedChange={setInStock}
-                      />
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  {/* Promotions */}
-                  <div>
-                    <h3 className="font-medium mb-3">Promotions</h3>
-                    <div className="flex items-center justify-between">
-                      <label htmlFor="promos-mobile" className="text-sm">
-                        Articles en promotion
-                      </label>
-                      <Switch 
-                        id="promos-mobile"
-                        checked={promoOnly}
-                        onCheckedChange={setPromoOnly}
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button className="w-full" onClick={toggleMobileFilters}>
-                      Appliquer les filtres
-                    </Button>
-                  </div>
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Statistiques générales */}
+                    <div className="p-3 bg-gray-50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">Statistiques globales</h4>
+                      <ul className="space-y-1 text-sm">
+                        <li>Produits total: <span className="font-mono">{products.length}</span></li>
+                        <li>Produits filtrés: <span className="font-mono">{filteredProducts.length}</span></li>
+                        <li>Produits en stock: <span className="font-mono">{products.filter(p => p.isInStock).length}</span></li>
+                        <li>Produits hors stock: <span className="font-mono">{products.filter(p => !p.isInStock).length}</span></li>
+                      </ul>
             </div>
-          )}
+                    
+                    {/* État des filtres */}
+                    <div className="p-3 bg-gray-50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">État des filtres</h4>
+                      <ul className="space-y-1 text-sm">
+                        <li>Filtre "En stock uniquement": <span className="font-mono font-semibold">{inStock ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
+                        <li>Filtre prix: <span className="font-mono">{priceRange[0]}€ - {priceRange[1]}€</span></li>
+                        <li>Catégories sélectionnées: <span className="font-mono">{selectedSubCategories.length}</span></li>
+                        <li>Marques sélectionnées: <span className="font-mono">{selectedBrandIds.length}</span></li>
+                        <li>Promos uniquement: <span className="font-mono">{promoOnly ? '✅ ACTIVÉ' : '❌ DÉSACTIVÉ'}</span></li>
+                      </ul>
+                    </div>
+                    
+                    {/* NOUVELLE SECTION: Debug Stock Détaillé */}
+                    <div className="col-span-1 md:col-span-2 p-3 bg-blue-50 rounded-lg border border-blue-200 mb-4">
+                      <h4 className="font-semibold mb-2 text-blue-800">🔍 Debug Stock Détaillé</h4>
+                      <div className="space-y-2 text-xs">
+                        <p><strong>Format des clés de stock dans Supabase:</strong></p>
+                        <ul className="list-disc ml-5 text-blue-700">
+                          <li>Stock général: <code className="bg-white px-1 py-0.5 rounded">product_PRODUCT_ID_stock</code></li>
+                          <li>Stock variante: <code className="bg-white px-1 py-0.5 rounded">product_PRODUCT_ID_variant_IDX_option_VALUE_stock</code></li>
+                        </ul>
+                        <p className="mt-4"><strong>Formats d'IDs produits:</strong></p>
+                        <div className="bg-white p-2 rounded overflow-auto max-h-36 text-xs">
+                          {products.slice(0, 3).map(p => (
+                            <div key={p.id} className="mb-2 pb-2 border-b">
+                              <div><strong>Titre:</strong> {p.title}</div>
+                              <div><strong>ID original:</strong> <code className="bg-gray-100 px-1">{p.id}</code></div>
+                              <div><strong>ID nettoyé:</strong> <code className="bg-gray-100 px-1">{getCleanProductId(p.id)}</code></div>
+                              <div><strong>Clé stock:</strong> <code className="bg-gray-100 px-1">product_{getCleanProductId(p.id)}_stock</code></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Détails des produits filtrés par stock */}
+                    <div className="col-span-1 md:col-span-2 p-3 bg-gray-50 rounded-lg border">
+                      <h4 className="font-semibold mb-2">Produits filtrés par stock {inStock && "(uniquement ceux hors stock)"}</h4>
+                      <div className="max-h-60 overflow-y-auto text-sm">
+                        {inStock ? (
+                          products.filter(p => !p.isInStock).length > 0 ? (
+                            <table className="min-w-full border-collapse">
+                              <thead>
+                                <tr className="bg-gray-100">
+                                  <th className="border p-1 text-left">Produit</th>
+                                  <th className="border p-1 text-left">ID</th>
+                                  <th className="border p-1 text-left">isInStock</th>
+                                  <th className="border p-1 text-left">Stock</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {products.filter(p => !p.isInStock).map(product => (
+                                  <tr key={product.id} className="hover:bg-gray-100">
+                                    <td className="border p-1">{product.title}</td>
+                                    <td className="border p-1 font-mono text-xs">{getCleanProductId(product.id)}</td>
+                                    <td className="border p-1 text-center">{product.isInStock ? '✅' : '❌'}</td>
+                                    <td className="border p-1 text-center">{product.stock}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p className="italic text-gray-500">Aucun produit n'est filtré par le stock (tous sont en stock)</p>
+                          )
+                        ) : (
+                          <p className="italic text-gray-500">Le filtre "En stock uniquement" est désactivé</p>
+                        )}
+                      </div>
+                    </div>
 
-          {/* Filtres (desktop) */}
-          <div className="hidden md:block w-64 flex-shrink-0">
-            <div className="sticky top-24 bg-white rounded-lg border p-5 shadow-sm space-y-6">
-              <h2 className="font-bold">Filtres</h2>
-              
-              {/* Prix */}
-              <div>
-                <h3 className="font-medium mb-3">Prix</h3>
-                <div className="px-2">
-                  <Slider 
-                    defaultValue={[0, 800]} 
-                    max={800} 
-                    step={1} 
-                    value={priceInput}
-                    onValueChange={handlePriceChange}
-                  />
-                  <div className="flex justify-between mt-2 text-sm">
-                    <span>{priceInput[0]}€</span>
-                    <span>{priceInput[1]}€</span>
+                    {/* NOUVELLE SECTION: État de tous les produits et leurs stocks */}
+                    <div className="col-span-1 md:col-span-2 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h4 className="font-semibold mb-2 text-yellow-800">📦 État de tous les produits et leurs stocks</h4>
+                      <div className="max-h-80 overflow-y-auto">
+                        <table className="min-w-full border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-yellow-100">
+                              <th className="border p-1 text-left">Produit</th>
+                              <th className="border p-1 text-left">ID Clean</th>
+                              <th className="border p-1 text-left">Stock</th>
+                              <th className="border p-1 text-left">isInStock</th>
+                              <th className="border p-1 text-left">hasVariant</th>
+                              <th className="border p-1 text-left">Prix variantes</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {products.map(product => (
+                              <tr key={product.id} className="border-b hover:bg-yellow-100">
+                                <td className="border p-1">{product.title}</td>
+                                <td className="border p-1 font-mono">{getCleanProductId(product.id)}</td>
+                                <td className="border p-1 text-center">{product.stock || 0}</td>
+                                <td className="border p-1 text-center bg-opacity-20" 
+                                    style={{backgroundColor: product.isInStock ? 'rgba(0,255,0,0.2)' : 'rgba(255,0,0,0.2)'}}>
+                                  {product.isInStock ? '✅' : '❌'}
+                                </td>
+                                <td className="border p-1 text-center">{product.hasVariant ? '✅' : '❌'}</td>
+                                <td className="border p-1 text-sm text-gray-600">
+                                  {product.variantPriceRange
+                                    ? `${product.variantPriceRange.min} - ${product.variantPriceRange.max} €`
+                                    : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Sous-catégories */}
-              {subCategories.length > 0 && (
-                <div>
-                  <h3 className="font-medium mb-3">Sous-catégories</h3>
-                  <div className="space-y-2">
-                    {subCategories.map((subCat) => (
-                      <div key={subCat.id} className="flex items-center">
-                        <Checkbox
-                          id={`subcat-${subCat.id}`}
-                          checked={selectedSubCategories.includes(subCat.id)}
-                          onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                </TabsContent>
+                <TabsContent value="debug-slugs" className="p-4 bg-white rounded-lg border shadow-sm">
+                  <h3 className="font-bold text-lg mb-4">Débogage des Slugs</h3>
+                  <div className="p-3 bg-gray-50 rounded-lg border">
+                    <table className="w-full text-sm">
+                      <tbody>
+                        <tr>
+                          <td className="py-1 font-semibold">Slug brut :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{rawSlug}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Slug nettoyé :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{currentSlug}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Slug normalisé :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{normalizedSlug}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">isEauDouce :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isEauDouce.toString()}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">isEauMer :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isEauMer.toString()}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">isUniversel :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{isUniversel.toString()}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Slug sous-catégorie URL :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{initialSubCategorySlug || '(aucun)'}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Sous-catégories chargées :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{subCategories.length}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Sous-catégories IDs sélectionnées :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{selectedSubCategories.join(", ") || '(aucune)'}</td>
+                        </tr>
+                        <tr>
+                          <td className="py-1 font-semibold">Slugs disponibles :</td>
+                          <td className="py-1 font-mono bg-gray-200 px-2 rounded">{subCategories.map(s => s.slug).join(", ") || '(aucun)'}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </TabsContent>
+                <TabsContent value="debug-all" className="p-4 bg-white rounded-lg border shadow-sm">
+                  <h3 className="font-bold text-lg mb-4">Débogage Supabase</h3>
+                  <div className="max-h-[50vh] overflow-auto">
+                    {filteredProducts.slice(0, 5).map((product) => (
+                      <div key={product.id} className="mb-4 p-2 border-b">
+                        <h4 className="font-semibold">{product.title}</h4>
+                        <EditableDebugPanel
+                          productId={`stripe_${getCleanProductId(product.id?.toString() || "")}`}
                         />
-                        <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
-                          {subCat.name}
-                        </label>
                       </div>
                     ))}
+                    {filteredProducts.length > 5 && (
+                      <div className="text-gray-500 text-sm italic">
+                        Affichage limité aux 5 premiers produits sur {filteredProducts.length}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+                <TabsContent value="debug-supabase" className="p-4 bg-white rounded-lg border shadow-sm">
+                  <h3 className="font-bold text-lg mb-4">Analyse Supabase</h3>
+                  <SupabaseStockDebugger productIds={products.map(p => p.id)} />
+                </TabsContent>
+                <TabsContent value="debug-priceid" className="p-4 bg-white rounded-lg border shadow-sm">
+                  <h3 className="font-bold text-lg mb-4">💳 Debug Stripe PriceID</h3>
+                  <div className="space-y-6">
+                    {filteredProducts.map((product) => (
+                      <DebugPriceIdPanel key={product.id} product={product} />
+                    ))}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+          
+          <div className="flex flex-col md:flex-row gap-8">
+            {/* Bouton filtre mobile */}
+            <div className="md:hidden mb-4">
+              <Button 
+                onClick={toggleMobileFilters}
+                variant="outline" 
+                className="w-full flex items-center justify-between"
+              >
+                <div className="flex items-center">
+                  <Filter size={18} className="mr-2" />
+                  Filtres
+                </div>
+                <ChevronDown size={18} />
+              </Button>
+            </div>
+
+            {/* Filtres (mobile) */}
+            {mobileFiltersOpen && (
+              <div className="fixed inset-0 bg-black/50 z-50 md:hidden">
+                <div className="bg-white h-full w-4/5 max-w-md p-4 overflow-auto animate-slide-in-right">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-bold text-lg">Filtres</h2>
+                    <Button variant="ghost" size="sm" onClick={toggleMobileFilters}>
+                      <X size={24} />
+                    </Button>
+                  </div>
+                  {/* Contenu des filtres (même que bureau) */}
+                  <div className="space-y-6">
+                    {/* Prix */}
+                    <div>
+                      <h3 className="font-medium mb-3">Prix</h3>
+                      <div className="px-2">
+                        <Slider 
+                          defaultValue={[0, 800]} 
+                          max={800} 
+                          step={1} 
+                          value={priceInput}
+                          onValueChange={handlePriceChange}
+                        />
+                        <div className="flex justify-between mt-2 text-sm">
+                          <span>{priceInput[0]}€</span>
+                          <span>{priceInput[1]}€</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Sous-catégories */}
+                    {subCategories.length > 0 && (
+                      <div>
+                        <h3 className="font-medium mb-3">Sous-catégories</h3>
+                        <div className="space-y-2">
+                          {subCategories.map((subCat) => (
+                            <div key={subCat.id} className="flex items-center">
+                              <Checkbox
+                                id={`subcat-mobile-${subCat.id}`}
+                                checked={selectedSubCategories.includes(subCat.id)}
+                                onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                              />
+                              <label htmlFor={`subcat-mobile-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                                {subCat.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Separator />
+                    
+                    {/* Marques */}
+                    <div>
+                      <h3 className="font-medium mb-3">Marques</h3>
+                      <div className="space-y-2">
+                        {brandsLoading ? (
+                          <div className="text-center py-2">
+                            <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                            <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                          </div>
+                        ) : brandsError ? (
+                          <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                        ) : brands.length === 0 ? (
+                          <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                        ) : (
+                          brands.map((brand) => (
+                          <div key={brand.id} className="flex items-center">
+                            <Checkbox 
+                              id={`brand-mobile-${brand.id}`}
+                                checked={selectedBrandIds.includes(brand.id)}
+                              onCheckedChange={() => handleBrandToggle(brand.id)}
+                            />
+                            <label 
+                              htmlFor={`brand-mobile-${brand.id}`}
+                              className="ml-2 text-sm flex-grow"
+                            >
+                              {brand.name}
+                            </label>
+                          </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Disponibilité */}
+                    <div>
+                      <h3 className="font-medium mb-3">Disponibilité</h3>
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="stock-mobile" className="text-sm">
+                          En stock uniquement
+                        </label>
+                        <Switch 
+                          id="stock-mobile"
+                          checked={inStock}
+                          onCheckedChange={setInStock}
+                        />
+                      </div>
+                    </div>
+                    
+                    <Separator />
+                    
+                    {/* Promotions */}
+                    <div>
+                      <h3 className="font-medium mb-3">Promotions</h3>
+                      <div className="flex items-center justify-between">
+                        <label htmlFor="promos-mobile" className="text-sm">
+                          Articles en promotion
+                        </label>
+                        <Switch 
+                          id="promos-mobile"
+                          checked={promoOnly}
+                          onCheckedChange={setPromoOnly}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4">
+                      <Button className="w-full" onClick={toggleMobileFilters}>
+                        Appliquer les filtres
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              )}
-              
-              <Separator />
-              
-              {/* Marques */}
-              <div>
-                <h3 className="font-medium mb-3">Marques</h3>
-                <div className="space-y-2">
-                  {brandsLoading ? (
-                    <div className="text-center py-2">
-                      <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
-                      <p className="text-xs text-gray-500 mt-1">Chargement...</p>
-                    </div>
-                  ) : brandsError ? (
-                    <div className="text-xs text-red-500 py-2">{brandsError}</div>
-                  ) : brands.length === 0 ? (
-                    <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
-                  ) : (
-                    brands.map((brand) => (
-                    <div key={brand.id} className="flex items-center">
-                      <Checkbox 
-                        id={`brand-${brand.id}`}
-                          checked={selectedBrandIds.includes(brand.id)}
-                        onCheckedChange={() => handleBrandToggle(brand.id)}
-                      />
-                      <label 
-                        htmlFor={`brand-${brand.id}`}
-                        className="ml-2 text-sm flex-grow"
-                      >
-                        {brand.name}
-                      </label>
-                    </div>
-                    ))
-                  )}
-                </div>
               </div>
-              
-              <Separator />
-              
-              {/* Disponibilité */}
-              <div>
-                <h3 className="font-medium mb-3">Disponibilité</h3>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="stock" className="text-sm">
-                    En stock uniquement
-                  </label>
-                  <Switch 
-                    id="stock"
-                    checked={inStock}
-                    onCheckedChange={setInStock}
-                  />
+            )}
+
+            {/* Filtres (desktop) */}
+            <div className="hidden md:block w-64 flex-shrink-0">
+              <div className="sticky top-24 bg-white rounded-lg border p-5 shadow-sm space-y-6">
+                <h2 className="font-bold">Filtres</h2>
+                
+                {/* Prix */}
+                <div>
+                  <h3 className="font-medium mb-3">Prix</h3>
+                  <div className="px-2">
+                    <Slider 
+                      defaultValue={[0, 800]} 
+                      max={800} 
+                      step={1} 
+                      value={priceInput}
+                      onValueChange={handlePriceChange}
+                    />
+                    <div className="flex justify-between mt-2 text-sm">
+                      <span>{priceInput[0]}€</span>
+                      <span>{priceInput[1]}€</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <Separator />
-              
-              {/* Promotions */}
-              <div>
-                <h3 className="font-medium mb-3">Promotions</h3>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="promos" className="text-sm">
-                    Articles en promotion
-                  </label>
-                  <Switch 
-                    id="promos"
-                    checked={promoOnly}
-                    onCheckedChange={setPromoOnly}
-                  />
+                
+                <Separator />
+                
+                {/* Sous-catégories */}
+                {subCategories.length > 0 && (
+                  <div>
+                    <h3 className="font-medium mb-3">Sous-catégories</h3>
+                    <div className="space-y-2">
+                      {subCategories.map((subCat) => (
+                        <div key={subCat.id} className="flex items-center">
+                          <Checkbox
+                            id={`subcat-${subCat.id}`}
+                            checked={selectedSubCategories.includes(subCat.id)}
+                            onCheckedChange={() => handleSubCategoryToggle(subCat.id)}
+                          />
+                          <label htmlFor={`subcat-${subCat.id}`} className="ml-2 text-sm flex-grow">
+                            {subCat.name}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                <Separator />
+                
+                {/* Marques */}
+                <div>
+                  <h3 className="font-medium mb-3">Marques</h3>
+                  <div className="space-y-2">
+                    {brandsLoading ? (
+                      <div className="text-center py-2">
+                        <div className="animate-spin h-4 w-4 border-b-2 border-primary rounded-full mx-auto"></div>
+                        <p className="text-xs text-gray-500 mt-1">Chargement...</p>
+                      </div>
+                    ) : brandsError ? (
+                      <div className="text-xs text-red-500 py-2">{brandsError}</div>
+                    ) : brands.length === 0 ? (
+                      <div className="text-xs text-gray-500 py-2">Aucune marque disponible</div>
+                    ) : (
+                      brands.map((brand) => (
+                      <div key={brand.id} className="flex items-center">
+                        <Checkbox 
+                          id={`brand-${brand.id}`}
+                            checked={selectedBrandIds.includes(brand.id)}
+                          onCheckedChange={() => handleBrandToggle(brand.id)}
+                        />
+                        <label 
+                          htmlFor={`brand-${brand.id}`}
+                          className="ml-2 text-sm flex-grow"
+                        >
+                          {brand.name}
+                        </label>
+                      </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Disponibilité */}
+                <div>
+                  <h3 className="font-medium mb-3">Disponibilité</h3>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="stock" className="text-sm">
+                      En stock uniquement
+                    </label>
+                    <Switch 
+                      id="stock"
+                      checked={inStock}
+                      onCheckedChange={setInStock}
+                    />
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                {/* Promotions */}
+                <div>
+                  <h3 className="font-medium mb-3">Promotions</h3>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="promos" className="text-sm">
+                      Articles en promotion
+                    </label>
+                    <Switch 
+                      id="promos"
+                      checked={promoOnly}
+                      onCheckedChange={setPromoOnly}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
+            {/* Produits */}
+            <div className="flex-grow">
+              {/* En-tête de résultats */}
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-semibold">Tous les produits</h2>
+                  <p className="text-gray-500 text-sm">{filteredProducts.length} produits trouvés</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select className="text-sm border rounded p-2 bg-white">
+                    <option>Tri par défaut</option>
+                    <option>Prix croissant</option>
+                    <option>Prix décroissant</option>
+                    <option>Meilleures ventes</option>
+                    <option>Nouveautés</option>
+                  </select>
+                </div>
+              </div>
+              
+              {/* Grille de produits */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {isLoading ? (
+                  <div className="col-span-full flex justify-center items-center h-40">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  </div>
+                ) : error ? (
           {/* Produits */}
           <div className="flex-grow">
             {/* En-tête de résultats */}
@@ -1987,6 +2042,7 @@ return () => window.removeEventListener('resize', handleResize);
       
       <Footer />
     </div>
+  </>
   );
 };
 
