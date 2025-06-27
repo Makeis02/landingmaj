@@ -38,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
+import { Helmet } from "react-helmet";
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -478,34 +479,36 @@ const EauDouceEntretienPage = () => {
           description={categoryDescription}
           image="/og-image.png"
         />
-        {/* --- BREADCRUMB JSON-LD POUR GOOGLE --- */}
+        {/* --- BREADCRUMB JSON-LD POUR GOOGLE (via react-helmet) --- */}
         {categoryTitle && currentSlug && (!selectedSubCategories.length || (selectedSubCategories.length === 1 && subCategories.length > 0)) && (
-          <script type="application/ld+json">
-            {JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "BreadcrumbList",
-              "itemListElement": [
-                {
-                  "@type": "ListItem",
-                  position: 1,
-                  name: "Accueil",
-                  item: "https://aqua-reve.com/"
-                },
-                {
-                  "@type": "ListItem",
-                  position: 2,
-                  name: categoryTitle,
-                  item: `https://aqua-reve.com/categories/${currentSlug}`
-                },
-                ...(selectedSubCategories.length === 1 && subCategories.length > 0 ? [{
-                  "@type": "ListItem",
-                  position: 3,
-                  name: subCategories.find(sc => sc.id === selectedSubCategories[0])?.name || "",
-                  item: `https://aqua-reve.com/categories/${currentSlug}?souscategorie=${subCategories.find(sc => sc.id === selectedSubCategories[0])?.slug || ""}`
-                }] : [])
-              ]
-            })}
-          </script>
+          <Helmet>
+            <script type="application/ld+json">
+              {JSON.stringify({
+                "@context": "https://schema.org",
+                "@type": "BreadcrumbList",
+                "itemListElement": [
+                  {
+                    "@type": "ListItem",
+                    position: 1,
+                    name: "Accueil",
+                    item: "https://aqua-reve.com/"
+                  },
+                  {
+                    "@type": "ListItem",
+                    position: 2,
+                    name: categoryTitle,
+                    item: `https://aqua-reve.com/categories/${currentSlug}`
+                  },
+                  ...(selectedSubCategories.length === 1 && subCategories.length > 0 ? [{
+                    "@type": "ListItem",
+                    position: 3,
+                    name: subCategories.find(sc => sc.id === selectedSubCategories[0])?.name || "",
+                    item: `https://aqua-reve.com/categories/${currentSlug}?souscategorie=${subCategories.find(sc => sc.id === selectedSubCategories[0])?.slug || ""}`
+                  }] : [])
+                ]
+              })}
+            </script>
+          </Helmet>
         )}
       </>
   
