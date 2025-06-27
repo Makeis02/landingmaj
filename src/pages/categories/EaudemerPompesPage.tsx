@@ -1186,7 +1186,18 @@ return () => window.removeEventListener('resize', handleResize);
         has_discount: hasDiscountApplied
       });
 
-      toast({
+      if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+toast({
         title: "Produit ajouté au panier",
         description: hasDiscountApplied 
           ? `${product.title} a été ajouté à votre panier avec ${discountPercentage}% de réduction !`
@@ -1898,7 +1909,18 @@ return () => window.removeEventListener('resize', handleResize);
                                     stripe_price_id: promo.stripe_price_id,
                                     stripe_discount_price_id: promo.stripe_discount_price_id
                                   });
-                                  toast({
+                                  if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+toast({
                                     title: "Produit ajouté au panier",
                                     description: `${product.title} a été ajouté au panier avec ${promo.discount_percentage}% de réduction !`,
                                   });
@@ -1910,7 +1932,18 @@ return () => window.removeEventListener('resize', handleResize);
                             image_url: product.image || "",
                                     quantity: 1
                           });
-                          toast({
+                          if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+toast({
                                     title: "Produit ajouté au panier",
                             description: `${product.title} a été ajouté au panier.`,
                           });

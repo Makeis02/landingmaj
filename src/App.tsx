@@ -103,6 +103,7 @@ import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import FacebookPixel from "@/components/FacebookPixel";
 
 const queryClient = new QueryClient();
 
@@ -305,6 +306,7 @@ const App = () => {
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <FacebookPixel />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/admin-login" element={<AdminLogin />} />

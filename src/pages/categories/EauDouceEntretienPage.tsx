@@ -3,6 +3,7 @@ declare global {
   interface Window {
     DEBUG_PRODUCTS?: ExtendedStripeProduct[];
     DEBUG_DESCRIPTIONS?: Record<string, string>;
+    fbq?: (event: string, options?: any) => void;
   }
 }
 
@@ -1204,6 +1205,19 @@ return () => window.removeEventListener('resize', handleResize);
         stripe_price_id: stripePriceId,
         has_discount: hasDiscountApplied
       });
+
+      // Tracking Facebook Pixel AddToCart
+      if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
     } catch (error) {
       console.error("Erreur lors de l'ajout au panier:", error);
       toast({
@@ -1903,7 +1917,18 @@ return () => window.removeEventListener('resize', handleResize);
                                     stripe_price_id: promo.stripe_price_id,
                                     stripe_discount_price_id: promo.stripe_discount_price_id
                                   });
-                                  toast({
+                                  if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+toast({
                                     title: "Produit ajouté au panier",
                                     description: `${product.title} a été ajouté au panier avec ${promo.discount_percentage}% de réduction !`,
                                   });
@@ -1915,7 +1940,18 @@ return () => window.removeEventListener('resize', handleResize);
                                     image_url: product.image || "",
                                     quantity: 1
                                   });
-                                  toast({
+                                  if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variant ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: 1,
+          ...(variant ? { variant } : {})
+        });
+      }
+toast({
                                     title: "Produit ajouté au panier",
                                     description: `${product.title} a été ajouté au panier.`,
                                   });

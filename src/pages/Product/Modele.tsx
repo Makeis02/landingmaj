@@ -1691,6 +1691,21 @@ const Modele = ({ categoryParam = null }) => {
         has_discount: hasDiscountApplied // Indique si une réduction est active
       });
 
+      // Tracking Facebook Pixel AddToCart
+      if (window.fbq) {
+        window.fbq('track', 'AddToCart', {
+          content_ids: [product.id],
+          content_name: product.title,
+          content_type: variants.length > 0 ? 'product_group' : 'product',
+          value: finalPrice,
+          currency: 'EUR',
+          quantity: quantity,
+          ...(selectedVariants && Object.keys(selectedVariants).length > 0
+            ? { variant: Object.entries(selectedVariants).map(([k, v]) => `${k}:${v}`).join('|') }
+            : {})
+        });
+      }
+
       toast({
         title: "Produit ajouté au panier",
         description: hasDiscountApplied 
