@@ -1274,59 +1274,10 @@ const Checkout = () => {
               </div>
             </div>
           )}
-          {isEditMode && isAdmin && debugStripe && (
-            <div className="mt-10 p-6 bg-gray-100 border border-gray-300 rounded-xl max-w-3xl mx-auto">
-              <h3 className="font-bold text-lg mb-4 text-blue-900">🧩 Stripe Checkout Debug</h3>
-
-              <section className="space-y-4 text-xs text-gray-800">
-                <div>
-                  <b>Panier AVANT enrichissement :</b>
-                  <pre className="bg-white p-2 rounded">{JSON.stringify(debugStripe.items, null, 2)}</pre>
-                </div>
-
-                <div>
-                  <b>Panier APRÈS enrichissement :</b>
-                  <pre className="bg-white p-2 rounded">{JSON.stringify(debugStripe.enrichedItems, null, 2)}</pre>
-                </div>
-
-                <div>
-                  <b>Produits SANS stripe_price_id :</b>
-                  <pre className="bg-red-100 p-2 rounded">{JSON.stringify(debugStripe.missing, null, 2)}</pre>
-                </div>
-
-                <div>
-                  <b>✅ Payload API Stripe :</b>
-                  <pre className="bg-white p-2 rounded">{JSON.stringify(debugStripe.apiPayload, null, 2)}</pre>
-                </div>
-
-                <div>
-                  <b>📨 Réponse Stripe :</b>
-                  <pre className="bg-green-100 p-2 rounded">{JSON.stringify(debugStripe.apiResponse, null, 2)}</pre>
-                </div>
-
-                {debugStripe.apiError && (
-                  <div>
-                    <b>❌ Erreur Stripe :</b>
-                    <pre className="bg-red-200 p-2 rounded">{JSON.stringify(debugStripe.apiError, null, 2)}</pre>
-                  </div>
-                )}
-
-                {debugStripe.apiDebug && (
-                  <div>
-                    <b>📝 Trace complète API (Supabase & Stripe) :</b>
-                    <pre className="bg-white p-4 rounded border text-xs whitespace-pre-wrap">{JSON.stringify(debugStripe.apiDebug, null, 2)}</pre>
-                  </div>
-                )}
-              </section>
-            </div>
-          )}
         </div>
       </main>
       
       <Footer />
-      
-      {/* Ajoute le panneau de debug */}
-      <DebugPanel apiDebug={apiDebug} />
     </div>
   );
 };
