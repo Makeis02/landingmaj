@@ -2865,6 +2865,35 @@ const Modele = ({ categoryParam = null }) => {
           } : undefined
         }}
       />
+      {/* --- BREADCRUMB JSON-LD POUR GOOGLE --- */}
+      {breadcrumbCategory && product && (
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              ...(breadcrumbCategory.parent ? [{
+                "@type": "ListItem",
+                position: 1,
+                name: breadcrumbCategory.parent.name,
+                item: `${typeof window !== 'undefined' ? window.location.origin : ''}/categories/${breadcrumbCategory.parent.slug}`
+              }] : []),
+              ...(breadcrumbCategory.current ? [{
+                "@type": "ListItem",
+                position: 2,
+                name: breadcrumbCategory.current.name,
+                item: `${typeof window !== 'undefined' ? window.location.origin : ''}/categories/${breadcrumbCategory.parent?.slug || breadcrumbCategory.current.slug}?souscategorie=${breadcrumbCategory.current.slug}`
+              }] : []),
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: product.title,
+                item: typeof window !== 'undefined' ? window.location.href : ''
+              }
+            ]
+          })}
+        </script>
+      )}
       <script type="application/ld+json">
         {JSON.stringify({
           "@context": "https://schema.org/",
