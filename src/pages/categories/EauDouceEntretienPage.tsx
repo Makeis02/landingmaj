@@ -1926,8 +1926,7 @@ return () => window.removeEventListener('resize', handleResize);
           value: finalPrice,
           currency: 'EUR',
           quantity: 1,
-          ...(variant ? { variant } : {}),
-          eventID: 'TEST79021' // Ajout pour test Facebook Pixel
+          ...(variant ? { variant } : {})
         });
       }
 toast({
@@ -1950,8 +1949,7 @@ toast({
           value: finalPrice,
           currency: 'EUR',
           quantity: 1,
-          ...(variant ? { variant } : {}),
-          eventID: 'TEST79021' // Ajout pour test Facebook Pixel
+          ...(variant ? { variant } : {})
         });
       }
 toast({

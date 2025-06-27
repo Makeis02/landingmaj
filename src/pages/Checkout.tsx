@@ -451,9 +451,6 @@ const Checkout = () => {
       const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
       const giftItems = items.filter(item => item.is_gift || item.threshold_gift);
       
-      console.log(`🎁 [CHECKOUT] ${giftItems.length} cadeaux détectés (exclus du traitement Stripe)`);
-      console.log(`💰 [CHECKOUT] ${payableItems.length} produits payants à traiter`);
-
       // Validation des champs obligatoires
       const requiredAlways = [
         { key: "firstName", label: "Prénom" },
@@ -524,7 +521,6 @@ const Checkout = () => {
             originalPrice = priceInfo.original_price;
             discountPercentage = priceInfo.discount_percentage;
             hasDiscount = true;
-            console.log(`🎯 [CHECKOUT] Promotion appliquée pour ${item.id}: ${originalPrice}€ -> ${finalPrice}€ (-${discountPercentage}%)`);
           } else {
             // Pas de promotion, utiliser le prix de base
             finalPriceId = item.stripe_price_id || await getPriceIdForProduct(item.id, item.variant);
@@ -534,14 +530,6 @@ const Checkout = () => {
           // Fallback : récupérer le price_id de base
           finalPriceId = item.stripe_price_id || await getPriceIdForProduct(item.id, item.variant);
         }
-        
-        console.log(`📋 [CHECKOUT] Item ${item.id}:`, {
-          originalPrice: item.price,
-          finalPrice,
-          finalPriceId,
-          hasDiscount,
-          discountPercentage
-        });
         
         return {
           ...item,

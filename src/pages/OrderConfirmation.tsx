@@ -24,7 +24,23 @@ const OrderConfirmation = () => {
     // 🧹 VIDAGE DU PANIER dès l'arrivée sur la page de confirmation
     clearCart();
     console.log("🧹 [ORDER-CONFIRMATION] Panier vidé après confirmation de commande");
-    
+  }, [clearCart]);
+
+  // Tracking Facebook Pixel Purchase (PRODUCTION)
+  useEffect(() => {
+    if (order && orderItems.length > 0 && window.fbq) {
+      const productIds = orderItems.filter(i => !i.product_id.startsWith('shipping_')).map(i => i.product_id);
+      window.fbq('track', 'Purchase', {
+        content_ids: productIds,
+        content_type: 'product',
+        value: order.total || orderItems.reduce((sum, i) => sum + (i.price * i.quantity), 0),
+        currency: 'EUR',
+        order_id: order.id
+      });
+    }
+  }, [order, orderItems]);
+
+  useEffect(() => {
     if (!orderId) return;
     const fetchOrder = async () => {
       const { data, error } = await supabase
