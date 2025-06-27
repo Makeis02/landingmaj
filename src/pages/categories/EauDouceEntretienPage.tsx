@@ -1215,7 +1215,8 @@ return () => window.removeEventListener('resize', handleResize);
           value: finalPrice,
           currency: 'EUR',
           quantity: 1,
-          ...(variant ? { variant } : {})
+          ...(variant ? { variant } : {}),
+          eventID: 'TEST79021' // Ajout pour test Facebook Pixel
         });
       }
     } catch (error) {
@@ -1925,7 +1926,8 @@ return () => window.removeEventListener('resize', handleResize);
           value: finalPrice,
           currency: 'EUR',
           quantity: 1,
-          ...(variant ? { variant } : {})
+          ...(variant ? { variant } : {}),
+          eventID: 'TEST79021' // Ajout pour test Facebook Pixel
         });
       }
 toast({
@@ -1948,7 +1950,8 @@ toast({
           value: finalPrice,
           currency: 'EUR',
           quantity: 1,
-          ...(variant ? { variant } : {})
+          ...(variant ? { variant } : {}),
+          eventID: 'TEST79021' // Ajout pour test Facebook Pixel
         });
       }
 toast({
