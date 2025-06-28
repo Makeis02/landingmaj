@@ -29,7 +29,7 @@ async function fetchProductFields(productId) {
       .select('content_key, content')
       .like('content_key', searchKey);
 
-    if (error) {
+  if (error) {
       console.warn(`⚠️  [${productId}] Erreur Supabase: ${error.message}`);
       return {};
     }
@@ -257,10 +257,6 @@ async function generateCatalog() {
       
       // Vérifier s'il a des variantes
       const hasProductVariants = hasVariants(fields);
-      const variantPriceRange = hasProductVariants ? getVariantPriceRange(fields) : null;
-      
-      // Récupérer le prix avec la logique de Modele.tsx
-      const priceInfo = await getProductPrice(stripeProduct.id, fields);
       
       // Extraire les valeurs des champs
       const title = fields.title || stripeProduct.name;
@@ -276,76 +272,117 @@ async function generateCatalog() {
         image = stripeProduct.images[0];
       }
 
-      console.log(`   - title: ${title}`);
-      console.log(`   - price: ${priceInfo ? (priceInfo.amount) + '€' + (priceInfo.isPromo ? ' (PROMO)' : '') : 'undefined'}`);
-      if (priceInfo && priceInfo.isPromo) {
-        console.log(`   - originalPrice: ${priceInfo.originalAmount}€`);
-        console.log(`   - discountPercentage: ${priceInfo.discountPercentage}%`);
+      if (hasProductVariants) {
+        // === GÉNÉRATION PAR VARIANTE ===
+        let variantIndex = 0;
+        while (fields[`variant_${variantIndex}_label`] && fields[`variant_${variantIndex}_options`] && fields[`variant_${variantIndex}_price_map`]) {
+          const variantLabel = fields[`variant_${variantIndex}_label`];
+          const options = (fields[`variant_${variantIndex}_options`] || '').split('/').map(o => o.trim()).filter(Boolean);
+          let priceMap = {};
+          try {
+            priceMap = JSON.parse(fields[`variant_${variantIndex}_price_map`] || '{}');
+          } catch {}
+          // Discount map (promo par option)
+          let discountMap = {};
+          for (const option of options) {
+            const discountKey = `variant_${variantIndex}_option_${option}_discount_price`;
+            if (fields[discountKey]) {
+              discountMap[option] = parseFloat(fields[discountKey]);
+            }
+          }
+          for (const option of options) {
+            const comboKey = `${variantLabel}:${option}`;
+            const variantPrice = priceMap[comboKey];
+            const variantDiscountPrice = discountMap[option];
+            // Générer l'ID, le titre, le lien, etc.
+            const variantId = `${stripeProduct.id}_${variantLabel.replace(/\s+/g, '-')}_${option.replace(/\s+/g, '-')}`;
+            const variantTitle = `${title} - ${option}`;
+            const slug = slugify(title, { lower: true, strict: true });
+            const link = `https://aqua-reve.com/produits/${slug}?id=${stripeProduct.id}&variante=${encodeURIComponent(option)}`;
+            // Utiliser l'image principale (ou une logique d'image par option si dispo)
+            // Champs obligatoires
+            if (!variantTitle || !description || !brand || !image || !variantPrice) {
+              let missing = [];
+              if (!variantTitle) missing.push('title');
+              if (!description) missing.push('description');
+              if (!brand) missing.push('brand');
+              if (!image) missing.push('image');
+              if (!variantPrice) missing.push('price');
+              console.log(`   ❌ Variante ignorée (champ obligatoire manquant: ${missing.join(', ')})`);
+              ignoredCount++;
+              continue;
+            }
+            // Déterminer le prix final et le sale_price
+            let price = variantPrice;
+            let sale_price = '';
+            if (variantDiscountPrice && variantDiscountPrice < variantPrice) {
+              sale_price = `${variantDiscountPrice.toFixed(2)} EUR`;
+            }
+            // Log
+            console.log(`   - Variante: ${option}`);
+            console.log(`     - id: ${variantId}`);
+            console.log(`     - title: ${variantTitle}`);
+            console.log(`     - price: ${variantPrice}€`);
+            if (sale_price) console.log(`     - sale_price: ${sale_price}`);
+            console.log(`     - link: ${link}`);
+            // Générer la ligne CSV
+            const row = {
+              id: variantId,
+              title: variantTitle,
+              description: description.replace(/<[^>]*>/g, ''),
+              price: `${variantPrice.toFixed(2)} EUR`,
+              sale_price: sale_price,
+              availability: (parseInt(stock) > 0 ? 'in stock' : 'out of stock'),
+              condition: 'new',
+              link: link,
+              image_link: image,
+              brand: brand || '',
+              reference: reference || ''
+            };
+            rows.push(row);
+            console.log(`     ✅ Variante ajoutée au catalogue`);
+            addedCount++;
+          }
+          variantIndex++;
+        }
+      } else {
+        // === PRODUIT SANS VARIANTE ===
+        // Récupérer le prix avec la logique de Modele.tsx
+        const priceInfo = await getProductPrice(stripeProduct.id, fields);
+        // Vérifier que les champs obligatoires sont présents et non vides
+        if (!title || !priceInfo || !description || !brand || !image) {
+          let missing = [];
+          if (!title) missing.push('title');
+          if (!priceInfo) missing.push('price');
+          if (!description) missing.push('description');
+          if (!brand) missing.push('brand');
+          if (!image) missing.push('image');
+          console.log(`   ❌ Produit ignoré (champ obligatoire manquant: ${missing.join(', ')})\n`);
+          ignoredCount++;
+          continue;
+        }
+        // Générer le slug SEO-friendly à partir du titre
+        const slug = slugify(title, { lower: true, strict: true });
+        const link = `https://aqua-reve.com/produits/${slug}?id=${stripeProduct.id}`;
+        console.log(`   - link: ${link}`);
+        // Créer la ligne du CSV avec gestion des prix barrés et variantes
+        const row = {
+          id: stripeProduct.id,
+          title: title,
+          description: description.replace(/<[^>]*>/g, ''), // Nettoyer le HTML
+          price: `${priceInfo.amount.toFixed(2)} EUR`,
+          sale_price: priceInfo.isPromo && priceInfo.discountPercentage ? `${priceInfo.amount.toFixed(2)} EUR` : '',
+          availability: (parseInt(stock) > 0 ? 'in stock' : 'out of stock'),
+          condition: 'new',
+          link: link,
+          image_link: image,
+          brand: brand || '',
+          reference: reference || ''
+        };
+        rows.push(row);
+        console.log(`   ✅ Produit ajouté au catalogue\n`);
+        addedCount++;
       }
-      console.log(`   - stock: ${stock}`);
-      console.log(`   - image: ${image}`);
-      console.log(`   - brand: ${brand || 'Aucune'}`);
-      console.log(`   - reference: ${reference}`);
-      console.log(`   - hasVariants: ${hasProductVariants}`);
-      if (variantPriceRange) {
-        console.log(`   - variantPriceRange: ${variantPriceRange.min}€ - ${variantPriceRange.max}€`);
-      }
-
-      // Vérifier que les champs obligatoires sont présents et non vides
-      if (!title || !priceInfo || !description || !brand || !image) {
-        let missing = [];
-        if (!title) missing.push('title');
-        if (!priceInfo) missing.push('price');
-        if (!description) missing.push('description');
-        if (!brand) missing.push('brand');
-        if (!image) missing.push('image');
-        console.log(`   ❌ Produit ignoré (champ obligatoire manquant: ${missing.join(', ')})\n`);
-        ignoredCount++;
-        continue;
-      }
-
-      // Déterminer la disponibilité
-      const stockNum = parseInt(stock) || 0;
-      const availability = stockNum > 0 ? 'in stock' : 'out of stock';
-
-      // Générer le slug SEO-friendly à partir du titre
-      const slug = slugify(title, { lower: true, strict: true });
-      const link = `https://aqua-reve.com/produits/${slug}?id=${stripeProduct.id}`;
-      console.log(`   - link: ${link}`);
-
-      // Créer la ligne du CSV avec gestion des prix barrés et variantes
-      const row = {
-        id: stripeProduct.id,
-        title: title,
-        description: description.replace(/<[^>]*>/g, ''), // Nettoyer le HTML
-        price: `${priceInfo.amount.toFixed(2)} EUR`,
-        availability: availability,
-        condition: 'new',
-        link: link,
-        image_link: image,
-        brand: brand || '',
-        reference: reference || ''
-      };
-
-      // Ajouter les champs pour les prix barrés si promo (comme dans Modele.tsx)
-      if (priceInfo.isPromo && priceInfo.discountPercentage) {
-        // Utiliser le prix original réel (comme dans Modele.tsx)
-        row.sale_price = `${priceInfo.amount.toFixed(2)} EUR`;
-        row.price = `${priceInfo.originalAmount.toFixed(2)} EUR`;
-        console.log(`   🎉 Prix barré: ${priceInfo.originalAmount.toFixed(2)}€ → ${priceInfo.amount.toFixed(2)}€ (-${priceInfo.discountPercentage}%)`);
-      }
-
-      // Ajouter les champs pour les variantes si applicable
-      if (hasProductVariants && variantPriceRange) {
-        row.title = `${title} (Variantes disponibles)`;
-        row.price = `${variantPriceRange.min.toFixed(2)} EUR`;
-        row.sale_price = `${variantPriceRange.max.toFixed(2)} EUR`;
-        console.log(`   🔄 Produit avec variantes: ${variantPriceRange.min}€ - ${variantPriceRange.max}€`);
-      }
-
-      rows.push(row);
-      console.log(`   ✅ Produit ajouté au catalogue\n`);
-      addedCount++;
     }
 
     // Générer le CSV avec tous les champs possibles

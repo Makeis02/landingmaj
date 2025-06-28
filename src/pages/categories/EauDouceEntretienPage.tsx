@@ -1929,7 +1929,7 @@ return () => window.removeEventListener('resize', handleResize);
           ...(variant ? { variant } : {})
         });
       }
-toast({
+                                  toast({
                                     title: "Produit ajouté au panier",
                                     description: `${product.title} a été ajouté au panier avec ${promo.discount_percentage}% de réduction !`,
                                   });
@@ -1952,7 +1952,7 @@ toast({
           ...(variant ? { variant } : {})
         });
       }
-toast({
+                                  toast({
                                     title: "Produit ajouté au panier",
                                     description: `${product.title} a été ajouté au panier.`,
                                   });
