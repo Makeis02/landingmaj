@@ -17,41 +17,52 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !STRIPE_SECRET_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: '2022-11-15' });
 
+async function getEditableField(productId, field) {
+  const key = `product_${productId}_${field}`;
+  const { data } = await supabase
+    .from('editable_content')
+    .select('content')
+    .eq('content_key', key)
+    .single();
+  return data?.content || '';
+}
+
 async function main() {
   // 1. Récupère tous les produits Stripe
-  const stripeProducts = await stripe.products.list({ limit: 100 }); // adapte le limit si besoin
+  const stripeProducts = await stripe.products.list({ limit: 100 });
 
   const rows = [];
 
   for (const stripeProduct of stripeProducts.data) {
-    // 2. Récupère les infos enrichies dans Supabase via l'ID Stripe
-    const { data: supaProduct, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('id', stripeProduct.id)
-      .single();
+    const id = stripeProduct.id;
 
-    if (error || !supaProduct) {
-      // Si pas trouvé dans Supabase, saute ce produit
-      continue;
-    }
+    // 2. Récupère chaque champ dans editable_content
+    const title = await getEditableField(id, 'title') || stripeProduct.name;
+    const description = await getEditableField(id, 'description');
+    const price = await getEditableField(id, 'price');
+    const stock = await getEditableField(id, 'stock');
+    const image = await getEditableField(id, 'image_0');
+    const brand = await getEditableField(id, 'brand');
+    const reference = await getEditableField(id, 'reference');
 
-    // 3. Ajoute la ligne au CSV
+    // Si pas de titre ou de prix, on saute le produit (optionnel)
+    if (!title || !price) continue;
+
     rows.push({
-      id: stripeProduct.id,
-      title: supaProduct.title || stripeProduct.name,
-      description: supaProduct.description || '',
-      price: (supaProduct.price || 0).toFixed(2) + ' EUR',
-      availability: supaProduct.stock > 0 ? 'in stock' : 'out of stock',
+      id,
+      title,
+      description,
+      price: Number(price).toFixed(2) + ' EUR',
+      availability: Number(stock) > 0 ? 'in stock' : 'out of stock',
       condition: 'new',
-      link: `https://aqua-reve.com/produits/${encodeURIComponent(supaProduct.title || stripeProduct.name)}?id=${stripeProduct.id}`,
-      image_link: supaProduct.image || '',
-      brand: supaProduct.brand || '',
-      reference: supaProduct.reference || '',
+      link: `https://aqua-reve.com/produits/${encodeURIComponent(title)}?id=${id}`,
+      image_link: image,
+      brand,
+      reference,
     });
   }
 
-  // 4. Génère le CSV
+  // 3. Génère le CSV
   const fields = [
     'id', 'title', 'description', 'price', 'availability', 'condition',
     'link', 'image_link', 'brand', 'reference'
@@ -59,7 +70,7 @@ async function main() {
   const parser = new Parser({ fields });
   const csv = parser.parse(rows);
 
-  // 5. Écrit le fichier dans /public
+  // 4. Écrit le fichier dans /public
   fs.writeFileSync('./public/facebook-catalog.csv', csv, 'utf8');
   console.log('✅ CSV généré dans public/facebook-catalog.csv');
 }
