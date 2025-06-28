@@ -294,6 +294,9 @@ async function generateCatalog() {
             const comboKey = `${variantLabel}:${option}`;
             const variantPrice = priceMap[comboKey];
             const variantDiscountPrice = discountMap[option];
+            // Récupérer le stock spécifique à la variante
+            const stockKey = `variant_${variantIndex}_option_${option}_stock`;
+            const variantStock = fields[stockKey] ? parseInt(fields[stockKey]) : 0;
             // Générer l'ID, le titre, le lien, etc.
             const variantId = `${stripeProduct.id}_${variantLabel.replace(/\s+/g, '-')}_${option.replace(/\s+/g, '-')}`;
             const variantTitle = `${title} - ${option}`;
@@ -324,6 +327,7 @@ async function generateCatalog() {
             console.log(`     - title: ${variantTitle}`);
             console.log(`     - price: ${variantPrice}€`);
             if (sale_price) console.log(`     - sale_price: ${sale_price}`);
+            console.log(`     - stock: ${variantStock}`);
             console.log(`     - link: ${link}`);
             // Générer la ligne CSV
             const row = {
@@ -332,7 +336,7 @@ async function generateCatalog() {
               description: description.replace(/<[^>]*>/g, ''),
               price: `${variantPrice.toFixed(2)} EUR`,
               sale_price: sale_price,
-              availability: (parseInt(stock) > 0 ? 'in stock' : 'out of stock'),
+              availability: (variantStock > 0 ? 'in stock' : 'out of stock'),
               condition: 'new',
               link: link,
               image_link: image,
