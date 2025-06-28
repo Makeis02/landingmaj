@@ -3,6 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { Parser } = require('json2csv');
 const fs = require('fs');
 const Stripe = require('stripe');
+const slugify = require('slugify');
 
 // Variables d'environnement
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -290,9 +291,15 @@ async function generateCatalog() {
         console.log(`   - variantPriceRange: ${variantPriceRange.min}€ - ${variantPriceRange.max}€`);
       }
 
-      // Vérifier que les champs obligatoires sont présents
-      if (!title || !priceInfo) {
-        console.log(`   ❌ Produit ignoré (title ou price manquant)\n`);
+      // Vérifier que les champs obligatoires sont présents et non vides
+      if (!title || !priceInfo || !description || !brand || !image) {
+        let missing = [];
+        if (!title) missing.push('title');
+        if (!priceInfo) missing.push('price');
+        if (!description) missing.push('description');
+        if (!brand) missing.push('brand');
+        if (!image) missing.push('image');
+        console.log(`   ❌ Produit ignoré (champ obligatoire manquant: ${missing.join(', ')})\n`);
         ignoredCount++;
         continue;
       }
@@ -300,6 +307,11 @@ async function generateCatalog() {
       // Déterminer la disponibilité
       const stockNum = parseInt(stock) || 0;
       const availability = stockNum > 0 ? 'in stock' : 'out of stock';
+
+      // Générer le slug SEO-friendly à partir du titre
+      const slug = slugify(title, { lower: true, strict: true });
+      const link = `https://aqua-reve.com/produits/${slug}?id=${stripeProduct.id}`;
+      console.log(`   - link: ${link}`);
 
       // Créer la ligne du CSV avec gestion des prix barrés et variantes
       const row = {
@@ -309,7 +321,7 @@ async function generateCatalog() {
         price: `${priceInfo.amount.toFixed(2)} EUR`,
         availability: availability,
         condition: 'new',
-        link: `https://aqua-reve.com/produits/${stripeProduct.id}`,
+        link: link,
         image_link: image,
         brand: brand || '',
         reference: reference || ''
