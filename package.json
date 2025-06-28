@@ -128,7 +128,25 @@
 
 
 
-"preview": "vite preview"
+"preview": "vite preview",
+  
+
+
+
+
+
+
+
+"generate-catalog": "node generate-facebook-catalog.cjs",
+  
+
+
+
+
+
+
+
+"build-with-catalog": "npm run generate-catalog && npm run build"
   
 
 
