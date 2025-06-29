@@ -140,7 +140,7 @@ const PasswordRecoveryPage = () => {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-[#2596be] hover:bg-[#1e7ca3] text-white font-semibold rounded-xl shadow transition-all duration-200"
+                className="w-full h-12 bg-[#0074b3] hover:bg-[#005a8c] text-white font-semibold rounded-xl shadow transition-all duration-200"
               >
                 {loading ? "Envoi en cours..." : "Envoyer le lien"}
               </Button>
