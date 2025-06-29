@@ -159,7 +159,7 @@ const App = () => {
           .select('*') // Récupère tous les paramètres
           .order('updated_at', { ascending: false })
           .limit(1)
-          .single();
+          .maybeSingle(); // Utilise maybeSingle() au lieu de single() pour gérer les cas multiples
         
         console.log('🔍 [DEBUG] Données de la roue récupérées:', { data, error });
 
@@ -177,6 +177,11 @@ const App = () => {
         if (error && error.code !== 'PGRST116') {
           console.warn('⚠️ Erreur lors de la récupération des paramètres de la roue:', error);
           console.log('🔄 Utilisation des paramètres par défaut');
+        }
+        
+        // Si on a une erreur PGRST116 (plusieurs lignes), on utilise quand même les données
+        if (error && error.code === 'PGRST116') {
+          console.warn('⚠️ Plusieurs lignes trouvées dans wheel_settings, utilisation de la plus récente');
         }
         
         console.log('🔍 [DEBUG] Paramètres finaux de la roue:', settings);
