@@ -25,7 +25,9 @@ const ResetPasswordPage = () => {
 
   // Vérifier si on a les paramètres nécessaires dans l'URL
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
+    // Récupère les paramètres dans le hash (#...) au lieu de la query string
+    const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
+    const params = new URLSearchParams(hash);
     const accessToken = params.get('access_token');
     const refreshToken = params.get('refresh_token');
     const type = params.get('type');
