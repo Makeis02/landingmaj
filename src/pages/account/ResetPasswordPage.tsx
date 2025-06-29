@@ -30,6 +30,9 @@ const ResetPasswordPage = () => {
     const refreshToken = params.get('refresh_token');
     const type = params.get('type');
 
+    console.log("[RESET] URL:", window.location.href);
+    console.log("[RESET] Params:", { accessToken, refreshToken, type });
+
     if (!accessToken || !refreshToken || type !== 'recovery') {
       setError("Lien de réinitialisation invalide ou expiré");
       return;
@@ -39,6 +42,12 @@ const ResetPasswordPage = () => {
     supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
+    }).then(({ error }) => {
+      if (error) {
+        console.error("[RESET] setSession error:", error);
+      } else {
+        console.log("[RESET] setSession success");
+      }
     });
   }, [location]);
 
@@ -69,14 +78,10 @@ const ResetPasswordPage = () => {
       const { error } = await supabase.auth.updateUser({
         password: password
       });
-
       if (error) {
-        toast({
-          title: "Erreur",
-          description: error.message,
-          variant: "destructive",
-        });
+        console.error("[RESET] updateUser error:", error);
       } else {
+        console.log("[RESET] updateUser success");
         setSuccess(true);
         toast({
           title: "Mot de passe mis à jour",
@@ -89,11 +94,7 @@ const ResetPasswordPage = () => {
         }, 3000);
       }
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Une erreur inattendue s'est produite",
-        variant: "destructive",
-      });
+      console.error("[RESET] updateUser catch error:", error);
     } finally {
       setLoading(false);
     }
