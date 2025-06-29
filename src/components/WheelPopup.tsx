@@ -207,10 +207,11 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
 
       if (segmentsError) throw segmentsError;
 
-      // Charger les paramètres
+      // Charger les paramètres - CORRECTION : toujours récupérer la ligne la plus récente
       const { data: settings, error: settingsError } = await supabase
         .from('wheel_settings')
         .select('*')
+        .order('updated_at', { ascending: false })  // ← TRIER PAR DATE DÉCROISSANTE
         .limit(1)
         .single();
 

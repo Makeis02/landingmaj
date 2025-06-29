@@ -18,6 +18,7 @@ const ResetPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
+  const [hasProcessedParams, setHasProcessedParams] = useState(false);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,6 +26,10 @@ const ResetPasswordPage = () => {
 
   // Vérifier si on a les paramètres nécessaires dans l'URL
   useEffect(() => {
+    if (hasProcessedParams) {
+      return;
+    }
+
     // Récupère les paramètres dans le hash (#...) au lieu de la query string
     const hash = window.location.hash.startsWith('#') ? window.location.hash.slice(1) : window.location.hash;
     const params = new URLSearchParams(hash);
@@ -37,8 +42,11 @@ const ResetPasswordPage = () => {
 
     if (!accessToken || !refreshToken || type !== 'recovery') {
       setError("Lien de réinitialisation invalide ou expiré");
+      setHasProcessedParams(true);
       return;
     }
+
+    setHasProcessedParams(true);
 
     // Définir la session avec les tokens
     supabase.auth.setSession({
@@ -51,7 +59,7 @@ const ResetPasswordPage = () => {
         console.log("[RESET] setSession success");
       }
     });
-  }, [location]);
+  }, [location, hasProcessedParams]);
 
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
