@@ -142,17 +142,12 @@ const LoginPage = () => {
           </CardContent>
           
           <div className="px-6 pb-6 text-center">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigate("/account/password-recovery");
-              }}
-              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            <a
+              href="/account/password-recovery"
+              className="text-sm text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
             >
               Mot de passe oublié ?
-            </button>
+            </a>
           </div>
         </Card>
       </main>

@@ -27,7 +27,9 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // 3. L'utilisateur n'est pas déjà sur la page de connexion ou d'inscription
       if (!session && isProtectedRoute && 
           !location.pathname.includes('/account/login') && 
-          !location.pathname.includes('/account/signup')) {
+          !location.pathname.includes('/account/signup') &&
+          !location.pathname.includes('/account/password-recovery') &&
+          !location.pathname.includes('/account/reset-password')) {
         navigate("/account/login");
       }
     });
