@@ -19,6 +19,7 @@ import { EditableText } from "@/components/EditableText";
 import { EditableImage } from "@/components/EditableImage";
 import { supabase } from "@/integrations/supabase/client";
 import FloatingHeader from "@/components/admin/FloatingHeader";
+import FloatingWheelButton from "@/components/FloatingWheelButton";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -3409,6 +3410,22 @@ const Modele = ({ categoryParam = null }) => {
                 Ajouter au panier
               </Button>
               <Button 
+                variant="outline"
+                size="icon" 
+                onClick={() => {
+                  // Ouvrir la roue directement
+                  const wheelButton = document.querySelector('[data-wheel-button]') as HTMLElement;
+                  if (wheelButton) {
+                    wheelButton.click();
+                  }
+                }}
+                aria-label="Tenter votre chance à la roue aquatique"
+                title="🎡 Tentez votre chance à la roue aquatique !"
+                className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white border-0"
+              >
+                🎡
+              </Button>
+              <Button 
                 variant={isFavorite ? "default" : "outline"} 
                 size="icon" 
                 onClick={handleToggleFavorite} 
@@ -4481,6 +4498,10 @@ const Modele = ({ categoryParam = null }) => {
       {isEditMode && product && (
         <EditableDebugPanel productId={product.id} />
       )}
+      
+      {/* Bouton flottant de la roue pour les pages produit */}
+      <FloatingWheelButton />
+      
       <Footer />
     </div>
   );

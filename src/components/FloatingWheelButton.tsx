@@ -87,6 +87,7 @@ const FloatingWheelButton: React.FC = () => {
       {/* Bouton flottant */}
       <button
         onClick={() => setIsWheelOpen(true)}
+        data-wheel-button
         className={`fixed ${positionClass} z-40 w-16 h-16 rounded-full shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl group ${
           canSpin ? 'gentle-pulse-animation gentle-glow-animation' : ''
         }`}
