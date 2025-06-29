@@ -86,6 +86,7 @@ import ThermometresPage from "@/pages/categories/ThermometresPage";
 import LoginPage from "@/pages/account/LoginPage";
 import SignupPage from "@/pages/account/SignupPage";
 import PasswordRecoveryPage from "@/pages/account/PasswordRecoveryPage";
+import ResetPasswordPage from "@/pages/account/ResetPasswordPage";
 import OrdersPage from "@/pages/account/OrdersPage";
 import AccountPage from "@/pages/account/AccountPage";
 import AddressesPage from "@/pages/account/AddressesPage";
@@ -372,6 +373,7 @@ const App = () => {
           <Route path="/account/login" element={<LoginPage />} />
           <Route path="/account/signup" element={<SignupPage />} />
           <Route path="/account/password-recovery" element={<PasswordRecoveryPage />} />
+          <Route path="/account/reset-password" element={<ResetPasswordPage />} />
           <Route path="/account/orders" element={<OrdersPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/account/addresses" element={<AddressesPage />} />
