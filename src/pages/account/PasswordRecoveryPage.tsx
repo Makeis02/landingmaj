@@ -22,7 +22,7 @@ const PasswordRecoveryPage = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/account/reset-password`,
+        redirectTo: "https://aqua-reve.com/account/reset-password",
       });
 
       if (error) {
