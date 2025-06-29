@@ -128,28 +128,32 @@ const LoginPage = () => {
               </Button>
             </form>
 
-            <div className="space-y-4 text-center">
-              <button
-                type="button"
-                onClick={() => navigate("/account/password-recovery")}
-                className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                Mot de passe oublié ?
-              </button>
-              
-              <div className="border-t border-gray-200 pt-4">
-                <p className="text-sm text-gray-600">
-                  Pas encore de compte ?{" "}
-                  <Link
-                    to="/account/signup"
-                    className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                  >
-                    Créer un compte
-                  </Link>
-                </p>
-              </div>
+            <div className="text-center border-t border-gray-200 pt-4">
+              <p className="text-sm text-gray-600">
+                Pas encore de compte ?{" "}
+                <Link
+                  to="/account/signup"
+                  className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                >
+                  Créer un compte
+                </Link>
+              </p>
             </div>
           </CardContent>
+          
+          <div className="px-6 pb-6 text-center">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                navigate("/account/password-recovery");
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
         </Card>
       </main>
       
