@@ -129,12 +129,13 @@ const LoginPage = () => {
             </form>
 
             <div className="space-y-4 text-center">
-              <Link
-                to="/account/password-recovery"
+              <button
+                type="button"
+                onClick={() => navigate("/account/password-recovery")}
                 className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
               >
                 Mot de passe oublié ?
-              </Link>
+              </button>
               
               <div className="border-t border-gray-200 pt-4">
                 <p className="text-sm text-gray-600">
