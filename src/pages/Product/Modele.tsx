@@ -4362,7 +4362,7 @@ const Modele = ({ categoryParam = null }) => {
                             DDM DÉPASSÉE
                           </Badge>
                         ) : prod.hasDiscount ? (
-                          <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
+                          <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase text-white border-transparent flex items-center">
                             <Suspense fallback={null}>
                               <PromoBadge />
                             </Suspense>
