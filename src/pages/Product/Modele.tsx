@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useCartStore } from "@/stores/useCartStore";
-import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Link } from "react-router-dom";
 import { useEditStore } from "@/stores/useEditStore";
@@ -33,14 +32,13 @@ import slugify from 'slugify';
 import { fetchCategories } from "@/lib/api/categories";
 import { fetchCategoriesForProducts } from "@/lib/api/product-categories";
 import { fetchProductBrand, fetchBrands } from "@/lib/api/brands";
-import { useImageUpload } from "@/hooks/useImageUpload";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
 import SEO from "@/components/SEO"; // Importer le composant SEO
 // Lazy loading des composants secondaires
 const Reviews = React.lazy(() => import("@/pages/Landing/components/Reviews"));
 const PromoBadge = React.lazy(() => import("@/components/PromoBadge"));
-const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel"));
+const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel").then(mod => ({ default: mod.EditableDebugPanel })));
 
 // Types
 interface Product {
