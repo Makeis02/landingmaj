@@ -2883,6 +2883,10 @@ const Modele = ({ categoryParam = null }) => {
           } : undefined
         }}
       />
+      {/* Préchargement de l'image principale pour le LCP */}
+      {product?.image && (
+        <link rel="preload" as="image" href={product.image} />
+      )}
       {/* --- BREADCRUMB JSON-LD POUR GOOGLE --- */}
       {breadcrumbCategory && product && (
         <script type="application/ld+json">
