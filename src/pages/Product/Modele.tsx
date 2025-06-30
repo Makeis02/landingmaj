@@ -3443,15 +3443,15 @@ const Modele = ({ categoryParam = null }) => {
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <div className="flex items-start gap-2 mb-4">
                 <CircleDot className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <span>Livraison gratuite à partir de 49€</span>
+                <span>Livraison gratuite à partir de 35€</span>
               </div>
               <div className="flex items-start gap-2 mb-4">
                 <CircleDot className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <span>14 jours satisfait ou remboursé</span>
+                <span>Sélection des meilleures marques</span>
               </div>
               <div className="flex items-start gap-2">
                 <CircleDot className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                <span>Garantie 3 ans</span>
+                <span>Expédition sous 48h</span>
               </div>
             </div>
           </div>
