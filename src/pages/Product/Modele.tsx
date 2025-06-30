@@ -859,14 +859,16 @@ const Modele = ({ categoryParam = null }) => {
         }
         localStorage.setItem("last_product_id", productId);
         logDebug("ID sauvegardé dans localStorage", productId);
-        const stripeData = await fetchProducts();
-        // Logs de debug pour la recherche
-        console.log("🔍 ID recherché =", productId);
-        console.log("🆔 Produits disponibles :", stripeData.map(p => ({
-          id: p.id,
-          type: typeof p.id,
-          asString: String(p.id)
-        })));
+
+        // --- NOUVEAU : Paralléliser le fetch Stripe et le fetch editable_content ---
+        // 1. On lance le fetch Stripe (produits) et le fetch editable_content en même temps
+        // 2. On attend les deux, puis on fusionne les données
+        // 3. On affiche le bloc principal dès que possible
+
+        // Lancer le fetch Stripe en parallèle
+        const stripePromise = fetchProducts();
+        // On ne peut pas lancer fetchEditableContent sans le produit, donc on attend Stripe, mais on prépare la suite
+        const stripeData = await stripePromise;
         // Recherche du produit par ID
         const realProduct = stripeData.find(p => String(p.id) === String(productId));
         logDebug("Recherche du produit", {
@@ -892,15 +894,15 @@ const Modele = ({ categoryParam = null }) => {
           badges: [],
         };
         logDebug("Données produit préparées", productData);
-        
-        // Attendre le chargement complet du contenu éditable avant de setProduct
-        const updated = await fetchEditableContent(productData.id, productData);
-        
-        // S'assurer que le prix de base existe
+
+        // Lancer le fetch editable_content en parallèle avec ensureBasePriceId
+        const editablePromise = fetchEditableContent(productData.id, productData);
+        // On attend le contenu éditable
+        const updated = await editablePromise;
+        // S'assurer que le prix de base existe (en parallèle)
         if (updated.price) {
-          await ensureBasePriceId(productData.id, updated.price);
+          ensureBasePriceId(productData.id, updated.price); // on ne bloque pas l'affichage sur cette étape
         }
-        
         setProduct(updated);
         setIsLoading(false);
       } catch (error) {
@@ -4269,19 +4271,25 @@ const Modele = ({ categoryParam = null }) => {
         </div>
         
         {/* Avis clients */}
-        <div className="mb-8">
-          <div className="bg-white rounded-lg p-6">
-            <h2 className="text-xl font-bold mb-4">Avis clients</h2>
-            <Reviews productId={product?.id} />
+        {activeTab === "description" && (
+          <div className="mb-8">
+            <div className="bg-white rounded-lg p-6">
+              <h2 className="text-xl font-bold mb-4">Avis clients</h2>
+              {productReviewAverage === null && productReviewCount === 0 ? (
+                <div className="animate-pulse h-6 w-32 bg-gray-100 rounded mb-2" />
+              ) : (
+                <Reviews productId={product?.id} />
+              )}
+            </div>
           </div>
-        </div>
+        )}
         
         {/* Dans la même catégorie */}
         {(isEditMode || similarProducts.length > 0) && (
           <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-            <h2 className="text-xl font-bold">Dans la même catégorie</h2>
+                <h2 className="text-xl font-bold">Dans la même catégorie</h2>
                 {isEditMode && (
                   <div className="mb-0">
                     <label className="font-medium mr-2">Catégorie de référence :</label>
@@ -4310,187 +4318,152 @@ const Modele = ({ categoryParam = null }) => {
                 to={`/categories/${relatedCategory || breadcrumbCategory?.parent?.slug || ''}`}
                 className="text-blue-600 hover:underline flex items-center text-sm"
               >
-              Voir tout
-              <ArrowRight size={14} className="ml-1" />
-            </Link>
-          </div>
-            {/* Bloc debug visible en mode édition */}
-            {isEditMode && (
-              <div className="bg-yellow-50 border border-yellow-200 p-4 rounded text-xs mb-4">
-                <div><b>Debug "Dans la même catégorie"</b></div>
-                <div><b>relatedCategory :</b> {debugSimilar.relatedCategory || '(aucune)'}</div>
-                <div><b>refCategoryId utilisée :</b> {debugSimilar.refCategoryId || '(aucune)'}</div>
-                
-                {/* Section debug pour les réductions */}
-                <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
-                  <div><b>🎯 Debug Réductions produits similaires :</b></div>
-                  {similarProducts.length > 0 ? (
-                    <div className="mt-2 space-y-1">
-                      {similarProducts.map(prod => (
-                        <div key={prod.id} className={`text-xs p-2 rounded ${prod.hasDiscount ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
-                          <div><b>ID:</b> {prod.id}</div>
-                          <div><b>Nom:</b> {prod.title || prod.name}</div>
-                          <div><b>hasDiscount:</b> {prod.hasDiscount ? '✅ OUI' : '❌ NON'}</div>
-                          {prod.hasDiscount && <div className="font-bold text-green-600">🏷️ Badge Promo affiché</div>}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-gray-500 italic">Aucun produit similaire chargé</div>
-                  )}
-                </div>
-
-                <div><b>Catégories liées à chaque produit :</b></div>
-                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.categoriesByProduct, null, 2)}</pre>
-                <div><b>Produits filtrés :</b></div>
-                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.filteredProducts, null, 2)}</pre>
-                <div><b>Tous les produits (pour debug) :</b></div>
-                <pre className="overflow-x-auto bg-yellow-100 p-2 rounded max-h-40">{JSON.stringify(debugSimilar.allProducts, null, 2)}</pre>
-                {debugSimilar.error && <div className="text-red-600">Erreur: {debugSimilar.error}</div>}
+                Voir tout
+                <ArrowRight size={14} className="ml-1" />
+              </Link>
+            </div>
+            {/* Loader pour produits similaires */}
+            {similarProducts.length === 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 items-stretch">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="rounded-2xl border border-gray-200 p-4 shadow-sm bg-white animate-pulse h-64" />
+                ))}
               </div>
-            )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 items-stretch">
-            {similarProducts.length > 0 ? similarProducts.map((prod) => (
-              <Link
-                to={`/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`}
-                className="block h-full"
-                key={prod.id}
-              >
-                <div className="rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 bg-white flex flex-col gap-2 h-full">
-                  <div className="relative">
-                    {/* Affichage prioritaire du badge DDM, sinon promo */}
-                    {prod.ddmExceeded ? (
-                      <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm">
-                        DDM DÉPASSÉE
-                      </Badge>
-                    ) : prod.hasDiscount ? (
-                      <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
-                        <PromoBadge />
-                      </span>
-                    ) : null}
-                    <img
-                      src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
-                      alt={prod.name || prod.title}
-                      className="mx-auto h-32 object-contain"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1 mt-2 flex-grow">
-                    <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
-                      {prod.name || prod.title}
-                    </h3>
-                    <ProductReviewSummary productId={prod.id} />
-                    <div className="text-lg font-semibold text-gray-800 min-h-[2.5rem] flex items-center">
-                      {prod.variantPriceRange ? (
-                        `De ${prod.variantPriceRange.min.toFixed(2)} € à ${prod.variantPriceRange.max.toFixed(2)} €`
-                      ) : (
-                        (() => {
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6 items-stretch">
+                {similarProducts.map((prod) => (
+                  <Link
+                    to={`/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`}
+                    className="block h-full"
+                    key={prod.id}
+                  >
+                    <div className="rounded-2xl border border-gray-200 p-4 shadow-sm hover:shadow-md transition-all duration-200 bg-white flex flex-col gap-2 h-full">
+                      <div className="relative">
+                        {/* Affichage prioritaire du badge DDM, sinon promo */}
+                        {prod.ddmExceeded ? (
+                          <Badge className="bg-orange-500 hover:bg-orange-600 text-white border-transparent uppercase absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm">
+                            DDM DÉPASSÉE
+                          </Badge>
+                        ) : prod.hasDiscount ? (
+                          <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
+                            <PromoBadge />
+                          </span>
+                        ) : null}
+                        <img
+                          src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
+                          alt={prod.name || prod.title}
+                          className="mx-auto h-32 object-contain"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1 mt-2 flex-grow">
+                        <h3 className="text-base font-semibold text-gray-900 line-clamp-1">
+                          {prod.name || prod.title}
+                        </h3>
+                        <ProductReviewSummary productId={prod.id} />
+                        <div className="text-lg font-semibold text-gray-800 min-h-[2.5rem] flex items-center">
+                          {prod.variantPriceRange ? (
+                            `De ${prod.variantPriceRange.min.toFixed(2)} € à ${prod.variantPriceRange.max.toFixed(2)} €`
+                          ) : (
+                            (() => {
+                              const promo = similarProductPromoPrices[prod.id];
+                              const isPromo = !!promo && promo.discount_percentage;
+                              if (isPromo) {
+                                return (
+                                  <div className="flex flex-row items-center gap-2">
+                                    <span className="text-gray-500 line-through text-sm">{promo.original_price.toFixed(2)}€</span>
+                                    <span className="text-red-600 font-bold">{promo.price.toFixed(2)}€</span>
+                                    <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">-{promo.discount_percentage}%</span>
+                                  </div>
+                                );
+                              }
+                              const price = prod.default_price?.unit_amount 
+                                ? (prod.default_price.unit_amount / 100).toFixed(2) 
+                                : prod.price 
+                                  ? Number(prod.price).toFixed(2) 
+                                  : '—';
+                              return (
+                                <div className="flex flex-row items-center">
+                                  <span>{price} €</span>
+                                </div>
+                              );
+                            })()
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        className="mt-auto bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold flex items-center justify-center gap-2 w-full"
+                        type="button"
+                        tabIndex={-1}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          // 🎯 AJOUT : Logique d'ajout au panier avec gestion des promotions
+                          if (prod.hasVariant) {
+                            // Pour les produits avec variantes, rediriger vers la page produit
+                            window.location.href = `/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`;
+                            return;
+                          }
+                          // Pour les produits sans variante, ajouter directement au panier
+                          const { addItem } = useCartStore.getState();
                           const promo = similarProductPromoPrices[prod.id];
                           const isPromo = !!promo && promo.discount_percentage;
-                          if (isPromo) {
-                            return (
-                              <div className="flex flex-row items-center gap-2">
-                                <span className="text-gray-500 line-through text-sm">{promo.original_price.toFixed(2)}€</span>
-                                <span className="text-red-600 font-bold">{promo.price.toFixed(2)}€</span>
-                                <span className="text-xs bg-red-100 text-red-800 px-1.5 py-0.5 rounded">-{promo.discount_percentage}%</span>
-                              </div>
-                            );
+                          try {
+                            if (isPromo) {
+                              await addItem({
+                                id: prod.id,
+                                title: prod.title || prod.name || 'Produit',
+                                price: promo.price,
+                                original_price: promo.original_price,
+                                discount_percentage: promo.discount_percentage,
+                                has_discount: true,
+                                image_url: similarProductImages[prod.id] || prod.image || '',
+                                quantity: 1,
+                                stripe_price_id: promo.stripe_price_id,
+                                stripe_discount_price_id: promo.stripe_discount_price_id
+                              });
+                              toast({
+                                title: "Produit ajouté au panier",
+                                description: `${prod.title || prod.name} ajouté avec ${promo.discount_percentage}% de réduction !`,
+                              });
+                            } else {
+                              const price = prod.default_price?.unit_amount 
+                                ? prod.default_price.unit_amount / 100 
+                                : prod.price || 0;
+                              await addItem({
+                                id: prod.id,
+                                title: prod.title || prod.name || 'Produit',
+                                price: price,
+                                image_url: similarProductImages[prod.id] || prod.image || '',
+                                quantity: 1
+                              });
+                              toast({
+                                title: "Produit ajouté au panier",
+                                description: `${prod.title || prod.name} ajouté au panier.`,
+                              });
+                            }
+                          } catch (error) {
+                            console.error("Erreur ajout au panier:", error);
+                            toast({
+                              variant: "destructive",
+                              title: "Erreur",
+                              description: "Impossible d'ajouter le produit au panier."
+                            });
                           }
-                          const price = prod.default_price?.unit_amount 
-                            ? (prod.default_price.unit_amount / 100).toFixed(2) 
-                            : prod.price 
-                              ? Number(prod.price).toFixed(2) 
-                              : '—';
-                          return (
-                            <div className="flex flex-row items-center">
-                              <span>{price} €</span>
-                            </div>
-                          );
-                        })()
-                      )}
+                        }}
+                      >
+                        {prod.hasVariant ? 'Voir le produit' : (
+                          <>
+                            <ShoppingCart size={16} />
+                            Ajouter
+                          </>
+                        )}
+                      </button>
                     </div>
-                  </div>
-                  <button
-                    className="mt-auto bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold flex items-center justify-center gap-2 w-full"
-                    type="button"
-                    tabIndex={-1}
-                    onClick={async (e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      
-                      // 🎯 AJOUT : Logique d'ajout au panier avec gestion des promotions
-                      if (prod.hasVariant) {
-                        // Pour les produits avec variantes, rediriger vers la page produit
-                        window.location.href = `/produits/${slugify(prod.title || prod.name || 'produit', { lower: true })}?id=${prod.id}`;
-                        return;
-                      }
-                      
-                      // Pour les produits sans variante, ajouter directement au panier
-                      const { addItem } = useCartStore.getState();
-                      const promo = similarProductPromoPrices[prod.id];
-                      const isPromo = !!promo && promo.discount_percentage;
-                      
-                      try {
-                        if (isPromo) {
-                          await addItem({
-                            id: prod.id,
-                            title: prod.title || prod.name || 'Produit',
-                            price: promo.price,
-                            original_price: promo.original_price,
-                            discount_percentage: promo.discount_percentage,
-                            has_discount: true,
-                            image_url: similarProductImages[prod.id] || prod.image || '',
-                            quantity: 1,
-                            stripe_price_id: promo.stripe_price_id,
-                            stripe_discount_price_id: promo.stripe_discount_price_id
-                          });
-                          toast({
-                            title: "Produit ajouté au panier",
-                            description: `${prod.title || prod.name} ajouté avec ${promo.discount_percentage}% de réduction !`,
-                          });
-                        } else {
-                          const price = prod.default_price?.unit_amount 
-                            ? prod.default_price.unit_amount / 100 
-                            : prod.price || 0;
-                          
-                          await addItem({
-                            id: prod.id,
-                            title: prod.title || prod.name || 'Produit',
-                            price: price,
-                            image_url: similarProductImages[prod.id] || prod.image || '',
-                            quantity: 1
-                          });
-                          toast({
-                            title: "Produit ajouté au panier",
-                            description: `${prod.title || prod.name} ajouté au panier.`,
-                          });
-                        }
-                      } catch (error) {
-                        console.error("Erreur ajout au panier:", error);
-                        toast({
-                          variant: "destructive",
-                          title: "Erreur",
-                          description: "Impossible d'ajouter le produit au panier."
-                        });
-                      }
-                    }}
-                  >
-                    {prod.hasVariant ? 'Voir le produit' : (
-                      <>
-                        <ShoppingCart size={16} />
-                        Ajouter
-                      </>
-                    )}
-                  </button>
-                </div>
-              </Link>
-            )) : (
-              <div className="col-span-4 text-center text-red-500 italic py-8">
-                Aucun produit trouvé dans la catégorie sélectionnée (ID: {debugSimilar.refCategoryId || '(aucune)'})<br />
-                {debugSimilar.refCategoryId && <span>Vérifiez que les produits sont bien liés à cette catégorie dans Supabase.</span>}
+                  </Link>
+                ))}
               </div>
             )}
-                </div>
-                  </div>
+          </div>
         )}
       </main>
       

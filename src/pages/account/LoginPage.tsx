@@ -129,15 +129,15 @@ const LoginPage = () => {
             </form>
 
             <div className="text-center border-t border-gray-200 pt-4">
-              <p className="text-sm text-gray-600">
-                Pas encore de compte ?{" "}
-                <Link
-                  to="/account/signup"
-                  className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
-                >
-                  Créer un compte
-                </Link>
-              </p>
+                <p className="text-sm text-gray-600">
+                  Pas encore de compte ?{" "}
+                  <Link
+                    to="/account/signup"
+                    className="text-blue-600 hover:text-blue-800 font-medium transition-colors"
+                  >
+                    Créer un compte
+                  </Link>
+                </p>
             </div>
           </CardContent>
           
