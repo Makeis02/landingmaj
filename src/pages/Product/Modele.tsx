@@ -37,11 +37,10 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
 import SEO from "@/components/SEO"; // Importer le composant SEO
-import PromoBadge from "@/components/PromoBadge";
-
 // Lazy loading des composants secondaires
-const Reviews = React.lazy(() => import("@/pages/Landing/components/Reviews").then(m => ({ default: m.default || m.Reviews })));
-const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel").then(m => ({ default: m.default || m.EditableDebugPanel })));
+const Reviews = React.lazy(() => import("@/pages/Landing/components/Reviews"));
+const PromoBadge = React.lazy(() => import("@/components/PromoBadge"));
+const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel"));
 
 // Types
 interface Product {
@@ -2947,11 +2946,13 @@ const Modele = ({ categoryParam = null }) => {
       {/* Debug Panel en mode admin */}
       {isEditMode && (
         <div className="container mx-auto px-4 py-2">
-          <DebugPanel 
-            product={product}
-            productId={getProductIdFromQuery()}
-            fetchStatus={fetchStatus}
-          />
+          <Suspense fallback={<div className="animate-pulse h-8 w-48 bg-yellow-100 rounded mb-2" />}> 
+            <DebugPanel 
+              product={product}
+              productId={getProductIdFromQuery()}
+              fetchStatus={fetchStatus}
+            />
+          </Suspense>
         </div>
       )}
       
@@ -4362,7 +4363,9 @@ const Modele = ({ categoryParam = null }) => {
                           </Badge>
                         ) : prod.hasDiscount ? (
                           <span className="absolute top-1 left-1 z-10 text-[10px] px-1.5 py-0.5 rounded shadow-sm uppercase bg-red-500 text-white border-transparent flex items-center">
-                            <PromoBadge />
+                            <Suspense fallback={null}>
+                              <PromoBadge />
+                            </Suspense>
                           </span>
                         ) : null}
                         <img
@@ -4490,7 +4493,7 @@ const Modele = ({ categoryParam = null }) => {
       
       {/* Ajouter le panneau de débogage en mode édition */}
       {isEditMode && product && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="animate-pulse h-8 w-48 bg-yellow-100 rounded mb-2" />}> 
           <EditableDebugPanel productId={product.id} />
         </Suspense>
       )}
