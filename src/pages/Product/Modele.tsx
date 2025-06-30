@@ -1,7 +1,7 @@
 // Ce fichier sert de modèle pour générer de nouvelles pages produit.
 // NE PAS MODIFIER LE NOM DU COMPOSANT ET L'EXPORT - ils sont remplacés automatiquement lors de la génération.
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useParams, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { ShoppingCart, Heart, CircleDot, ArrowRight, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
@@ -33,12 +33,15 @@ import slugify from 'slugify';
 import { fetchCategories } from "@/lib/api/categories";
 import { fetchCategoriesForProducts } from "@/lib/api/product-categories";
 import { fetchProductBrand, fetchBrands } from "@/lib/api/brands";
-import Reviews from "@/pages/Landing/components/Reviews";
 import { useImageUpload } from "@/hooks/useImageUpload";
-import PromoBadge from "@/components/PromoBadge";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
 import SEO from "@/components/SEO"; // Importer le composant SEO
+
+// Lazy loading des composants secondaires
+const Reviews = React.lazy(() => import("@/pages/Landing/components/Reviews").then(m => ({ default: m.default || m.Reviews })));
+const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel").then(m => ({ default: m.default || m.EditableDebugPanel })));
+const PromoBadge = React.lazy(() => import("@/components/PromoBadge").then(m => ({ default: m.default || m.PromoBadge })));
 
 // Types
 interface Product {
@@ -3023,7 +3026,9 @@ const Modele = ({ categoryParam = null }) => {
                     </span>
                 </div>
                 ) : hasDiscount ? (
-                  <PromoBadge />
+                  <Suspense fallback={null}>
+                    <PromoBadge />
+                  </Suspense>
                 ) : null}
                 <img
                   src={selectedImage}
@@ -4288,11 +4293,9 @@ const Modele = ({ categoryParam = null }) => {
           <div className="mb-8">
             <div className="bg-white rounded-lg p-6">
               <h2 className="text-xl font-bold mb-4">Avis clients</h2>
-              {productReviewAverage === null && productReviewCount === 0 ? (
-                <div className="animate-pulse h-6 w-32 bg-gray-100 rounded mb-2" />
-              ) : (
+              <Suspense fallback={<div className="animate-pulse h-6 w-32 bg-gray-100 rounded mb-2" />}> 
                 <Reviews productId={product?.id} />
-              )}
+              </Suspense>
             </div>
           </div>
         )}
@@ -4487,7 +4490,9 @@ const Modele = ({ categoryParam = null }) => {
       
       {/* Ajouter le panneau de débogage en mode édition */}
       {isEditMode && product && (
-        <EditableDebugPanel productId={product.id} />
+        <Suspense fallback={null}>
+          <EditableDebugPanel productId={product.id} />
+        </Suspense>
       )}
       
       {/* Bouton flottant de la roue pour les pages produit */}
