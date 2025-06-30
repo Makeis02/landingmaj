@@ -3024,6 +3024,10 @@ const Modele = ({ categoryParam = null }) => {
                 <img
                   src={selectedImage}
                   alt={product.title}
+                  width={300}
+                  height={300}
+                  decoding="async"
+                  style={{ objectFit: 'contain' }}
                   className="w-full h-auto object-contain mx-auto max-h-[400px] rounded-lg border border-gray-200 shadow mb-4"
                 />
               </div>
@@ -3057,6 +3061,11 @@ const Modele = ({ categoryParam = null }) => {
                       <img
                         src={url}
                         alt={`Image ${index + 1}`}
+                        width={80}
+                        height={80}
+                        loading="lazy"
+                        decoding="async"
+                        style={{ objectFit: 'contain' }}
                         className={`h-20 w-20 object-cover rounded border-2 shadow cursor-pointer transition-all duration-150 ${selectedImage === url ? 'border-blue-500 ring-2 ring-blue-300' : 'border-gray-200'}`}
                         onClick={() => setSelectedImage(url)}
                       />
@@ -4352,6 +4361,11 @@ const Modele = ({ categoryParam = null }) => {
                         <img
                           src={similarProductImages[prod.id] || prod.image || 'https://placehold.co/300x300?text=Image'}
                           alt={prod.name || prod.title}
+                          width={300}
+                          height={300}
+                          loading="lazy"
+                          decoding="async"
+                          style={{ objectFit: 'contain' }}
                           className="mx-auto h-32 object-contain"
                         />
                       </div>
