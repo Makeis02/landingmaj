@@ -37,11 +37,11 @@ import { useImageUpload } from "@/hooks/useImageUpload";
 import { useFavoritesStore } from "@/stores/useFavoritesStore";
 import { fetchStripeProducts } from "@/lib/api/stripe";
 import SEO from "@/components/SEO"; // Importer le composant SEO
+import PromoBadge from "@/components/PromoBadge";
 
 // Lazy loading des composants secondaires
 const Reviews = React.lazy(() => import("@/pages/Landing/components/Reviews").then(m => ({ default: m.default || m.Reviews })));
 const EditableDebugPanel = React.lazy(() => import("@/components/EditableDebugPanel").then(m => ({ default: m.default || m.EditableDebugPanel })));
-const PromoBadge = React.lazy(() => import("@/components/PromoBadge").then(m => ({ default: m.default || m.PromoBadge })));
 
 // Types
 interface Product {
