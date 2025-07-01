@@ -255,9 +255,10 @@ const EditableCarousel = () => {
     }
   };
 
-  const startEditing = (index: number) => {
-    setEditingSlide(index);
-    setTempSlideData({ ...slides[index] });
+  const startEditing = (slideIndex: number) => {
+    const slideToEdit = slides.find(s => s.index === slideIndex);
+    setEditingSlide(slideIndex);
+    setTempSlideData(slideToEdit ? { ...slideToEdit } : null);
   };
 
   const cancelEditing = () => {
@@ -462,11 +463,11 @@ const EditableCarousel = () => {
         <div className="relative h-full">
           {slides
             .filter(slide => isEditMode || slide.is_active)
-            .map((slide, index) => (
+            .map((slide, i) => (
               <div
-                key={index}
+                key={slide.index}
                 className={`absolute inset-0 transition-opacity duration-500 ${
-                  index === currentSlide ? 'opacity-100' : 'opacity-0'
+                  i === currentSlide ? 'opacity-100' : 'opacity-0'
                 }`}
               >
                 <div
@@ -484,7 +485,6 @@ const EditableCarousel = () => {
                     {isEditMode ? (
                       /* Mode édition avec bouton modifier */
                       <div className="space-y-4 md:space-y-6">
-                        {console.log('[CAROUSEL-DEBUG] Edition slide', index, 'URL temporaire:', slide.button_url)}
                         <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
                           {slide.title}
                         </h1>
@@ -496,10 +496,10 @@ const EditableCarousel = () => {
                           className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
                         >
                           <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                          {slide.button_text}
+                          {slide.button_text} (slide.index: {slide.index}, i: {i})
                         </a>
                         <Button
-                          onClick={() => startEditing(index)}
+                          onClick={() => startEditing(slide.index)}
                           className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
                         >
                           <Edit className="w-4 h-4 mr-2" />
