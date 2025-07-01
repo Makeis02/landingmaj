@@ -31,6 +31,7 @@ const EditableCarousel = () => {
   const { toast } = useToast();
   const isMobile = useMediaQuery({ maxWidth: 767 });
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryPaths, setCategoryPaths] = useState<Record<string, string>>({});
 
   // Initialiser les slides par défaut
   const defaultSlides: CarouselSlide[] = [
@@ -403,8 +404,26 @@ const EditableCarousel = () => {
       try {
         const cats = await fetchCategories();
         setCategories(cats);
+        // Construire les chemins complets pour chaque catégorie
+        const paths: Record<string, string> = {};
+        cats.forEach(cat => {
+          let path = [cat.name];
+          let current = cat;
+          while (current.parent_id) {
+            const parent = cats.find(c => c.id === current.parent_id);
+            if (parent) {
+              path.unshift(parent.name);
+              current = parent;
+            } else {
+              break;
+            }
+          }
+          paths[cat.id] = path.join(' > ');
+        });
+        setCategoryPaths(paths);
       } catch (e) {
         setCategories([]);
+        setCategoryPaths({});
       }
     };
     fetchAllCategories();
@@ -571,7 +590,7 @@ const EditableCarousel = () => {
                         </SelectTrigger>
                         <SelectContent>
                           {categories.map(cat => (
-                            <SelectItem key={cat.id} value={`/categories/${cat.slug}`}>{cat.name}</SelectItem>
+                            <SelectItem key={cat.id} value={`/categories/${cat.slug}`}>{categoryPaths[cat.id] || cat.name}</SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
