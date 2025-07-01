@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { ChevronLeft, ChevronRight, Upload, Save, Link as LinkIcon, Edit } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { fetchCategories, Category } from '@/lib/api/categories';
 
 interface CarouselSlide {
   index: number;
@@ -28,6 +30,7 @@ const EditableCarousel = () => {
   const [tempSlideData, setTempSlideData] = useState<CarouselSlide | null>(null);
   const { toast } = useToast();
   const isMobile = useMediaQuery({ maxWidth: 767 });
+  const [categories, setCategories] = useState<Category[]>([]);
 
   // Initialiser les slides par défaut
   const defaultSlides: CarouselSlide[] = [
@@ -394,6 +397,19 @@ const EditableCarousel = () => {
     }
   }, [isEditMode, slides.length]);
 
+  // Charger les catégories au montage
+  useEffect(() => {
+    const fetchAllCategories = async () => {
+      try {
+        const cats = await fetchCategories();
+        setCategories(cats);
+      } catch (e) {
+        setCategories([]);
+      }
+    };
+    fetchAllCategories();
+  }, []);
+
   if (isLoading) {
     return (
       <div className="relative h-[500px] bg-gray-100 animate-pulse">
@@ -543,7 +559,23 @@ const EditableCarousel = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold mb-3 text-gray-700">URL du bouton</label>
+                      <label className="block text-sm font-semibold mb-3 text-gray-700">Catégorie de redirection</label>
+                      <Select
+                        value={categories.length > 0 && tempSlideData?.button_url?.startsWith('/categories/') ? tempSlideData.button_url : ''}
+                        onValueChange={url => {
+                          setTempSlideData(prev => prev ? { ...prev, button_url: url } : null);
+                        }}
+                      >
+                        <SelectTrigger className="w-full mb-2">
+                          <SelectValue placeholder="Choisir une catégorie..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map(cat => (
+                            <SelectItem key={cat.id} value={`/categories/${cat.slug}`}>{cat.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <label className="block text-xs text-gray-500 mb-1">Ou entrez une URL personnalisée :</label>
                       <Input
                         value={tempSlideData?.button_url || ''}
                         onChange={(e) => setTempSlideData(prev => prev ? {...prev, button_url: e.target.value} : null)}
