@@ -255,10 +255,9 @@ const EditableCarousel = () => {
     }
   };
 
-  const startEditing = (slideIndex: number) => {
-    const slideToEdit = slides.find(s => s.index === slideIndex);
-    setEditingSlide(slideIndex);
-    setTempSlideData(slideToEdit ? { ...slideToEdit } : null);
+  const startEditing = (index: number) => {
+    setEditingSlide(index);
+    setTempSlideData({ ...slides[index] });
   };
 
   const cancelEditing = () => {
@@ -463,11 +462,13 @@ const EditableCarousel = () => {
         <div className="relative h-full">
           {slides
             .filter(slide => isEditMode || slide.is_active)
-            .map((slide, i) => (
+            .map((slide, index) => (
               <div
-                key={slide.index}
+                key={index}
                 className={`absolute inset-0 transition-opacity duration-500 ${
-                  i === currentSlide ? 'opacity-100' : 'opacity-0'
+                  index === currentSlide
+                    ? 'opacity-100 pointer-events-auto'
+                    : 'opacity-0 pointer-events-none'
                 }`}
               >
                 <div
@@ -496,10 +497,10 @@ const EditableCarousel = () => {
                           className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
                         >
                           <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                          {slide.button_text} (slide.index: {slide.index}, i: {i})
+                          {slide.button_text}
                         </a>
                         <Button
-                          onClick={() => startEditing(slide.index)}
+                          onClick={() => startEditing(index)}
                           className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
                         >
                           <Edit className="w-4 h-4 mr-2" />
