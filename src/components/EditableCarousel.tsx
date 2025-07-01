@@ -128,6 +128,7 @@ const EditableCarousel = () => {
       });
 
       const loadedSlides = await Promise.all(textPromises);
+      console.log('[CAROUSEL-DEBUG] Slides chargés:', loadedSlides.map(s => ({ index: s.index, url: s.button_url })));
       setSlides(loadedSlides);
 
       // Si aucune image n'existe, initialiser avec les données par défaut
@@ -136,7 +137,7 @@ const EditableCarousel = () => {
       }
 
     } catch (error) {
-      console.error('Erreur lors du chargement du carousel:', error);
+      console.error('[CAROUSEL-DEBUG] Erreur lors du chargement du carousel:', error);
       setSlides(defaultSlides);
     } finally {
       setIsLoading(false);
@@ -270,6 +271,7 @@ const EditableCarousel = () => {
     try {
       setIsSaving(true);
 
+      console.log('[CAROUSEL-DEBUG] Sauvegarde slide', editingSlide, 'URL à sauvegarder:', tempSlideData.button_url);
       // Sauvegarder tous les champs modifiés
       await Promise.all([
         supabase
@@ -306,13 +308,15 @@ const EditableCarousel = () => {
       setEditingSlide(null);
       setTempSlideData(null);
 
+      console.log('[CAROUSEL-DEBUG] Slides après sauvegarde:', updatedSlides.map(s => ({ index: s.index, url: s.button_url })));
+
       toast({
         title: "Slide mis à jour",
         description: "Les modifications ont été sauvegardées avec succès",
       });
 
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('[CAROUSEL-DEBUG] Erreur lors de la sauvegarde:', error);
       toast({
         title: "Erreur",
         description: "Une erreur est survenue lors de la sauvegarde",
@@ -439,6 +443,8 @@ const EditableCarousel = () => {
     );
   }
 
+  console.log('[CAROUSEL-DEBUG] Slides avant rendu:', slides.map(s => ({ index: s.index, url: s.button_url })));
+
   return (
     <>
       <style>
@@ -478,6 +484,7 @@ const EditableCarousel = () => {
                     {isEditMode ? (
                       /* Mode édition avec bouton modifier */
                       <div className="space-y-4 md:space-y-6">
+                        {console.log('[CAROUSEL-DEBUG] Edition slide', index, 'URL temporaire:', slide.button_url)}
                         <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
                           {slide.title}
                         </h1>
