@@ -5,9 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EditableText } from "@/components/EditableText";
 import { useEditStore } from "@/stores/useEditStore";
-import { useState, useEffect } from "react";
-import Picker from '@emoji-mart/react';
-import data from '@emoji-mart/data';
+import { useState, useEffect, lazy, Suspense } from "react";
+import React from "react";
 
 // Types pour les notifications et le rating
 type NotificationType = 'success' | 'error';
@@ -266,6 +265,8 @@ const Reviews = ({ productId }: ReviewsProps) => {
     return relativeDate(dateToUse);
   };
 
+  const Picker = React.lazy(() => import('emoji-mart'));
+
   return (
     <div>
       {/* Notification */}
@@ -428,14 +429,16 @@ const Reviews = ({ productId }: ReviewsProps) => {
                   {/* Emoji Picker */}
                   {showEmojiPicker && (
                     <div className="absolute bottom-20 right-0 z-50">
-                      <Picker
-                        data={data}
-                        onEmojiSelect={(emoji: any) => {
-                          setCommentText((prev) => prev + emoji.native);
-                          setShowEmojiPicker(false);
-                        }}
-                        theme="light"
-                      />
+                      <Suspense fallback={null}>
+                        <Picker
+                          data={data}
+                          onEmojiSelect={(emoji: any) => {
+                            setCommentText((prev) => prev + emoji.native);
+                            setShowEmojiPicker(false);
+                          }}
+                          theme="light"
+                        />
+                      </Suspense>
                     </div>
                   )}
                 </div>
