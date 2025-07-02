@@ -17,6 +17,8 @@ import { useMediaQuery } from 'react-responsive';
 import { Toggle } from "@/components/ui/toggle";
 import { Label } from "@/components/ui/label";
 import SEO from "@/components/SEO";
+import { useEditStore } from '@/stores/useEditStore';
+import DynamicUniverseGrid from '@/components/DynamicUniverseGrid';
 
 const EditableCarousel = lazy(() => import("@/components/EditableCarousel"));
 const PopularProducts = lazy(() => import("@/components/PopularProducts"));
