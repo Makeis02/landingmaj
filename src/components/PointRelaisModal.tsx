@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Clock, Star, Car, Accessibility, Package, X } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import React from 'react';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -123,6 +123,11 @@ interface PointRelaisModalProps {
   codePostal: string;
 }
 
+const MapContainer = React.lazy(() => import('react-leaflet').then(mod => ({ default: mod.MapContainer })));
+const TileLayer = React.lazy(() => import('react-leaflet').then(mod => ({ default: mod.TileLayer })));
+const Marker = React.lazy(() => import('react-leaflet').then(mod => ({ default: mod.Marker })));
+const Popup = React.lazy(() => import('react-leaflet').then(mod => ({ default: mod.Popup })));
+
 export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal }: PointRelaisModalProps) {
   const [points, setPoints] = useState<PointRelais[]>([]);
   const [loading, setLoading] = useState(false);
@@ -172,33 +177,35 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal }: Poin
         <div className="flex h-[calc(80vh-8rem)]">
           {/* Carte */}
           <div className="w-2/3 h-full">
-            <MapContainer
-              center={center as [number, number]}
-              zoom={13}
-              className="h-full w-full"
-            >
-              <TileLayer
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              />
-              {filteredPoints.map((point) => (
-                <Marker
-                  key={point.Num}
-                  position={[parseFloat(point.Latitude), parseFloat(point.Longitude)]}
-                  eventHandlers={{
-                    click: () => setSelectedPoint(point)
-                  }}
-                >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold">{point.LgAdr1}</h3>
-                      <p>{point.LgAdr2}</p>
-                      <p>{point.CP} {point.Ville}</p>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
+            <Suspense fallback={null}>
+              <MapContainer
+                center={center as [number, number]}
+                zoom={13}
+                className="h-full w-full"
+              >
+                <TileLayer
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                />
+                {filteredPoints.map((point) => (
+                  <Marker
+                    key={point.Num}
+                    position={[parseFloat(point.Latitude), parseFloat(point.Longitude)]}
+                    eventHandlers={{
+                      click: () => setSelectedPoint(point)
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold">{point.LgAdr1}</h3>
+                        <p>{point.LgAdr2}</p>
+                        <p>{point.CP} {point.Ville}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                ))}
+              </MapContainer>
+            </Suspense>
           </div>
 
           {/* Liste des points relais */}
