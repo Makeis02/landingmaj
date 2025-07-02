@@ -127,7 +127,6 @@ export default defineConfig(async ({ mode }) => {
           'emoji-mart': ['@emoji-mart/react', '@emoji-mart/data'],
           'react-beautiful-dnd': ['react-beautiful-dnd'],
           'leaflet': ['leaflet'],
-          'chartjs': ['chart.js'],
         },
       },
     },
