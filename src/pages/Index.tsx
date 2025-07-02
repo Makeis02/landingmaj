@@ -5,7 +5,7 @@ import { AdminHeader } from "@/components/admin/layout/AdminHeader";
 import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, ArrowRight, Award, CreditCard, MessageCircle } from "lucide-react";
+import { Mail, ArrowRight, Award, CreditCard, MessageCircle, Truck, RotateCcw } from "lucide-react";
 import { useState, useEffect, FormEvent } from "react";
 import EditorialProductCard, { EditorialCategoryCard, EditorialPackCard } from '@/components/EditorialProductCard';
 import { EditableText } from '@/components/EditableText';
