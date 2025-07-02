@@ -120,5 +120,17 @@ export default defineConfig(async ({ mode }) => {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'emoji-mart': ['@emoji-mart/react', '@emoji-mart/data'],
+          'react-beautiful-dnd': ['react-beautiful-dnd'],
+          'leaflet': ['leaflet'],
+          'chartjs': ['chart.js'],
+        },
+      },
+    },
+  },
   }
 });
