@@ -709,103 +709,117 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {visibleProducts.map((product) => (
-            <Card key={product.id} className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
-              <div className="relative h-56 bg-white flex items-center justify-center">
-                {/* Badge DDM prioritaire sur promo */}
-                {ddmFlags[product.id] && ddmDates[product.id] ? (
-                  <div className="absolute top-2 left-2 z-10">
-                    <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
-                      DDM DÉPASSÉE
-                    </span>
-                  </div>
-                ) : (product.hasDiscount || product.onSale) ? (
-                  <div className="absolute top-2 left-2 z-10">
-                    <PromoBadge />
-                  </div>
-                ) : null}
-                <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}>
-                  <img 
-                    src={product.image}
-                    alt={product.title}
-                    className="h-32 object-contain mx-auto"
-                  />
-                </RouterLink>
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col h-full overflow-hidden bg-white rounded-lg shadow animate-pulse">
+                <div className="h-56 bg-gray-200 w-full mb-4" />
+                <div className="flex-1 p-4">
+                  <div className="h-6 bg-gray-200 rounded mb-3" />
+                  <div className="h-4 bg-gray-200 rounded mb-4" />
+                  <div className="h-10 bg-gray-200 rounded" />
+                </div>
               </div>
-              <CardContent className="flex flex-col flex-1 p-4">
-                <h3 className="font-bold text-base leading-snug mb-1 line-clamp-1">
-                  <RouterLink
-                    to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
-                    className="transition-colors group-hover:text-[#0074b3] hover:text-[#0074b3] focus:text-[#0074b3]"
-                  >
-                    {product.title}
+            ))
+          ) : (
+            visibleProducts.map((product) => (
+              <Card key={product.id} className="flex flex-col h-full overflow-hidden hover:shadow-md transition-shadow duration-300 group">
+                <div className="relative h-56 bg-white flex items-center justify-center">
+                  {/* Badge DDM prioritaire sur promo */}
+                  {ddmFlags[product.id] && ddmDates[product.id] ? (
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded shadow-lg z-30 border border-orange-700 pointer-events-none animate-pulse">
+                        DDM DÉPASSÉE
+                      </span>
+                    </div>
+                  ) : (product.hasDiscount || product.onSale) ? (
+                    <div className="absolute top-2 left-2 z-10">
+                      <PromoBadge />
+                    </div>
+                  ) : null}
+                  <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}>
+                    <img 
+                      src={product.image}
+                      alt={product.title}
+                      className="h-32 object-contain mx-auto"
+                      loading="lazy"
+                    />
                   </RouterLink>
-                </h3>
-                <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
-                  {/* Affiche la description en texte brut, sans HTML */}
-                  {product.description
-                    ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
-                    : <span className="italic text-gray-400">Aucune description</span>}
                 </div>
-                <div className="flex items-center mb-2">
-                  {[...Array(5)].map((_, i) => (
-                    <svg
-                      key={i}
-                      className={`h-5 w-5 ${i < Math.round(product.averageRating || 0) ? 'text-[#0074b3] fill-[#0074b3]' : 'text-gray-200 fill-gray-200'}`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 20 20"
-                    >
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                  ))}
-                  <span className="text-xs ml-1 text-gray-500">
-                    ({product.reviewCount || 0})
-                  </span>
-                </div>
-                <div className="font-medium text-lg text-gray-900 mb-3 truncate" style={{minHeight: '1.8em'}}>
-                  {product.variantPriceRange ? (
-                    `De ${product.variantPriceRange.min.toFixed(2)} € à ${product.variantPriceRange.max.toFixed(2)} €`
-                  ) : (
-                    // 🎯 AJOUT : Gestion des prix promotionnels
-                    (() => {
-                      const promo = promoPrices[product.id];
-                      const isPromo = !!promo && promo.discount_percentage;
-                      
-                      if (isPromo) {
-                        return (
-                          <>
-                            <span className="text-gray-500 line-through mr-2">{promo.original_price.toFixed(2)}€</span>
-                            <span className="text-red-600 font-semibold">{promo.price.toFixed(2)}€</span>
-                            <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">-{promo.discount_percentage}%</span>
-                          </>
-                        );
-                      } else {
-                        return `${product.price?.toFixed(2)} €`;
-                      }
-                    })()
-                  )}
-                </div>
-                <div className="mt-auto">
-                  {product.hasVariant ? (
+                <CardContent className="flex flex-col flex-1 p-4">
+                  <h3 className="font-bold text-base leading-snug mb-1 line-clamp-1">
                     <RouterLink
                       to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
-                      className="block bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold text-center text-sm w-full"
+                      className="transition-colors group-hover:text-[#0074b3] hover:text-[#0074b3] focus:text-[#0074b3]"
                     >
-                      Voir le produit
+                      {product.title}
                     </RouterLink>
-                  ) : (
-                    <button
-                      className="block bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold text-center text-sm w-full flex items-center justify-center gap-2"
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      <ShoppingCart size={16} className="mr-1" />
-                      Ajouter
-                    </button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  </h3>
+                  <div className="text-xs text-gray-600 mb-2 line-clamp-2 min-h-[2.5em]">
+                    {/* Affiche la description en texte brut, sans HTML */}
+                    {product.description
+                      ? product.description.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').trim()
+                      : <span className="italic text-gray-400">Aucune description</span>}
+                  </div>
+                  <div className="flex items-center mb-2">
+                    {[...Array(5)].map((_, i) => (
+                      <svg
+                        key={i}
+                        className={`h-5 w-5 ${i < Math.round(product.averageRating || 0) ? 'text-[#0074b3] fill-[#0074b3]' : 'text-gray-200 fill-gray-200'}`}
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 20 20"
+                      >
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                    ))}
+                    <span className="text-xs ml-1 text-gray-500">
+                      ({product.reviewCount || 0})
+                    </span>
+                  </div>
+                  <div className="font-medium text-lg text-gray-900 mb-3 truncate" style={{minHeight: '1.8em'}}>
+                    {product.variantPriceRange ? (
+                      `De ${product.variantPriceRange.min.toFixed(2)} € à ${product.variantPriceRange.max.toFixed(2)} €`
+                    ) : (
+                      // 🎯 AJOUT : Gestion des prix promotionnels
+                      (() => {
+                        const promo = promoPrices[product.id];
+                        const isPromo = !!promo && promo.discount_percentage;
+                        
+                        if (isPromo) {
+                          return (
+                            <>
+                              <span className="text-gray-500 line-through mr-2">{promo.original_price.toFixed(2)}€</span>
+                              <span className="text-red-600 font-semibold">{promo.price.toFixed(2)}€</span>
+                              <span className="ml-2 text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">-{promo.discount_percentage}%</span>
+                            </>
+                          );
+                        } else {
+                          return `${product.price?.toFixed(2)} €`;
+                        }
+                      })()
+                    )}
+                  </div>
+                  <div className="mt-auto">
+                    {product.hasVariant ? (
+                      <RouterLink
+                        to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
+                        className="block bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold text-center text-sm w-full"
+                      >
+                        Voir le produit
+                      </RouterLink>
+                    ) : (
+                      <button
+                        className="block bg-[#0074b3] text-white py-2 rounded-md hover:bg-[#00639c] transition font-semibold text-center text-sm w-full flex items-center justify-center gap-2"
+                        onClick={() => handleAddToCart(product)}
+                      >
+                        <ShoppingCart size={16} className="mr-1" />
+                        Ajouter
+                      </button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
         {/* Modal de sélection des produits */}
@@ -829,6 +843,7 @@ const PopularProducts: React.FC<PopularProductsProps> = ({ className = "" }) => 
                         src={product.image || "/placeholder.svg"} 
                         alt={product.title}
                         className="w-12 h-12 object-contain"
+                        loading="lazy"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm truncate">{product.title}</p>

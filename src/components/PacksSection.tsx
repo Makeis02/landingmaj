@@ -125,6 +125,7 @@ const PacksSection = ({ homepageGlobalUrl }: PacksSectionProps) => {
   const [discoveryImages, setDiscoveryImages] = useState<string[]>([]);
   const [carouselSpeed, setCarouselSpeed] = useState<number>(5000);
   const [buttonData, setButtonData] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   // Récupération des données depuis Supabase
   const { data: imagesData, refetch: refetchImages } = useQuery({
@@ -155,6 +156,9 @@ const PacksSection = ({ homepageGlobalUrl }: PacksSectionProps) => {
       });
 
       return result;
+    },
+    onSettled: () => {
+      setIsLoading(false);
     },
   });
 
@@ -437,182 +441,195 @@ const PacksSection = ({ homepageGlobalUrl }: PacksSectionProps) => {
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {plans.map((plan) => {
-            let currentImages: string[];
-            if (plan.id === "basix") {
-              currentImages = basixImages;
-            } else if (plan.id === "premium") {
-              currentImages = premiumImages;
-            } else {
-              currentImages = discoveryImages;
-            }
-
-            const nameKey = `pack_${plan.id}_name`;
-            const priceKey = `pack_${plan.id}_price`;
-
-            return (
-              <div 
-                key={plan.name}
-                className="relative flex flex-col h-full"
-              >
-                <div className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
-                  plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
-                }`}>
-                  <Carousel
-                    packName={plan.name}
-                    images={currentImages}
-                    speed={carouselSpeed}
-                    isEditMode={isEditMode}
-                    contentKey={plan.imageContentKey}
-                    onImagesUpdate={(newImages) => {
-                      console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
-                      if (plan.id === "basix") {
-                        setBasixImages(newImages);
-                      } else if (plan.id === "premium") {
-                        setPremiumImages(newImages);
-                      } else {
-                        setDiscoveryImages(newImages);
-                      }
-                      refetchImages();
-                    }}
-                  />
-                  {isEditMode && (
-                    <div className="flex justify-center mt-4 mb-2">
-                      <label htmlFor={`file-input-${plan.id}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm cursor-pointer">
-                        Ajouter des images
-                      </label>
-                      <input
-                        id={`file-input-${plan.id}`}
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        multiple
-                        onChange={(e) => handleImageUpload(e, plan.id)}
-                      />
-                    </div>
-                  )}
-                  <h3 className="text-2xl font-bold mb-2 mt-4 min-h-[40px] flex items-center justify-center text-center">
-                    <EditableText
-                      contentKey={nameKey}
-                      initialContent={plan.name}
-                      onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
-                    />
-                  </h3>
-                  <div className="flex items-center justify-center mb-4 px-2">
-                    <div className="inline-flex items-center justify-center bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-medium px-3 py-2 rounded-full w-full max-w-[95%] mx-auto">
-                      <div className="flex items-center justify-center w-5 mr-1.5">
-                        <Fish className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
-                      </div>
-                      <p className="text-center flex-1 leading-tight px-0.5">
-                        {plan.name === "Pack Survie" && "Pour petits aquariums de 10 à 60L : bettas seuls, guppys, rasboras, néons, petits poissons rouges isolés."}
-                        {plan.name === "Pack Basic" && "Pour aquariums communautaires de 60 à 150L : guppys, platies, rasboras, corydoras, petits cichlidés nains."}
-                        {plan.name === "Pack Premium" && "Pour grands bacs de plus de 150L : cichlidés africains (Malawi, Tanganyika), scalaires, discus et aquariums très plantés."}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
-                    <EditableText
-                      contentKey={priceKey}
-                      initialContent={plan.price}
-                      onUpdate={(newText) => handleTextUpdate(newText, priceKey)}
-                    />
-                    <span className="text-base font-normal text-slate-600 ml-1">/mois</span>
-                  </div>
-                  <div className="space-y-4 mb-8 flex-grow">
-                    {plan.features.map((feature, index) => {
-                      const featureKey = `pack_${plan.id}_features_${index + 1}`;
-                      let supabaseFeatureIndex = index + 1;
-                      if (plan.id === 'premium' && supabaseFeatureIndex >= 3) {
-                        supabaseFeatureIndex++;
-                      }
-                      const actualFeatureKey = `pack_${plan.id}_features_${supabaseFeatureIndex}`;
-
-                      return (
-                        <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-3">
-                          <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                          <div className="flex items-center gap-1">
-                            <EditableText
-                              contentKey={actualFeatureKey}
-                              initialContent={feature}
-                              onUpdate={(newText) => handleTextUpdate(newText, actualFeatureKey)}
-                            />
-                            {containsRevePoints(feature) && (
-                              <MobileTooltip
-                                content={
-                                  <EditableText
-                                    contentKey="reve_points_tooltip"
-                                    initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
-                                    onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
-                                  />
-                                }
-                              >
-                                <span className="cursor-help">
-                                  <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
-                                </span>
-                              </MobileTooltip>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {plan.noFeatures.map((feature, index) => (
-                      <div key={`${plan.id}-nofeature-${index}`} className="flex items-start gap-3 text-slate-400">
-                        <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                        <EditableText
-                          contentKey={`pack_${plan.id}_no_features_${index + 1}`}
-                          initialContent={feature}
-                          onUpdate={(newText) => handleTextUpdate(newText, `pack_${plan.id}_no_features_${index + 1}`)}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <div className="text-sm text-slate-600 mb-6 text-center">
-                    Idéal pour : <span className="font-semibold">{plan.ideal}</span>
-                  </div>
-                  <div className="mt-2 sm:mt-4 md:mt-auto">
-                    {homepageGlobalUrl ? (
-                      <a
-                        href={homepageGlobalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
-                          {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
-                        </Button>
-                      </a>
-                    ) : isEditMode ? (
-                      <div className="flex flex-col items-center">
-                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
-                          <EditableText
-                            contentKey={plan.buttonTextKey}
-                            initialContent={buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
-                            onUpdate={(newText) => handleTextUpdate(newText, plan.buttonTextKey)}
-                          />
-                        </Button>
-                        <EditableURL
-                          contentKey={plan.buttonUrlKey}
-                          initialContent={buttonData?.[plan.buttonUrlKey] || "#"}
-                          onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.buttonUrlKey)}
-                        />
-                      </div>
-                    ) : (
-                      <a
-                        href={buttonData?.[plan.buttonUrlKey]?.startsWith("http")
-                          ? buttonData[plan.buttonUrlKey]
-                          : `http://${buttonData?.[plan.buttonUrlKey] || "#"}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
-                          {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
-                        </Button>
-                      </a>
-                    )}
-                  </div>
+          {isLoading || plans.length === 0 ? (
+            Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="flex flex-col h-full overflow-hidden bg-white rounded-lg shadow animate-pulse">
+                <div className="h-56 bg-gray-200 w-full mb-4" />
+                <div className="flex-1 p-4">
+                  <div className="h-6 bg-gray-200 rounded mb-3" />
+                  <div className="h-4 bg-gray-200 rounded mb-4" />
+                  <div className="h-10 bg-gray-200 rounded" />
                 </div>
               </div>
-            );
-          })}
+            ))
+          ) : (
+            plans.map((plan) => {
+              let currentImages: string[];
+              if (plan.id === "basix") {
+                currentImages = basixImages;
+              } else if (plan.id === "premium") {
+                currentImages = premiumImages;
+              } else {
+                currentImages = discoveryImages;
+              }
+
+              const nameKey = `pack_${plan.id}_name`;
+              const priceKey = `pack_${plan.id}_price`;
+
+              return (
+                <div 
+                  key={plan.name}
+                  className="relative flex flex-col h-full"
+                >
+                  <div className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
+                    plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
+                  }`}>
+                    <Carousel
+                      packName={plan.name}
+                      images={currentImages}
+                      speed={carouselSpeed}
+                      isEditMode={isEditMode}
+                      contentKey={plan.imageContentKey}
+                      onImagesUpdate={(newImages) => {
+                        console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
+                        if (plan.id === "basix") {
+                          setBasixImages(newImages);
+                        } else if (plan.id === "premium") {
+                          setPremiumImages(newImages);
+                        } else {
+                          setDiscoveryImages(newImages);
+                        }
+                        refetchImages();
+                      }}
+                    />
+                    {isEditMode && (
+                      <div className="flex justify-center mt-4 mb-2">
+                        <label htmlFor={`file-input-${plan.id}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm cursor-pointer">
+                          Ajouter des images
+                        </label>
+                        <input
+                          id={`file-input-${plan.id}`}
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          multiple
+                          onChange={(e) => handleImageUpload(e, plan.id)}
+                        />
+                      </div>
+                    )}
+                    <h3 className="text-2xl font-bold mb-2 mt-4 min-h-[40px] flex items-center justify-center text-center">
+                      <EditableText
+                        contentKey={nameKey}
+                        initialContent={plan.name}
+                        onUpdate={(newText) => handleTextUpdate(newText, nameKey)}
+                      />
+                    </h3>
+                    <div className="flex items-center justify-center mb-4 px-2">
+                      <div className="inline-flex items-center justify-center bg-blue-50 text-blue-700 text-[11px] sm:text-xs font-medium px-3 py-2 rounded-full w-full max-w-[95%] mx-auto">
+                        <div className="flex items-center justify-center w-5 mr-1.5">
+                          <Fish className="h-3.5 w-3.5 sm:h-4 sm:w-4" strokeWidth={2.5} />
+                        </div>
+                        <p className="text-center flex-1 leading-tight px-0.5">
+                          {plan.name === "Pack Survie" && "Pour petits aquariums de 10 à 60L : bettas seuls, guppys, rasboras, néons, petits poissons rouges isolés."}
+                          {plan.name === "Pack Basic" && "Pour aquariums communautaires de 60 à 150L : guppys, platies, rasboras, corydoras, petits cichlidés nains."}
+                          {plan.name === "Pack Premium" && "Pour grands bacs de plus de 150L : cichlidés africains (Malawi, Tanganyika), scalaires, discus et aquariums très plantés."}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-3xl font-bold mb-6 min-h-[40px] flex items-center justify-center">
+                      <EditableText
+                        contentKey={priceKey}
+                        initialContent={plan.price}
+                        onUpdate={(newText) => handleTextUpdate(newText, priceKey)}
+                      />
+                      <span className="text-base font-normal text-slate-600 ml-1">/mois</span>
+                    </div>
+                    <div className="space-y-4 mb-8 flex-grow">
+                      {plan.features.map((feature, index) => {
+                        const featureKey = `pack_${plan.id}_features_${index + 1}`;
+                        let supabaseFeatureIndex = index + 1;
+                        if (plan.id === 'premium' && supabaseFeatureIndex >= 3) {
+                          supabaseFeatureIndex++;
+                        }
+                        const actualFeatureKey = `pack_${plan.id}_features_${supabaseFeatureIndex}`;
+
+                        return (
+                          <div key={`${plan.id}-feature-${index}`} className="flex items-start gap-3">
+                            <Check className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                            <div className="flex items-center gap-1">
+                              <EditableText
+                                contentKey={actualFeatureKey}
+                                initialContent={feature}
+                                onUpdate={(newText) => handleTextUpdate(newText, actualFeatureKey)}
+                              />
+                              {containsRevePoints(feature) && (
+                                <MobileTooltip
+                                  content={
+                                    <EditableText
+                                      contentKey="reve_points_tooltip"
+                                      initialContent="Les rêve points sont des points de fidélité que vous accumulez à chaque achat. Ils peuvent être utilisés pour obtenir des réductions sur vos prochaines commandes."
+                                      onUpdate={(newText) => handleTextUpdate(newText, "reve_points_tooltip")}
+                                    />
+                                  }
+                                >
+                                  <span className="cursor-help">
+                                    <HelpCircle className="h-4 w-4 text-slate-500 hover:text-primary transition-colors" />
+                                  </span>
+                                </MobileTooltip>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {plan.noFeatures.map((feature, index) => (
+                        <div key={`${plan.id}-nofeature-${index}`} className="flex items-start gap-3 text-slate-400">
+                          <X className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                          <EditableText
+                            contentKey={`pack_${plan.id}_no_features_${index + 1}`}
+                            initialContent={feature}
+                            onUpdate={(newText) => handleTextUpdate(newText, `pack_${plan.id}_no_features_${index + 1}`)}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-sm text-slate-600 mb-6 text-center">
+                      Idéal pour : <span className="font-semibold">{plan.ideal}</span>
+                    </div>
+                    <div className="mt-2 sm:mt-4 md:mt-auto">
+                      {homepageGlobalUrl ? (
+                        <a
+                          href={homepageGlobalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                            {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                          </Button>
+                        </a>
+                      ) : isEditMode ? (
+                        <div className="flex flex-col items-center">
+                          <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                            <EditableText
+                              contentKey={plan.buttonTextKey}
+                              initialContent={buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                              onUpdate={(newText) => handleTextUpdate(newText, plan.buttonTextKey)}
+                            />
+                          </Button>
+                          <EditableURL
+                            contentKey={plan.buttonUrlKey}
+                            initialContent={buttonData?.[plan.buttonUrlKey] || "#"}
+                            onUpdate={(newUrl) => handleTextUpdate(newUrl, plan.buttonUrlKey)}
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={buttonData?.[plan.buttonUrlKey]?.startsWith("http")
+                            ? buttonData[plan.buttonUrlKey]
+                            : `http://${buttonData?.[plan.buttonUrlKey] || "#"}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Button className={`w-full text-white bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all`}>
+                            {buttonData?.[plan.buttonTextKey] || "Choisir ce pack"}
+                          </Button>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </section>

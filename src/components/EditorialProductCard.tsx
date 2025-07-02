@@ -460,6 +460,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
               src={editorialData.image} 
               alt={editorialData.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              loading="lazy"
             />
           </div>
         </div>
@@ -511,6 +512,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
                 src={productImage || '/placeholder.svg'} 
                 alt={selectedProduct?.title}
                 className="max-h-44 max-w-[90%] object-contain p-2 bg-white rounded"
+                loading="lazy"
               />
             )}
             <div className="absolute top-2 right-2 z-10">
@@ -608,6 +610,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
                           src={product.image || '/placeholder.svg'} 
                           alt={product.title}
                           className="w-8 h-8 object-contain"
+                          loading="lazy"
                         />
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{product.title}</div>
@@ -840,6 +843,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
               src={editorialData.image} 
               alt={editorialData.title}
               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              loading="lazy"
             />
           </div>
         </div>
@@ -879,6 +883,7 @@ export const EditorialCategoryCard: React.FC<EditorialCategoryCardProps> = ({ ca
             src={imageUrl}
             alt={editorialData.title}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         )}
       </div>
@@ -1021,6 +1026,7 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
             src={imageUrl}
             alt={editorialData.title}
             className="w-full h-full object-cover"
+            loading="lazy"
           />
         )}
       </div>

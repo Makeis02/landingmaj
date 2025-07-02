@@ -460,75 +460,79 @@ const EditableCarousel = () => {
       <section className="relative h-[500px] overflow-hidden">
         {/* Images du carousel */}
         <div className="relative h-full">
-          {slides
-            .filter(slide => isEditMode || slide.is_active)
-            .map((slide, index) => (
-              <div
-                key={index}
-                className={`absolute inset-0 transition-opacity duration-500 ${
-                  index === currentSlide
-                    ? 'opacity-100 pointer-events-auto'
-                    : 'opacity-0 pointer-events-none'
-                }`}
-              >
+          {slides.length === 0 ? (
+            <div className="h-64 w-full bg-gray-200 animate-pulse rounded-lg" />
+          ) : (
+            slides
+              .filter(slide => isEditMode || slide.is_active)
+              .map((slide, index) => (
                 <div
-                  className="w-full h-full bg-cover bg-center"
-                  style={{ 
-                    backgroundImage: `url('${isMobile ? slide.image_url_mobile : slide.image_url_desktop}')` 
-                  }}
+                  key={index}
+                  className={`absolute inset-0 transition-opacity duration-500 ${
+                    index === currentSlide
+                      ? 'opacity-100 pointer-events-auto'
+                      : 'opacity-0 pointer-events-none'
+                  }`}
                 >
-                  <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-                </div>
-                
-                {/* Contenu superposé */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-white max-w-4xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
-                    {isEditMode ? (
-                      /* Mode édition avec bouton modifier */
-                      <div className="space-y-4 md:space-y-6">
-                        <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
-                          {slide.title}
-                        </h1>
-                        <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
-                          {slide.subtitle}
-                        </p>
-                        <a
-                          href={slide.button_url}
-                          className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
-                        >
-                          <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                          {slide.button_text}
-                        </a>
-                        <Button
-                          onClick={() => startEditing(index)}
-                          className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
-                        >
-                          <Edit className="w-4 h-4 mr-2" />
-                          Modifier ce slide
-                        </Button>
-                      </div>
-                    ) : (
-                      /* Mode normal */
-                      <div className="space-y-4 md:space-y-6">
-                        <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
-                          {slide.title}
-                        </h1>
-                        <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
-                          {slide.subtitle}
-                        </p>
-                        <a
-                          href={slide.button_url}
-                          className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button text-sm md:text-base"
-                        >
-                          <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
-                          {slide.button_text}
-                        </a>
-                      </div>
-                    )}
+                  <div
+                    className="w-full h-full bg-cover bg-center"
+                    style={{ 
+                      backgroundImage: `url('${isMobile ? slide.image_url_mobile : slide.image_url_desktop}')` 
+                    }}
+                  >
+                    <div className="absolute inset-0 bg-black bg-opacity-40"></div>
+                  </div>
+                  
+                  {/* Contenu superposé */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center text-white max-w-4xl px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16">
+                      {isEditMode ? (
+                        /* Mode édition avec bouton modifier */
+                        <div className="space-y-4 md:space-y-6">
+                          <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
+                            {slide.title}
+                          </h1>
+                          <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
+                            {slide.subtitle}
+                          </p>
+                          <a
+                            href={slide.button_url}
+                            className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button mr-2 md:mr-4 text-sm md:text-base"
+                          >
+                            <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                            {slide.button_text}
+                          </a>
+                          <Button
+                            onClick={() => startEditing(index)}
+                            className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 md:px-8 md:py-4 text-sm md:text-base"
+                          >
+                            <Edit className="w-4 h-4 mr-2" />
+                            Modifier ce slide
+                          </Button>
+                        </div>
+                      ) : (
+                        /* Mode normal */
+                        <div className="space-y-4 md:space-y-6">
+                          <h1 className="text-3xl md:text-6xl font-bold mb-2 md:mb-4 leading-tight">
+                            {slide.title}
+                          </h1>
+                          <p className="text-lg md:text-2xl text-gray-200 mb-4 md:mb-6 line-clamp-3">
+                            {slide.subtitle}
+                          </p>
+                          <a
+                            href={slide.button_url}
+                            className="inline-flex items-center px-6 py-3 md:px-8 md:py-4 text-white font-bold rounded-lg transition-colors carousel-button text-sm md:text-base"
+                          >
+                            <LinkIcon className="w-4 h-4 md:w-5 md:h-5 mr-2" />
+                            {slide.button_text}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+          )}
         </div>
 
         {/* Modal d'édition */}
@@ -621,6 +625,7 @@ const EditableCarousel = () => {
                           src={tempSlideData?.image_url_desktop} 
                           alt="Aperçu Desktop" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                          loading="lazy"
                         />
                         <label
                           htmlFor={`desktop-upload-${editingSlide}`}
@@ -651,6 +656,7 @@ const EditableCarousel = () => {
                           src={tempSlideData?.image_url_mobile} 
                           alt="Aperçu Mobile" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                          loading="lazy"
                         />
                         <label
                           htmlFor={`mobile-upload-${editingSlide}`}
@@ -681,6 +687,7 @@ const EditableCarousel = () => {
                           src={isMobile ? tempSlideData?.image_url_mobile : tempSlideData?.image_url_desktop} 
                           alt="Aperçu" 
                           className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                          loading="lazy"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center">
                           <div className="text-center text-white">

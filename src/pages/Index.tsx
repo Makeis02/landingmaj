@@ -2,11 +2,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import FloatingHeader from "@/components/admin/FloatingHeader";
 import { AdminHeader } from "@/components/admin/layout/AdminHeader";
-import EditableCarousel from "@/components/EditableCarousel";
-import DynamicUniverseGrid from "@/components/DynamicUniverseGrid";
-import PopularProducts from "@/components/PopularProducts";
-import PacksSection from "@/components/PacksSection";
-import { useEditStore } from "@/stores/useEditStore";
+import { Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +17,10 @@ import { useMediaQuery } from 'react-responsive';
 import { Toggle } from "@/components/ui/toggle";
 import { Label } from "@/components/ui/label";
 import SEO from "@/components/SEO";
+
+const EditableCarousel = lazy(() => import("@/components/EditableCarousel"));
+const PopularProducts = lazy(() => import("@/components/PopularProducts"));
+const PacksSection = lazy(() => import("@/components/PacksSection"));
 
 const Index = () => {
   const { isEditMode: isEditing, isAdmin, checkAdminStatus } = useEditStore();
@@ -336,14 +336,18 @@ const Index = () => {
       <Header />
       <AdminHeader />
       <FloatingHeader />
-      <EditableCarousel />
+      <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement du carrousel...</div>}>
+        <EditableCarousel />
+      </Suspense>
       
       <main className="flex-grow">
         {/* Univers Grid - Dynamique depuis Supabase */}
         <DynamicUniverseGrid />
 
         {/* Popular Products - Dynamique depuis Supabase avec sélection en mode édition */}
-        <PopularProducts />
+        <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement des produits populaires...</div>}>
+          <PopularProducts />
+        </Suspense>
             
         {/* Packs Section - Choisis le pack qui te correspond */}
         <section className="relative">
@@ -358,7 +362,9 @@ const Index = () => {
               />
                       </div>
                     )}
-          <PacksSection homepageGlobalUrl={homepagePacksUrl} />
+          <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement des packs...</div>}>
+            <PacksSection homepageGlobalUrl={homepagePacksUrl} />
+          </Suspense>
         </section>
 
         {/* Editorial Grid */}
