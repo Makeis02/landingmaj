@@ -351,24 +351,6 @@ const Index = () => {
           <PopularProducts />
         </Suspense>
             
-        {/* Packs Section - Choisis le pack qui te correspond */}
-        <section className="relative">
-          {isEditing && (
-            <div className="absolute right-0 top-0 z-10 bg-white/80 p-2 rounded shadow">
-              <span className="text-xs font-semibold mr-2">Lien global packs :</span>
-              <EditableText
-                contentKey="homepage_packs_global_url"
-                initialContent={homepagePacksUrl}
-                onUpdate={setHomepagePacksUrl}
-                className="inline-block min-w-[120px]"
-              />
-                      </div>
-                    )}
-          <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement des packs...</div>}>
-            <PacksSection homepageGlobalUrl={homepagePacksUrl} />
-          </Suspense>
-        </section>
-
         {/* Editorial Grid */}
         <section className="py-20 bg-gray-50">
           <div className="container mx-auto px-4">
