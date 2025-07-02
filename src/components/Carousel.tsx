@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useEditStore } from '@/stores/useEditStore';
 import { ChevronLeft, ChevronRight, Upload, Trash2, ArrowUp, ArrowDown, Menu } from 'lucide-react';
@@ -574,54 +574,52 @@ const Carousel: React.FC<CarouselProps> = ({ packName, images = [], speed = 5000
                   Aucune image ajoutée
                 </div>
               ) : (
-                <Suspense fallback={null}>
-                  <DragDropContext>
-                    <Droppable droppableId="imageList">
-                      {(provided) => (
-                        <ul 
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                          className="space-y-2"
-                        >
-                          {displayedImages.map((image, index) => (
-                            <Draggable key={image} draggableId={image} index={index}>
-                              {(provided) => (
-                                <li
-                                  ref={provided.innerRef}
-                                  {...provided.draggableProps}
-                                  {...provided.dragHandleProps}
-                                  className="flex items-center bg-gray-100 rounded p-2 gap-2"
-                                >
-                                  <div className="w-16 h-16 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
-                                    <img 
-                                      src={image} 
-                                      alt={`Image ${index + 1}`}
-                                      className="w-full h-full object-cover"
-                                      onError={handleImageError}
-                                    />
-                                  </div>
-                                  <div className="flex-grow text-sm truncate">
-                                    {image.split('/').pop()}
-                                  </div>
-                                  <div className="flex gap-1">
-                                    <button
-                                      onClick={(e) => handleImageDelete(e, index)}
-                                      className="bg-red-500 text-white p-1 rounded hover:bg-red-600 transition-colors"
-                                      title="Supprimer"
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </div>
-                                </li>
-                              )}
-                            </Draggable>
-                          ))}
-                          {provided.placeholder}
-                        </ul>
-                      )}
-                    </Droppable>
-                  </DragDropContext>
-                </Suspense>
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="imageList">
+                    {(provided) => (
+                      <ul 
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="space-y-2"
+                      >
+                        {displayedImages.map((image, index) => (
+                          <Draggable key={image} draggableId={image} index={index}>
+                            {(provided) => (
+                              <li
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className="flex items-center bg-gray-100 rounded p-2 gap-2"
+                              >
+                                <div className="w-16 h-16 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
+                                  <img 
+                                    src={image} 
+                                    alt={`Image ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                    onError={handleImageError}
+                                  />
+                                </div>
+                                <div className="flex-grow text-sm truncate">
+                                  {image.split('/').pop()}
+                                </div>
+                                <div className="flex gap-1">
+                                  <button
+                                    onClick={(e) => handleImageDelete(e, index)}
+                                    className="bg-red-500 text-white p-1 rounded hover:bg-red-600 transition-colors"
+                                    title="Supprimer"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </li>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                      </ul>
+                    )}
+                  </Droppable>
+                </DragDropContext>
               )}
               
               <div className="mt-4 flex justify-center">
