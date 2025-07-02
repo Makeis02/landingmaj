@@ -39,6 +39,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PromoBadge from "@/components/PromoBadge";
 import { checkMultiplePromotions } from "@/lib/promotions/checkActivePromotion";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
+import React, { Suspense } from 'react';
 
 // Nouvelle version simplifiée de la fonction utilitaire
 function getSafeHtmlDescription(description: string | undefined | null) {
@@ -1504,9 +1505,9 @@ return () => window.removeEventListener('resize', handleResize);
                   {filteredProducts.slice(0, 5).map((product) => (
                     <div key={product.id} className="mb-4 p-2 border-b">
                       <h4 className="font-semibold">{product.title}</h4>
-                      <EditableDebugPanel
+                      <Suspense fallback={null}><EditableDebugPanel
                         productId={`stripe_${getCleanProductId(product.id?.toString() || "")}`}
-                      />
+                      /></Suspense>
                     </div>
                   ))}
                   {filteredProducts.length > 5 && (
@@ -1845,7 +1846,7 @@ return () => window.removeEventListener('resize', handleResize);
   </div>
 ) : (product.hasDiscount || product.onSale) ? (
   <div className="absolute top-2 left-2 z-10">
-    <PromoBadge />
+    <Suspense fallback={null}><PromoBadge /></Suspense>
   </div>
 ) : null}
                         <RouterLink to={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}&categorie=${currentSlug}`}>

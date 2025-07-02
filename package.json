@@ -137,7 +137,23 @@
 
 
 
+  
+
+
+
+
+
+
+
 "generate-catalog": "node generate-facebook-catalog.cjs",
+  
+
+
+
+
+
+
+
   
 
 
@@ -1917,6 +1933,23 @@
 
 
 "vite": "^5.4.1",
+  
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+"vite-bundle-visualizer": "^1.2.1",
   
 
 

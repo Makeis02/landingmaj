@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,6 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import slugify from 'slugify';
 import { fetchStripeProducts, StripeProduct } from '@/lib/api/stripe';
-import PromoBadge from '@/components/PromoBadge';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { fetchCategories, Category } from '@/lib/api/categories';
 import { EditableImage } from '@/components/EditableImage';
@@ -52,6 +51,8 @@ const getCleanProductId = (id: string) => {
   if (id.includes("/")) return id.split("/").pop() || "";
   return id;
 };
+
+const PromoBadge = React.lazy(() => import('@/components/PromoBadge'));
 
 const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, isSpecialCard, editorialData }) => {
   const { isEditMode, isAdmin } = useEditStore();
@@ -497,7 +498,7 @@ const EditorialProductCard: React.FC<EditorialProductCardProps> = ({ cardIndex, 
               </div>
             ) : hasPromo ? (
               <div className="absolute top-2 left-2 z-10">
-                <PromoBadge />
+                <Suspense fallback={null}><PromoBadge /></Suspense>
               </div>
             ) : null}
             {isEditMode ? (
