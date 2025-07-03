@@ -1,3 +1,5 @@
+console.log('--- DÉBUT ALERT WHEEL GIFT EXPIRY ---');
+
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const fetch = require('node-fetch');
@@ -60,4 +62,6 @@ async function alertWheelGiftExpiry() {
   }
 }
 
-alertWheelGiftExpiry().catch(console.error); 
+alertWheelGiftExpiry().catch(console.error).finally(() => {
+  console.log('--- FIN ALERT WHEEL GIFT EXPIRY ---');
+}); 
