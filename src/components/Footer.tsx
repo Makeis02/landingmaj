@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from "@/integrations/supabase/client";
 import { useEditStore } from "@/stores/useEditStore";
@@ -12,6 +12,8 @@ import { Mail, Facebook, Instagram, Linkedin, ExternalLink, ArrowRight } from "l
 import { EditableText } from "@/components/EditableText";
 import { EditableURL } from "@/components/EditableURL";
 import { useImageUpload } from "@/hooks/useImageUpload";
+
+const FooterAdminPanel = lazy(() => import('./FooterAdminPanel'));
 
 // 🔍 Panneau de debug pour les données Footer (comme dans Modele.tsx)
 const FooterDebugPanel = ({ footerLinks, footerSettings, legalLinks, usefulLinks, socialLinks }) => {
@@ -1083,13 +1085,15 @@ const Footer = () => {
 
       {/* 🔍 Panneau de debug en mode édition */}
       {isEditMode && (
-        <FooterDebugPanel
-          footerLinks={footerLinks}
-          footerSettings={footerSettings}
-          legalLinks={legalLinks}
-          usefulLinks={usefulLinks}
-          socialLinks={socialLinks}
-        />
+        <Suspense fallback={null}>
+          <FooterAdminPanel
+            footerLinks={footerLinks}
+            footerSettings={footerSettings}
+            legalLinks={legalLinks}
+            usefulLinks={usefulLinks}
+            socialLinks={socialLinks}
+          />
+        </Suspense>
       )}
     </footer>
   );

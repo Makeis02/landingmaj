@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Heart, User, Search, Menu, X, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,6 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
-import CartDrawer from "./cart/CartDrawer";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchActiveCategories } from "@/lib/api/categories";
@@ -24,6 +23,9 @@ import AnnouncementBanner from "@/components/AnnouncementBanner";
 import { useEditStore } from "@/stores/useEditStore";
 import { useToast } from "@/hooks/use-toast";
 import { useImageUpload } from "@/hooks/useImageUpload";
+
+const HeaderSearch = lazy(() => import('./HeaderSearch'));
+const CartDrawer = lazy(() => import('./cart/CartDrawer'));
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -684,68 +686,9 @@ const Header = () => {
 
           {/* SearchDrawer */}
           {isSearchOpen && (
-            <>
-              {/* Overlay */}
-              <div
-                className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-                onClick={() => setIsSearchOpen(false)}
-              />
-
-              {/* Drawer */}
-              <div className="fixed top-0 left-0 w-full h-screen bg-white z-50 p-4 overflow-y-auto animate-slide-in flex flex-col">
-                {/* Barre du haut */}
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-xl font-bold text-ocean">Recherche</span>
-                  <Button variant="ghost" size="icon-sm" onClick={() => setIsSearchOpen(false)}>
-                    <X className="h-6 w-6 text-gray-600" />
-                  </Button>
-                </div>
-
-                {/* Champ de recherche */}
-                <input
-                  type="text"
-                  placeholder="Rechercher un produit, une catégorie..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2 mb-4 focus:outline-none focus:ring focus:border-ocean"
-                  autoFocus
-                />
-                {/* Résultats mobile */}
-                {searchQuery.length > 0 && (
-                  <div className="bg-white rounded-xl shadow-xl border z-50 max-h-[60vh] overflow-y-auto animate-fade-in">
-                    {isProductsLoading || allProducts.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 text-sm">Chargement...</div>
-                    ) : filteredProducts.length === 0 ? (
-                      <div className="p-4 text-center text-gray-500 text-sm">Aucun produit trouvé</div>
-                    ) : (
-                      filteredProducts.slice(0, 12).map(product => (
-                        <a
-                          key={product.id}
-                          href={`/produits/${slugify(product.title, { lower: true })}?id=${product.id}`}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-[#f0f8ff] transition group cursor-pointer"
-                          style={{ textDecoration: 'none' }}
-                          onClick={() => setIsSearchOpen(false)}
-                        >
-                          <img 
-                            src={productImages[getCleanProductId(product.id)] || '/placeholder.svg'} 
-                            alt={product.title} 
-                            className="w-12 h-12 object-cover rounded-md border" 
-                          />
-                          <div className="flex-1 min-w-0">
-                            <div className="font-bold text-sm truncate group-hover:text-[#0074b3] transition-colors">{product.title}</div>
-                            <div className="font-semibold text-[#0074b3] text-sm mt-1">
-                              {productPriceRanges[getCleanProductId(product.id)]
-                                ? `De ${productPriceRanges[getCleanProductId(product.id)].min.toFixed(2)}€ à ${productPriceRanges[getCleanProductId(product.id)].max.toFixed(2)}€`
-                                : `${product.price?.toFixed(2)}€`}
-                            </div>
-                          </div>
-                        </a>
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
+            <Suspense fallback={<div>Chargement de la recherche...</div>}>
+              <HeaderSearch />
+            </Suspense>
           )}
 
           {/* Overlay du menu mobile */}
@@ -760,7 +703,11 @@ const Header = () => {
       </header>
 
       {/* Un seul CartDrawer sans bouton (le drawer s'ouvre via le state global) */}
-      <CartDrawer />
+      {isMenuOpen && (
+        <Suspense fallback={null}>
+          <CartDrawer />
+        </Suspense>
+      )}
     </>
   );
 };
