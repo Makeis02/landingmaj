@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin } from "lucide-react";
-import { PointRelaisModal } from "./PointRelaisModal";
 
 // Type pour les points relais
 type PointRelais = {
@@ -114,6 +113,8 @@ const GENERIC_POINTS: PointRelais[] = [
   }
 ];
 
+const PointRelaisModal = lazy(() => import('./PointRelaisModal').then(mod => ({ default: mod.PointRelaisModal })));
+
 const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
   onSelect, selected, initialCodePostal = "", initialVille = "", autoSearch = false
 }) => {
@@ -202,15 +203,19 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
         </div>
       )}
 
-      <PointRelaisModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSelect={(point) => {
-          onSelect(point);
-          setIsModalOpen(false);
-        }}
-        codePostal={codePostal}
-      />
+      {isModalOpen && (
+        <Suspense fallback={<div>Chargement de la carte...</div>}>
+          <PointRelaisModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onSelect={(point) => {
+              onSelect(point);
+              setIsModalOpen(false);
+            }}
+            codePostal={codePostal}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };

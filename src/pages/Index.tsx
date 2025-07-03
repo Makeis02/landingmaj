@@ -18,7 +18,8 @@ import { Toggle } from "@/components/ui/toggle";
 import { Label } from "@/components/ui/label";
 import SEO from "@/components/SEO";
 import { useEditStore } from '@/stores/useEditStore';
-import { motion } from 'framer-motion';
+import React from 'react';
+const MotionDiv = lazy(() => import('@/components/MotionDiv'));
 
 const EditableCarousel = lazy(() => import("@/components/EditableCarousel"));
 const PopularProducts = lazy(() => import("@/components/PopularProducts"));
@@ -342,28 +343,28 @@ const Index = () => {
       <AdminHeader />
       <FloatingHeader />
       <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement du carrousel...</div>}>
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.1 }}>
+        <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.1 }}>
           <EditableCarousel />
-        </motion.div>
+        </MotionDiv></Suspense>
       </Suspense>
       
       <main className="flex-grow">
         {/* Univers Grid - Dynamique depuis Supabase */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement de l'univers...</div>}>
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
+          <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
             <DynamicUniverseGrid />
-          </motion.div>
+          </MotionDiv></Suspense>
         </Suspense>
 
         {/* Popular Products - Dynamique depuis Supabase avec sélection en mode édition */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement des produits populaires...</div>}>
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.3 }}>
+          <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.3 }}>
             <PopularProducts />
-          </motion.div>
+          </MotionDiv></Suspense>
         </Suspense>
             
         {/* Editorial Grid */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.4 }}>
+        <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.4 }}>
           <section className="py-20 bg-gray-50">
             <div className="container mx-auto px-4">
               <div className="text-center mb-16">
@@ -414,10 +415,10 @@ const Index = () => {
               </div>
             </div>
           </section>
-        </motion.div>
+        </MotionDiv></Suspense>
 
         {/* Loyalty Banner */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.5 }}>
+        <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.5 }}>
           <section className="py-8 bg-gradient-to-r from-purple-600 to-blue-600 relative overflow-hidden">
             {!isLoyaltyFeatureActive && (
               <div className="absolute inset-0 bg-black bg-opacity-20 flex flex-col items-center justify-center text-white z-10">
@@ -459,20 +460,20 @@ const Index = () => {
               )}
             </div>
           </section>
-        </motion.div>
+        </MotionDiv></Suspense>
 
         {/* Trust Bar */}
         <Suspense fallback={<div className="h-32 flex items-center justify-center animate-pulse">Chargement de la barre de confiance...</div>}>
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.6 }}>
+          <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.6 }}>
             <TrustBar />
-          </motion.div>
+          </MotionDiv></Suspense>
         </Suspense>
 
         {/* Newsletter Section */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement de la newsletter...</div>}>
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.7 }}>
+          <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.7 }}>
             <NewsletterSection />
-          </motion.div>
+          </MotionDiv></Suspense>
         </Suspense>
       </main>
       
