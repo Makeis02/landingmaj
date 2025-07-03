@@ -2153,6 +2153,39 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
       <style jsx>{`
         /* ... (tes animations ici) ... */
       `}</style>
+
+      {/* 🆕 Section de test admin pour l'alerte cadeau roue */}
+      {isEditMode && (
+        <div className="my-4 p-4 border rounded bg-blue-50">
+          <h3 className="font-bold mb-2">Test alerte cadeau roue</h3>
+          <Button
+            onClick={async () => {
+              const testEmail = prompt("Entrez l'email à tester (recevra l'alerte) :", email || "");
+              if (!testEmail) return;
+              const { error } = await supabase
+                .from('wheel_gift_in_cart')
+                .insert([{
+                  email: testEmail,
+                  user_id: null,
+                  gift_id: `test_gift_${Date.now()}`,
+                  gift_title: 'Test Cadeau Wheel',
+                  gift_image_url: 'https://via.placeholder.com/150',
+                  added_at: new Date().toISOString(),
+                  expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // expire dans 1h
+                  notified_2h_before: false,
+                  cart_url: window.location.origin + '/cart'
+                }]);
+              if (error) {
+                toast.error("Erreur lors de l'insertion du test :", { description: error.message });
+              } else {
+                toast.success("Test inséré ! Lance le cron ou attends le prochain run pour recevoir l'email.");
+              }
+            }}
+          >
+            Tester l'alerte email cadeau roue
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
