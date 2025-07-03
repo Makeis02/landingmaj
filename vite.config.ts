@@ -120,5 +120,35 @@ export default defineConfig(async ({ mode }) => {
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    sourcemap: true,
+    minify: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: [
+            'react',
+            'react-dom',
+            'react-router-dom',
+          ],
+          supabase: [
+            '@supabase/supabase-js',
+            '@supabase/auth-js',
+          ],
+          framer: [
+            'framer-motion',
+          ],
+          emoji: [
+            'emoji-mart',
+            '@emoji-mart/data',
+            '@emoji-mart/react',
+          ],
+          leaflet: [
+            'leaflet',
+          ],
+        },
+      },
+    },
+  },
   }
 });

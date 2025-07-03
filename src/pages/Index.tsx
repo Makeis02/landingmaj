@@ -24,6 +24,9 @@ import { motion } from 'framer-motion';
 const EditableCarousel = lazy(() => import("@/components/EditableCarousel"));
 const PopularProducts = lazy(() => import("@/components/PopularProducts"));
 const PacksSection = lazy(() => import("@/components/PacksSection"));
+const DynamicUniverseGrid = lazy(() => import('@/components/DynamicUniverseGrid'));
+const TrustBar = lazy(() => import('@/components/TrustBar'));
+const NewsletterSection = lazy(() => import('@/components/NewsletterSection'));
 
 const Index = () => {
   const { isEditMode: isEditing, isAdmin, checkAdminStatus } = useEditStore();
@@ -347,9 +350,11 @@ const Index = () => {
       
       <main className="flex-grow">
         {/* Univers Grid - Dynamique depuis Supabase */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
-          <DynamicUniverseGrid />
-        </motion.div>
+        <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement de l'univers...</div>}>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
+            <DynamicUniverseGrid />
+          </motion.div>
+        </Suspense>
 
         {/* Popular Products - Dynamique depuis Supabase avec sélection en mode édition */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement des produits populaires...</div>}>
@@ -458,137 +463,18 @@ const Index = () => {
         </motion.div>
 
         {/* Trust Bar */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.6 }}>
-          <section className="py-16 bg-white border-t">
-            <div className="container mx-auto px-4">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                <div className="flex items-center justify-center text-center group">
-                  <Truck className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_1"
-                        initialContent="Livraison Gratuite"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_1"
-                        initialContent="À partir de 49€"
-                      />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center text-center group">
-                  <RotateCcw className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_2"
-                        initialContent="SAV Expert"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_2"
-                        initialContent="Conseils spécialisés"
-                      />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center text-center group">
-                  <MessageCircle className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_3"
-                        initialContent="Contact"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_3"
-                        initialContent="Support réactif"
-                      />
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center justify-center text-center group">
-                  <CreditCard className="w-12 h-12 mr-4 group-hover:scale-110 transition-transform duration-300" style={{ color: '#0074b3' }} />
-                  <div>
-                    <h3 className="font-bold text-lg text-slate-900 mb-1">
-                      <EditableText
-                        contentKey="trustbar_title_4"
-                        initialContent="PayPal & Avis Vérifiés"
-                      />
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      <EditableText
-                        contentKey="trustbar_desc_4"
-                        initialContent="Paiement sécurisé"
-                      />
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </motion.div>
+        <Suspense fallback={<div className="h-32 flex items-center justify-center animate-pulse">Chargement de la barre de confiance...</div>}>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.6 }}>
+            <TrustBar />
+          </motion.div>
+        </Suspense>
 
         {/* Newsletter Section */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.7 }}>
-          <section className="py-20 bg-gradient-to-br from-[#0074b3] via-[#005a8c] to-[#004d77] relative overflow-hidden">
-            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-            <div className="absolute inset-0 bg-cover bg-center opacity-10" 
-                 style={{backgroundImage: "url('https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=2070&q=80')"}}></div>
-            <div className="relative container mx-auto px-4 text-center">
-              <div className="max-w-4xl mx-auto text-white">
-                <Mail className="w-16 h-16 mx-auto mb-6" style={{ color: '#ffffff' }} />
-                <h2 className="text-4xl font-bold mb-6">
-                  <EditableText
-                    contentKey="newsletter_title"
-                    initialContent="Restez Connecté à l'Univers Aquatique"
-                    className="text-white"
-                  />
-                </h2>
-                <p className="text-xl mb-10 text-blue-100 leading-relaxed">
-                  <EditableText
-                    contentKey="newsletter_subtitle"
-                    initialContent="Recevez nos conseils d'experts, offres exclusives et nouveautés directement dans votre boîte mail"
-                    className="text-blue-100"
-                  />
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 max-w-lg mx-auto mb-6">
-                  <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4 w-full">
-                  <input 
-                    type="email" 
-                    placeholder="Votre adresse email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="flex-1 px-6 py-4 rounded-xl text-gray-900 placeholder-gray-500 text-lg focus:outline-none focus:ring-2 focus:ring-[#0074b3] focus:ring-opacity-50 transition-all duration-300"
-                  />
-                    <Button 
-                      type="submit"
-                      className="bg-white text-[#0074b3] hover:bg-blue-50 px-8 py-4 text-lg rounded-xl transition-all duration-300 hover:scale-105"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Inscription en cours..." : (
-                        <>
-                          <EditableText
-                            contentKey="newsletter_button"
-                            initialContent="S'inscrire"
-                            className="text-[#0074b3] font-semibold"
-                          />
-                          <ArrowRight className="ml-2 h-5 w-5" style={{ color: '#0074b3' }} />
-                        </>
-                      )}
-                  </Button>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </section>
-        </motion.div>
+        <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement de la newsletter...</div>}>
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.7 }}>
+            <NewsletterSection />
+          </motion.div>
+        </Suspense>
       </main>
       
       <Footer />
