@@ -1,8 +1,5 @@
-console.log('--- DÉBUT ALERT WHEEL GIFT EXPIRY ---');
-
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
-const fetch = require('node-fetch');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -15,7 +12,7 @@ if (!SUPABASE_URL || !SUPABASE_KEY || !OMNISEND_API_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-async function alertWheelGiftExpiry() {
+async function alertWheelGiftExpiry(fetch) {
   const now = new Date();
   const in2h = new Date(now.getTime() + 2 * 60 * 60 * 1000);
 
@@ -62,6 +59,9 @@ async function alertWheelGiftExpiry() {
   }
 }
 
-alertWheelGiftExpiry().catch(console.error).finally(() => {
+(async () => {
+  console.log('--- DÉBUT ALERT WHEEL GIFT EXPIRY ---');
+  const fetch = (await import('node-fetch')).default;
+  await alertWheelGiftExpiry(fetch);
   console.log('--- FIN ALERT WHEEL GIFT EXPIRY ---');
-}); 
+})(); 
