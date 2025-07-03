@@ -1073,4 +1073,4 @@ export const EditorialPackCard: React.FC<EditorialPackCardProps> = ({ cardIndex,
   );
 };
 
-export default EditorialProductCard; 
+export default React.memo(EditorialProductCard); 

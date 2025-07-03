@@ -102,11 +102,13 @@ import LuckyWheelPopup from "@/components/WheelPopup";
 import FloatingWheelButton from "@/components/FloatingWheelButton";
 import { useEditStore } from "@/stores/useEditStore";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import FacebookPixel from "@/components/FacebookPixel";
+import React from "react";
 
 const queryClient = new QueryClient();
+
+const FacebookPixel = React.lazy(() => import("@/components/FacebookPixel"));
 
 const App = () => {
   useRestoreSession();
@@ -114,6 +116,7 @@ const App = () => {
   const [showWheel, setShowWheel] = useState(false);
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
+  const [showPixel, setShowPixel] = useState(false);
   
   // Fonction de debug pour réinitialiser les paramètres de la roue
   const resetWheelState = () => {
@@ -307,128 +310,146 @@ const App = () => {
     };
   }, [wheelSettings, scrollTriggerSet, showWheel]);
 
+  useEffect(() => {
+    const onInteraction = () => {
+      setShowPixel(true);
+      window.removeEventListener("scroll", onInteraction);
+      window.removeEventListener("click", onInteraction);
+    };
+    window.addEventListener("scroll", onInteraction, { once: true });
+    window.addEventListener("click", onInteraction, { once: true });
+    return () => {
+      window.removeEventListener("scroll", onInteraction);
+      window.removeEventListener("click", onInteraction);
+    };
+  }, []);
+
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <FacebookPixel />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/admin-login" element={<AdminLogin />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/categories" element={<CategoriesPage />} />
-          <Route path="/admin/produits" element={<ProduitsPage />} />
-          <Route path="/admin/promo-codes" element={<PromoCodesPage />} />
-          <Route path="/admin/brands" element={<BrandsPage />} />
-          <Route path="/landing" element={<LandingPage />} />
-          
-          {/* Routes des politiques */}
-          <Route path="/policies" element={<PoliciesIndex />} />
-          <Route path="/policies/cgv" element={<CGV />} />
-          <Route path="/policies/cgu" element={<CGU />} />
-          <Route path="/policies/privacy" element={<Privacy />} />
-          <Route path="/policies/legal" element={<Legal />} />
-          <Route path="/policies/shipping" element={<Shipping />} />
-          <Route path="/policies/refund" element={<Refund />} />
-          <Route path="/policies/terms" element={<Terms />} />
-          
-          <Route path="/categories/decoration" element={<DecorationPage />} />
-          <Route path="/categories/eaudoucedecoration" element={<EaucDouceDécorationPage />} />
-          <Route path="/categories/eaucdoucedecoration" element={<EaucDouceDécorationPage />} />
-          <Route path="/categories/eaudemerdecoration" element={<EauDeMerDecorationPage />} />
-          <Route path="/categories/decorsrecifaux" element={<DecorsRecifauxPage />} />
-          <Route path="/categories/decorationsresine" element={<DecorationsResinePage />} />
-          <Route path="/categories/ornementsthematiques" element={<OrnementsThematiquesPage />} />
-          <Route path="/categories/plantesartificiellescompatibles" element={<PlantesArtificiellesCompatiblesPage />} />
-          <Route path="/categories/universelsdeco" element={<UniverselsDecoPage />} />
-          <Route path="/categories/eaudoucepompes" element={<EaudoucePompesPage />} />
-          <Route path="/categories/eaudemerpompes" element={<EaudemerPompesPage />} />
-          <Route path="/categories/eaudouceeclairage" element={<EaudouceEclairagePage />} />
-          <Route path="/categories/eaudemerclairage" element={<EaudemerEclairagePage />} />
-          <Route path="/categories/eaudouceeclairageled" element={<EaudouceEclairageLEDPage />} />
-          <Route path="/categories/eaudemereclairageled" element={<EaudemerEclairageLEDPage />} />
-          <Route path="/categories/eclairagespectrecomplet" element={<EclairageSpectreCompletPage />} />
-          <Route path="/categories/eaudoucenourriture" element={<EaudouceNourriturePage />} />
-          <Route path="/categories/eaudemernourriture" element={<EaudemerNourriturePage />} />
-          <Route path="/categories/eaudouceentretien" element={<EauDouceEntretienPage />} />
-          <Route path="/categories/eaudemerentretien" element={<EauDeMerEntretienPage />} />
-          <Route path="/categories/entretiengeneral" element={<EntretienGeneralPage />} />
-          <Route path="/categories/produitsspecifiques" element={<ProduitsSpecifiquesPage />} />
-          <Route path="/categories/eaudoucenettoyage" element={<EauDouceNettoyagePage />} />
-          <Route path="/categories/eaudoucetraitements" element={<EauDouceTraitementsPage />} />
-          <Route path="/categories/eaudoucefiltration" element={<EauDouceFiltrationPage />} />
-          <Route path="/categories/eaudouceaccessoires" element={<EauDouceAccessoiresPage />} />
-          <Route path="/categories/eaudemernettoyage" element={<EauDeMerNettoyagePage />} />
-          <Route path="/categories/eaudemerfiltration" element={<EauDeMerFiltrationPage />} />
-          <Route path="/categories/eaudemeraccessoires" element={<EauDeMerAccessoiresPage />} />
-          <Route path="/categories/accessoires" element={<AccessoiresPage />} />
-          <Route path="/categories/epuisettes" element={<EpuisettesPage />} />
-          <Route path="/categories/pincesciseaux" element={<PincesCiseauxPage />} />
-          <Route path="/categories/ventouses" element={<VentousesPage />} />
-          <Route path="/categories/chauffages" element={<ChauffagesPage />} />
-          <Route path="/categories/thermometres" element={<ThermometresPage />} />
-          
-          {/* Route générique pour toutes les catégories avec paramètres dynamiques */}
-          <Route path="/categories/:slug" element={<EaucDouceDécorationPage />} />
-          <Route path="/modele" element={<Modele categoryParam={null} />} />
-          <Route path="/dynamic-product" element={<DynamicProductPage />} />
-          <Route path="/produits/:slug" element={<Modele />} />
-
-          <Route path="/account/login" element={<LoginPage />} />
-          <Route path="/account/signup" element={<SignupPage />} />
-          <Route path="/account/password-recovery" element={<PasswordRecoveryPage />} />
-          <Route path="/account/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/account/orders" element={<OrdersPage />} />
-          <Route path="/account" element={<AccountPage />} />
-          <Route path="/account/addresses" element={<AddressesPage />} />
-          <Route path="/account/favorites" element={<FavoritesPage />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/success" element={<SuccessPage />} />
-
-          <Route path="/admin/checkout-settings" element={<CheckoutSettings />} />
-
-          <Route path="/admin/commandes" element={<CommandesPage />} />
-
-          <Route path="/order-confirmation" element={<OrderConfirmation />} />
-
-          <Route path="/lucky-wheel" element={
-            <div className="flex flex-col items-center justify-center min-h-screen">
-              <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
-              <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
-            </div>
-          } />
-
-          <Route path="*" element={<NotFound />} />
-          </Routes>
-        {/* Boutons admin pour les tests en mode édition */}
-        {isEditMode && (
-          <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
-            <button
-              onClick={() => { setShowWheel(true); setEditWheel(true); }}
-              className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
-            >
-              🎡 Tester la roue
-            </button>
-          </div>
-        )}
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/admin-login" element={<AdminLogin />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/admin/categories" element={<CategoriesPage />} />
+        <Route path="/admin/produits" element={<ProduitsPage />} />
+        <Route path="/admin/promo-codes" element={<PromoCodesPage />} />
+        <Route path="/admin/brands" element={<BrandsPage />} />
+        <Route path="/landing" element={<LandingPage />} />
         
-        {/* Bouton flottant de la roue pour les clients */}
-        <FloatingWheelButton />
-        <LuckyWheelPopup 
-          isOpen={showWheel} 
-          onClose={() => {
-            setShowWheel(false);
-            // 🆕 Reset du trigger de scroll pour permettre un nouveau déclenchement
-            setScrollTriggerSet(false);
-            // Enregistrer que l'utilisateur a fermé explicitement le popup
-            localStorage.setItem('wheel_popup_dismissed', 'true');
-            localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
-            console.log('❌ Popup fermé par l\'utilisateur, anti-spam activé, scroll trigger réinitialisé');
-          }} 
-          isEditMode={editWheel} 
-        />
+        {/* Routes des politiques */}
+        <Route path="/policies" element={<PoliciesIndex />} />
+        <Route path="/policies/cgv" element={<CGV />} />
+        <Route path="/policies/cgu" element={<CGU />} />
+        <Route path="/policies/privacy" element={<Privacy />} />
+        <Route path="/policies/legal" element={<Legal />} />
+        <Route path="/policies/shipping" element={<Shipping />} />
+        <Route path="/policies/refund" element={<Refund />} />
+        <Route path="/policies/terms" element={<Terms />} />
+        
+        <Route path="/categories/decoration" element={<DecorationPage />} />
+        <Route path="/categories/eaudoucedecoration" element={<EaucDouceDécorationPage />} />
+        <Route path="/categories/eaucdoucedecoration" element={<EaucDouceDécorationPage />} />
+        <Route path="/categories/eaudemerdecoration" element={<EauDeMerDecorationPage />} />
+        <Route path="/categories/decorsrecifaux" element={<DecorsRecifauxPage />} />
+        <Route path="/categories/decorationsresine" element={<DecorationsResinePage />} />
+        <Route path="/categories/ornementsthematiques" element={<OrnementsThematiquesPage />} />
+        <Route path="/categories/plantesartificiellescompatibles" element={<PlantesArtificiellesCompatiblesPage />} />
+        <Route path="/categories/universelsdeco" element={<UniverselsDecoPage />} />
+        <Route path="/categories/eaudoucepompes" element={<EaudoucePompesPage />} />
+        <Route path="/categories/eaudemerpompes" element={<EaudemerPompesPage />} />
+        <Route path="/categories/eaudouceeclairage" element={<EaudouceEclairagePage />} />
+        <Route path="/categories/eaudemerclairage" element={<EaudemerEclairagePage />} />
+        <Route path="/categories/eaudouceeclairageled" element={<EaudouceEclairageLEDPage />} />
+        <Route path="/categories/eaudemereclairageled" element={<EaudemerEclairageLEDPage />} />
+        <Route path="/categories/eclairagespectrecomplet" element={<EclairageSpectreCompletPage />} />
+        <Route path="/categories/eaudoucenourriture" element={<EaudouceNourriturePage />} />
+        <Route path="/categories/eaudemernourriture" element={<EaudemerNourriturePage />} />
+        <Route path="/categories/eaudouceentretien" element={<EauDouceEntretienPage />} />
+        <Route path="/categories/eaudemerentretien" element={<EauDeMerEntretienPage />} />
+        <Route path="/categories/entretiengeneral" element={<EntretienGeneralPage />} />
+        <Route path="/categories/produitsspecifiques" element={<ProduitsSpecifiquesPage />} />
+        <Route path="/categories/eaudoucenettoyage" element={<EauDouceNettoyagePage />} />
+        <Route path="/categories/eaudoucetraitements" element={<EauDouceTraitementsPage />} />
+        <Route path="/categories/eaudoucefiltration" element={<EauDouceFiltrationPage />} />
+        <Route path="/categories/eaudouceaccessoires" element={<EauDouceAccessoiresPage />} />
+        <Route path="/categories/eaudemernettoyage" element={<EauDeMerNettoyagePage />} />
+        <Route path="/categories/eaudemerfiltration" element={<EauDeMerFiltrationPage />} />
+        <Route path="/categories/eaudemeraccessoires" element={<EauDeMerAccessoiresPage />} />
+        <Route path="/categories/accessoires" element={<AccessoiresPage />} />
+        <Route path="/categories/epuisettes" element={<EpuisettesPage />} />
+        <Route path="/categories/pincesciseaux" element={<PincesCiseauxPage />} />
+        <Route path="/categories/ventouses" element={<VentousesPage />} />
+        <Route path="/categories/chauffages" element={<ChauffagesPage />} />
+        <Route path="/categories/thermometres" element={<ThermometresPage />} />
+        
+        {/* Route générique pour toutes les catégories avec paramètres dynamiques */}
+        <Route path="/categories/:slug" element={<EaucDouceDécorationPage />} />
+        <Route path="/modele" element={<Modele categoryParam={null} />} />
+        <Route path="/dynamic-product" element={<DynamicProductPage />} />
+        <Route path="/produits/:slug" element={<Modele />} />
+
+        <Route path="/account/login" element={<LoginPage />} />
+        <Route path="/account/signup" element={<SignupPage />} />
+        <Route path="/account/password-recovery" element={<PasswordRecoveryPage />} />
+        <Route path="/account/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/account/orders" element={<OrdersPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/account/addresses" element={<AddressesPage />} />
+        <Route path="/account/favorites" element={<FavoritesPage />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/success" element={<SuccessPage />} />
+
+        <Route path="/admin/checkout-settings" element={<CheckoutSettings />} />
+
+        <Route path="/admin/commandes" element={<CommandesPage />} />
+
+        <Route path="/order-confirmation" element={<OrderConfirmation />} />
+
+        <Route path="/lucky-wheel" element={
+          <div className="flex flex-col items-center justify-center min-h-screen">
+            <Button onClick={() => { setShowWheel(true); setEditWheel(false); }} className="mb-6">Tester la roue aquatique</Button>
+            <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
+          </div>
+        } />
+
+        <Route path="*" element={<NotFound />} />
+        </Routes>
+      {/* Boutons admin pour les tests en mode édition */}
+      {isEditMode && (
+        <div className="fixed bottom-8 right-8 z-50 flex flex-col gap-2">
+          <button
+            onClick={() => { setShowWheel(true); setEditWheel(true); }}
+            className="bg-cyan-600 text-white px-5 py-3 rounded-full shadow-lg hover:bg-cyan-700 transition"
+          >
+            🎡 Tester la roue
+          </button>
+        </div>
+      )}
+      
+      {/* Bouton flottant de la roue pour les clients */}
+      <FloatingWheelButton />
+      <LuckyWheelPopup 
+        isOpen={showWheel} 
+        onClose={() => {
+          setShowWheel(false);
+          // 🆕 Reset du trigger de scroll pour permettre un nouveau déclenchement
+          setScrollTriggerSet(false);
+          // Enregistrer que l'utilisateur a fermé explicitement le popup
+          localStorage.setItem('wheel_popup_dismissed', 'true');
+          localStorage.setItem('wheel_popup_last_seen', new Date().toISOString());
+          console.log('❌ Popup fermé par l\'utilisateur, anti-spam activé, scroll trigger réinitialisé');
+        }} 
+        isEditMode={editWheel} 
+      />
       <CookieBanner />
+      {showPixel && (
+        <Suspense fallback={null}>
+          <FacebookPixel />
+        </Suspense>
+      )}
     </TooltipProvider>
   </QueryClientProvider>
 );

@@ -18,7 +18,6 @@ import { Toggle } from "@/components/ui/toggle";
 import { Label } from "@/components/ui/label";
 import SEO from "@/components/SEO";
 import { useEditStore } from '@/stores/useEditStore';
-import DynamicUniverseGrid from '@/components/DynamicUniverseGrid';
 import { motion } from 'framer-motion';
 
 const EditableCarousel = lazy(() => import("@/components/EditableCarousel"));
