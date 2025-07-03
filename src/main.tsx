@@ -5,7 +5,7 @@ import AuthProvider from './components/AuthProvider'
 import './index.css'
 import clarity from '@microsoft/clarity'
 
-// clarity.init("otu0u5aqbj"); // On ne l'initialise plus tout de suite
+clarity.init("otu0u5aqbj");
 
 function initClarityOnInteraction() {
   const startClarity = () => {
