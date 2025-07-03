@@ -38,6 +38,7 @@ async function alertWheelGiftExpiry(fetch) {
       body: JSON.stringify({
         email: gift.email,
         status: "subscribed",
+        statusDate: new Date().toISOString(),
         tags: ['wheel_gift_expiring_2h'],
         customProperties: {
           wheelGiftTitle: gift.gift_title,
