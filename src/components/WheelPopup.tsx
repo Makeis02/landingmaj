@@ -495,6 +495,36 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
     console.log('🎁 Ajout cadeau au panier:', { uniqueId, title: giftItem.title, expires_at: giftItem.expires_at });
 
     addItem(giftItem);
+    // Ajout du cadeau dans la table Supabase wheel_gift_in_cart
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data: existing, error: fetchError } = await supabase
+        .from('wheel_gift_in_cart')
+        .select('id')
+        .eq('email', email)
+        .eq('gift_id', giftItem.id)
+        .maybeSingle();
+      if (!existing) {
+        const { data, error } = await supabase
+          .from('wheel_gift_in_cart')
+          .insert([{
+            email,
+            user_id: user?.id || null,
+            gift_id: giftItem.id,
+            gift_title: giftItem.title,
+            gift_image_url: giftItem.image_url,
+            added_at: new Date().toISOString(),
+            expires_at: giftItem.expires_at,
+            notified_2h_before: false,
+            cart_url: window.location.origin + '/cart'
+          }]);
+        if (error) {
+          console.error("Erreur lors de l'insertion du cadeau dans wheel_gift_in_cart:", error);
+        }
+      }
+    } catch (e) {
+      console.error('Erreur Supabase wheel_gift_in_cart:', e);
+    }
     toast.success("🎁 Cadeau ajouté ! Votre cadeau a été ajouté au panier. N'oubliez pas de finaliser votre commande avant l'expiration !");
   };
 
