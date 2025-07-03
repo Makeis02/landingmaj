@@ -6,6 +6,7 @@ import { componentTagger } from "lovable-tagger";
 import type { ViteDevServer } from 'vite';
 import { createClient } from '@supabase/supabase-js';
 import slugify from 'slugify';
+import critters from 'vite-plugin-critters';
 
 // Plugin personnalisé pour servir l'API mock
 const mockApiPlugin = () => ({
@@ -105,11 +106,15 @@ export default defineConfig(async ({ mode }) => {
   },
   plugins: [
     react(),
-      sitemap({ 
-        hostname: 'https://aqua-reve.com',
-        dynamicRoutes
-      }),
-      mode === 'development' && componentTagger(),
+    critters({
+      preload: 'swap',
+      pruneSource: true,
+    }),
+    sitemap({ 
+      hostname: 'https://aqua-reve.com',
+      dynamicRoutes
+    }),
+    mode === 'development' && componentTagger(),
     mockApiPlugin(),
   ].filter(Boolean),
   define: {
