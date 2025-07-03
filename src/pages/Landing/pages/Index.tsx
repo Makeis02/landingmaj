@@ -1,12 +1,12 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Hero from "@/pages/Landing/components/Hero";
 import Features from "@/pages/Landing/components/Features";
-import Pricing from "@/pages/Landing/components/Pricing";
 import Testimonials from "@/pages/Landing/components/Testimonials";
 import Cta from "@/pages/Landing/components/Cta";
 import FloatingHeader from "@/components/admin/FloatingHeader";
+
+const Pricing = lazy(() => import("@/pages/Landing/components/Pricing"));
 
 const LandingPage = () => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -36,7 +36,9 @@ const LandingPage = () => {
       <>
         <Hero />
         <Features />
-        <Pricing />
+        <Suspense fallback={<div>Chargement des tarifs...</div>}>
+          <Pricing />
+        </Suspense>
         <Testimonials />
         <Cta />
       </>

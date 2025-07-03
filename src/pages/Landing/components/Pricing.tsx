@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { EditableText } from "@/components/EditableText";
 import { EditableURL } from "@/components/EditableURL";
 import { useEffect, useRef, useState } from "react";
-import Carousel from "@/components/Carousel";
+import { Suspense, lazy } from 'react';
 import { EditableImage } from "@/components/EditableImage";
 import { useEditStore } from "@/stores/useEditStore";
 import {
@@ -1162,24 +1162,26 @@ const Pricing = () => {
                   <div className={`pricing-card flex flex-col p-6 rounded-xl shadow-lg hover:shadow-2xl transition-shadow duration-300 ${
                     plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
                   }`}>
-                    <Carousel
-                      packName={plan.name}
-                      images={currentImages}
-                      speed={carouselSpeed}
-                      isEditMode={isEditMode}
-                      contentKey={plan.imageContentKey}
-                      onImagesUpdate={(newImages) => {
-                        console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
-                        if (plan.id === "basix") {
-                          setBasixImages(newImages);
-                        } else if (plan.id === "premium") {
-                          setPremiumImages(newImages);
-                        } else {
-                          setDiscoveryImages(newImages);
-                        }
-                        refetchImages();
-                      }}
-                    />
+                    <Suspense fallback={<div>Chargement du carrousel...</div>}>
+                      <Carousel
+                        packName={plan.name}
+                        images={currentImages}
+                        speed={carouselSpeed}
+                        isEditMode={isEditMode}
+                        contentKey={plan.imageContentKey}
+                        onImagesUpdate={(newImages) => {
+                          console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
+                          if (plan.id === "basix") {
+                            setBasixImages(newImages);
+                          } else if (plan.id === "premium") {
+                            setPremiumImages(newImages);
+                          } else {
+                            setDiscoveryImages(newImages);
+                          }
+                          refetchImages();
+                        }}
+                      />
+                    </Suspense>
                     {isEditMode && (
                       <div className="flex justify-center mt-4 mb-2">
                         <label htmlFor={`file-input-${plan.id}`} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition text-sm cursor-pointer">
