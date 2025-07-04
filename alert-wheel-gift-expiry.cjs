@@ -30,11 +30,11 @@ async function alertWheelGiftExpiry(fetch) {
 
   for (const gift of gifts) {
     console.log('Début traitement cadeau pour', gift.email);
-    const body = {
+    // 1. Mettre à jour le contact (optionnel, pour s'assurer qu'il est bien subscribed)
+    const contactBody = {
       email: gift.email,
       status: "subscribed",
       statusDate: new Date().toISOString(),
-      tags: ['wheel_gift_expiring_2h'],
       customProperties: {
         wheelGiftTitle: gift.gift_title,
         wheelGiftImage: gift.gift_image_url,
@@ -42,26 +42,46 @@ async function alertWheelGiftExpiry(fetch) {
         cartUrl: gift.cart_url
       }
     };
-    console.log('Body envoyé à Omnisend:', JSON.stringify(body, null, 2));
-    const omnisendRes = await fetch('https://api.omnisend.com/v3/contacts', {
+    await fetch('https://api.omnisend.com/v3/contacts', {
       method: 'POST',
       headers: {
         'X-API-KEY': OMNISEND_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(contactBody)
     });
-    const omnisendText = await omnisendRes.text();
-    console.log('Réponse Omnisend:', omnisendText);
-    if (!omnisendRes.ok) {
-      console.error('Erreur Omnisend pour', gift.email);
+
+    // 2. Envoyer l'event custom Omnisend pour déclencher le workflow
+    const eventBody = {
+      email: gift.email,
+      eventName: 'wheel_gift_expiring_2h',
+      data: {
+        wheelGiftTitle: gift.gift_title,
+        wheelGiftImage: gift.gift_image_url,
+        wheelGiftExpiresAt: gift.expires_at,
+        cartUrl: gift.cart_url
+      }
+    };
+    console.log('Event envoyé à Omnisend:', JSON.stringify(eventBody, null, 2));
+    const eventRes = await fetch('https://api.omnisend.com/v3/events', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': OMNISEND_API_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(eventBody)
+    });
+    const eventText = await eventRes.text();
+    console.log('Réponse event Omnisend:', eventText);
+    if (!eventRes.ok) {
+      console.error('Erreur event Omnisend pour', gift.email);
       continue;
     }
     await supabase
       .from('wheel_gift_in_cart')
       .update({ notified_2h_before: true })
       .eq('id', gift.id);
-    console.log('Tag appliqué avec succès à', gift.email);
+    console.log('Event envoyé avec succès à', gift.email);
   }
 }
 
