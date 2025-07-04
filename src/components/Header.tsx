@@ -702,12 +702,10 @@ const Header = () => {
         </div>
       </header>
 
-      {/* Un seul CartDrawer sans bouton (le drawer s'ouvre via le state global) */}
-      {isMenuOpen && (
-        <Suspense fallback={null}>
-          <CartDrawer />
-        </Suspense>
-      )}
+      {/* CartDrawer monté en permanence, pour que le panier fonctionne toujours */}
+      <Suspense fallback={null}>
+        <CartDrawer />
+      </Suspense>
     </>
   );
 };
