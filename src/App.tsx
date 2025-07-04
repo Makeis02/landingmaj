@@ -105,7 +105,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import React from "react";
-import CartPage from "./pages/CartPage";
+import { useCartStore } from "@/stores/useCartStore";
 
 const queryClient = new QueryClient();
 
@@ -118,6 +118,7 @@ const App = () => {
   const [editWheel, setEditWheel] = useState(false);
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
   const [showPixel, setShowPixel] = useState(false);
+  const { openDrawer } = useCartStore();
   
   // Fonction de debug pour réinitialiser les paramètres de la roue
   const resetWheelState = () => {
@@ -325,6 +326,15 @@ const App = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openCart") === "1") {
+      openDrawer();
+      // Nettoyer l'URL après ouverture (optionnel)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
   return (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -415,8 +425,6 @@ const App = () => {
             <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
           </div>
         } />
-
-        <Route path="/cart" element={<CartPage />} />
 
         <Route path="*" element={<NotFound />} />
         </Routes>

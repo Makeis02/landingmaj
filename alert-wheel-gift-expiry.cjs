@@ -40,7 +40,7 @@ async function alertWheelGiftExpiry(fetch) {
         wheelGiftTitle: gift.gift_title,
         wheelGiftImage: gift.gift_image_url,
         wheelGiftExpiresAt: gift.expires_at,
-        cartUrl: gift.cart_url
+        cartUrl: 'https://aqua-reve.com/?openCart=1'
       }
     };
     await fetch('https://api.omnisend.com/v3/contacts', {
@@ -61,7 +61,7 @@ async function alertWheelGiftExpiry(fetch) {
         wheelGiftTitle: gift.gift_title,
         wheelGiftImage: gift.gift_image_url,
         wheelGiftExpiresAt: gift.expires_at,
-        cartUrl: gift.cart_url
+        cartUrl: 'https://aqua-reve.com/?openCart=1'
       }
     };
     console.log('Event envoyé à Omnisend:', JSON.stringify(eventBody, null, 2));
