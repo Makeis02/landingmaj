@@ -29,35 +29,39 @@ async function alertWheelGiftExpiry(fetch) {
   }
 
   for (const gift of gifts) {
+    console.log('Début traitement cadeau pour', gift.email);
+    const body = {
+      email: gift.email,
+      status: "subscribed",
+      statusDate: new Date().toISOString(),
+      tags: ['wheel_gift_expiring_2h'],
+      customProperties: {
+        wheelGiftTitle: gift.gift_title,
+        wheelGiftImage: gift.gift_image_url,
+        wheelGiftExpiresAt: gift.expires_at,
+        cartUrl: gift.cart_url
+      }
+    };
+    console.log('Body envoyé à Omnisend:', JSON.stringify(body, null, 2));
     const omnisendRes = await fetch('https://api.omnisend.com/v3/contacts', {
       method: 'POST',
       headers: {
         'X-API-KEY': OMNISEND_API_KEY,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({
-        email: gift.email,
-        status: "subscribed",
-        statusDate: new Date().toISOString(),
-        tags: ['wheel_gift_expiring_2h'],
-        customProperties: {
-          wheelGiftTitle: gift.gift_title,
-          wheelGiftImage: gift.gift_image_url,
-          wheelGiftExpiresAt: gift.expires_at,
-          cartUrl: gift.cart_url
-        }
-      })
+      body: JSON.stringify(body)
     });
+    const omnisendText = await omnisendRes.text();
+    console.log('Réponse Omnisend:', omnisendText);
     if (!omnisendRes.ok) {
-      console.error('Erreur Omnisend pour', gift.email, await omnisendRes.text());
+      console.error('Erreur Omnisend pour', gift.email);
       continue;
     }
-
     await supabase
       .from('wheel_gift_in_cart')
       .update({ notified_2h_before: true })
       .eq('id', gift.id);
-    console.log('Notifié:', gift.email, gift.gift_title);
+    console.log('Tag appliqué avec succès à', gift.email);
   }
 }
 
