@@ -2162,12 +2162,19 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
             onClick={async () => {
               const testEmail = prompt("Entrez l'email à tester (recevra l'alerte) :", email || "");
               if (!testEmail) return;
+              // Supprime les anciens tests pour cet email
+              await supabase
+                .from('wheel_gift_in_cart')
+                .delete()
+                .eq('email', testEmail)
+                .like('gift_id', 'test_gift_%');
+              // Insère un cadeau test avec un gift_id vraiment unique
               const { error } = await supabase
                 .from('wheel_gift_in_cart')
                 .insert([{
                   email: testEmail,
                   user_id: null,
-                  gift_id: `test_gift_${Date.now()}`,
+                  gift_id: `test_gift_${Date.now()}_${Math.floor(Math.random() * 100000)}`,
                   gift_title: 'Test Cadeau Wheel',
                   gift_image_url: 'https://via.placeholder.com/150',
                   added_at: new Date().toISOString(),
