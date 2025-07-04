@@ -30,11 +30,12 @@ async function alertWheelGiftExpiry(fetch) {
 
   for (const gift of gifts) {
     console.log('Début traitement cadeau pour', gift.email);
-    // 1. Mettre à jour le contact (optionnel, pour s'assurer qu'il est bien subscribed)
+    // 1. Mettre à jour le contact et AJOUTER le tag
     const contactBody = {
       email: gift.email,
       status: "subscribed",
       statusDate: new Date().toISOString(),
+      tags: ['wheel_gift_expiring_2h'],
       customProperties: {
         wheelGiftTitle: gift.gift_title,
         wheelGiftImage: gift.gift_image_url,
