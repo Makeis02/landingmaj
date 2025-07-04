@@ -56,6 +56,7 @@ async function alertWheelGiftExpiry(fetch) {
     const eventBody = {
       email: gift.email,
       eventName: 'wheel_gift_expiring_2h',
+      SystemName: 'wheel_gift_expiring_2h',
       data: {
         wheelGiftTitle: gift.gift_title,
         wheelGiftImage: gift.gift_image_url,
