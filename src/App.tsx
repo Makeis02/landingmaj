@@ -105,6 +105,7 @@ import { Button } from "@/components/ui/button";
 import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import React from "react";
+import CartPage from "./pages/CartPage";
 
 const queryClient = new QueryClient();
 
@@ -414,6 +415,8 @@ const App = () => {
             <LuckyWheelPopup isOpen={showWheel} onClose={() => setShowWheel(false)} isEditMode={editWheel} />
           </div>
         } />
+
+        <Route path="/cart" element={<CartPage />} />
 
         <Route path="*" element={<NotFound />} />
         </Routes>
