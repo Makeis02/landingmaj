@@ -21,7 +21,7 @@ if (!OMNISEND_API_KEY) {
   process.exit(1);
 }
 
-async function sendAbandonedCartAlert() {
+async function sendAbandonedCartAlert(fetch) {
   console.log('🛒 [ABANDONED-CART] Démarrage de l\'alerte paniers abandonnés...');
   
   try {
@@ -199,28 +199,9 @@ async function sendAbandonedCartAlert() {
 // Exporter la fonction pour être utilisée par run-all.cjs
 module.exports = sendAbandonedCartAlert;
 
-// Exécuter la fonction si le fichier est appelé directement
-if (require.main === module) {
+(async () => {
   console.log('--- DÉBUT ALERT ABANDONED CARTS ---');
-  sendAbandonedCartAlert()
-    .then(() => {
-      console.log('--- FIN ALERT ABANDONED CARTS ---');
-    })
-    .catch((error) => {
-      console.error('❌ Erreur lors de l\'alerte Omnisend paniers abandonnés:', error);
-      console.log('--- FIN ALERT ABANDONED CARTS ---');
-    });
-}
-
-// Si exécuté directement, lancer le script
-if (require.main === module) {
-  sendAbandonedCartAlert()
-    .then(() => {
-      console.log('✅ [ABANDONED-CART] Script terminé avec succès');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ [ABANDONED-CART] Erreur fatale:', error);
-      process.exit(1);
-    });
-} 
+  const fetch = (await import('node-fetch')).default;
+  await sendAbandonedCartAlert(fetch);
+  console.log('--- FIN ALERT ABANDONED CARTS ---');
+})(); 
