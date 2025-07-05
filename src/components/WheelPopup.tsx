@@ -1253,31 +1253,27 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
   // 🛒 Fonction pour charger les produits de test
   const loadTestProducts = async () => {
     try {
-      // Récupérer les produits depuis l'API Stripe (comme dans le reste du code)
-      const baseUrl = window.location.origin;
-      const response = await fetch(`${baseUrl}/api/stripe/products`);
+      // Récupérer les produits Stripe depuis l'API (comme dans ProduitsPage)
+      const response = await fetch(`${import.meta.env.VITE_API_URL || window.location.origin}/api/stripe/products`);
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Erreur API: ${response.status}`);
       }
       
-      const data = await response.json();
+      const stripeProducts = await response.json();
       
-      if (!data || !Array.isArray(data.products)) {
-        console.error('❌ Format de réponse invalide:', data);
-        return;
+      if (stripeProducts && stripeProducts.length > 0) {
+        // Prendre les 10 premiers produits Stripe
+        const limitedProducts = stripeProducts.slice(0, 10);
+        
+        setTestProducts(limitedProducts.map(p => ({
+          id: p.id, // ID Stripe
+          title: p.title,
+          price: p.price
+        })));
+        
+        console.log('🛒 [TEST] Produits Stripe chargés:', limitedProducts.length);
       }
-
-      // Prendre les 10 premiers produits
-      const limitedProducts = data.products.slice(0, 10);
-      
-      setTestProducts(limitedProducts.map(p => ({
-        id: p.id,
-        title: p.title,
-        price: p.price
-      })));
-
-      console.log('🛒 [TEST] Produits Stripe chargés:', limitedProducts.length);
     } catch (error) {
       console.error('❌ Erreur chargement produits Stripe test:', error);
     }
