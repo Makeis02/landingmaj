@@ -199,6 +199,19 @@ async function sendAbandonedCartAlert() {
 // Exporter la fonction pour être utilisée par run-all.cjs
 module.exports = sendAbandonedCartAlert;
 
+// Exécuter la fonction si le fichier est appelé directement
+if (require.main === module) {
+  console.log('--- DÉBUT ALERT ABANDONED CARTS ---');
+  sendAbandonedCartAlert()
+    .then(() => {
+      console.log('--- FIN ALERT ABANDONED CARTS ---');
+    })
+    .catch((error) => {
+      console.error('❌ Erreur lors de l\'alerte Omnisend paniers abandonnés:', error);
+      console.log('--- FIN ALERT ABANDONED CARTS ---');
+    });
+}
+
 // Si exécuté directement, lancer le script
 if (require.main === module) {
   sendAbandonedCartAlert()
