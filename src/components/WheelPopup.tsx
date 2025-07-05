@@ -1253,14 +1253,9 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
   // 🛒 Fonction pour charger les produits de test
   const loadTestProducts = async () => {
     try {
-      // Récupérer les produits Stripe depuis l'API (comme dans ProduitsPage)
-      const response = await fetch(`${import.meta.env.VITE_API_URL || window.location.origin}/api/stripe/products`);
-      
-      if (!response.ok) {
-        throw new Error(`Erreur API: ${response.status}`);
-      }
-      
-      const stripeProducts = await response.json();
+      // Utiliser fetchStripeProducts comme dans le reste du code
+      const { fetchStripeProducts } = await import('@/lib/api/stripe');
+      const stripeProducts = await fetchStripeProducts();
       
       if (stripeProducts && stripeProducts.length > 0) {
         // Prendre les 10 premiers produits Stripe
@@ -1273,6 +1268,8 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
         })));
         
         console.log('🛒 [TEST] Produits Stripe chargés:', limitedProducts.length);
+      } else {
+        console.log('🛒 [TEST] Aucun produit Stripe trouvé');
       }
     } catch (error) {
       console.error('❌ Erreur chargement produits Stripe test:', error);
