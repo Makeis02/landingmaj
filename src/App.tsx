@@ -334,6 +334,11 @@ const App = () => {
       // Nettoyer l'URL après ouverture (optionnel)
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+    // Ajout : ouvrir la roue si openWheel=1
+    if (params.get("openWheel") === "1") {
+      setShowWheel(true);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }, []);
 
   return (
