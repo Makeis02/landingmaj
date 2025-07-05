@@ -1321,7 +1321,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
       // Insérer dans la table abandoned_carts
       const { error } = await supabase
         .from('abandoned_carts')
-        .upsert({
+        .insert({
           email: testAbandonedEmail.toLowerCase().trim(),
           user_id: null,
           cart_items: testCartItems,
@@ -1331,8 +1331,6 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
           last_activity: new Date().toISOString(),
           status: 'abandoned',
           email_sent_count: 0
-        }, {
-          onConflict: 'email'
         });
 
       if (error) {
