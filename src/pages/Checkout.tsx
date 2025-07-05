@@ -12,6 +12,7 @@ import { useCartStore } from "@/stores/useCartStore";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useUserStore } from "@/stores/useUserStore";
+import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 import FloatingHeader from "@/components/admin/FloatingHeader";
 import { useEditStore } from "@/stores/useEditStore";
 import { getPriceIdForProduct } from "@/lib/stripe/getPriceIdFromSupabase";
@@ -224,6 +225,9 @@ const Checkout = () => {
   
   const user = useUserStore((s) => s.user);
   const setUser = useUserStore((s) => s.setUser);
+  
+  // 🛒 Hook pour marquer le panier comme récupéré lors du checkout
+  const { markAsRecovered } = useAbandonedCart();
   const [loading, setLoading] = useState(false);
   const [checkingUser, setCheckingUser] = useState(true);
   const { toast } = useToast();
@@ -446,6 +450,9 @@ const Checkout = () => {
 
     try {
       setLoading(true);
+
+      // 🛒 Marquer le panier comme récupéré (évite les emails d'abandon)
+      markAsRecovered();
 
       // 1. FILTRAGE : Séparer les produits payants des cadeaux
       const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);

@@ -107,6 +107,7 @@ import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import React from "react";
 import { useCartStore } from "@/stores/useCartStore";
+import { useAbandonedCart } from "@/hooks/useAbandonedCart";
 
 const queryClient = new QueryClient();
 
@@ -120,6 +121,12 @@ const App = () => {
   const [isWheelEnabled, setIsWheelEnabled] = useState(true);
   const [showPixel, setShowPixel] = useState(false);
   const { openDrawer } = useCartStore();
+  
+  // 🛒 Hook pour détecter les paniers abandonnés
+  const { markAsRecovered } = useAbandonedCart({
+    delayMinutes: 30, // Considérer comme abandonné après 30 minutes d'inactivité
+    checkIntervalMinutes: 5 // Vérifier toutes les 5 minutes
+  });
   
   // Fonction de debug pour réinitialiser les paramètres de la roue
   const resetWheelState = () => {

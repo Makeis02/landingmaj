@@ -77,12 +77,24 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
+  
+  // 🛒 États pour le test des paniers abandonnés
+  const [testProducts, setTestProducts] = useState<Array<{id: string, title: string, price: number}>>([]);
+  const [testProductId, setTestProductId] = useState("");
+  const [testAbandonedEmail, setTestAbandonedEmail] = useState("");
+  const [isTestingAbandoned, setIsTestingAbandoned] = useState(false);
+  const [testAbandonedResult, setTestAbandonedResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Charger les données depuis Supabase au montage du composant
   useEffect(() => {
     if (isOpen) {
       loadWheelData();
       checkUserAuth();
+      
+      // 🛒 Charger les produits pour le test des paniers abandonnés (mode édition uniquement)
+      if (isEditMode) {
+        loadTestProducts();
+      }
     } else {
       // 🆕 Réinitialiser les états email quand la modale se ferme
       setEmail('');
@@ -92,7 +104,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
       setShowResult(false);
       setWinningSegment(null);
     }
-  }, [isOpen]);
+  }, [isOpen, isEditMode]);
 
   // Surveillance des paramètres - Recharger si modifiés en mode édition
   useEffect(() => {
@@ -1238,6 +1250,116 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
     }
   };
 
+  // 🛒 Fonction pour charger les produits de test
+  const loadTestProducts = async () => {
+    try {
+      // Récupérer quelques produits depuis Stripe via Supabase
+      const { data: products, error } = await supabase
+        .from('products')
+        .select('shopify_id, title, price')
+        .limit(10)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Erreur chargement produits test:', error);
+        return;
+      }
+
+      if (products && products.length > 0) {
+        setTestProducts(products.map(p => ({
+          id: p.shopify_id,
+          title: p.title,
+          price: p.price
+        })));
+      }
+    } catch (error) {
+      console.error('❌ Erreur chargement produits test:', error);
+    }
+  };
+
+  // 🛒 Fonction pour tester les paniers abandonnés
+  const handleTestAbandonedCart = async () => {
+    if (!testProductId || !testAbandonedEmail || !validateEmail(testAbandonedEmail)) {
+      setTestAbandonedResult({ 
+        success: false, 
+        message: "Veuillez sélectionner un produit et entrer un email valide" 
+      });
+      return;
+    }
+
+    setIsTestingAbandoned(true);
+    setTestAbandonedResult(null);
+
+    try {
+      // Récupérer les détails du produit sélectionné
+      const selectedProduct = testProducts.find(p => p.id === testProductId);
+      if (!selectedProduct) {
+        throw new Error('Produit non trouvé');
+      }
+
+      // Créer un panier abandonné de test
+      const testCartItems = [{
+        id: testProductId,
+        title: selectedProduct.title,
+        price: selectedProduct.price,
+        quantity: 1,
+        image_url: null,
+        variant: null,
+        stripe_price_id: null,
+        is_gift: false,
+        threshold_gift: false
+      }];
+
+      const cartTotal = selectedProduct.price;
+      const itemCount = 1;
+
+      console.log('🛒 [TEST] Création panier abandonné:', {
+        email: testAbandonedEmail,
+        product: selectedProduct.title,
+        total: cartTotal
+      });
+
+      // Insérer dans la table abandoned_carts
+      const { error } = await supabase
+        .from('abandoned_carts')
+        .upsert({
+          email: testAbandonedEmail.toLowerCase().trim(),
+          user_id: null,
+          cart_items: testCartItems,
+          cart_total: cartTotal,
+          item_count: itemCount,
+          abandoned_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          status: 'abandoned',
+          email_sent_count: 0
+        }, {
+          onConflict: 'email'
+        });
+
+      if (error) {
+        throw error;
+      }
+
+      setTestAbandonedResult({
+        success: true,
+        message: `Panier abandonné créé avec succès ! Produit: ${selectedProduct.title} (${cartTotal}€). Le prochain cron enverra l'email de récupération.`
+      });
+
+      // Réinitialiser les champs
+      setTestProductId("");
+      setTestAbandonedEmail("");
+
+    } catch (error) {
+      console.error('❌ [TEST] Erreur création panier abandonné:', error);
+      setTestAbandonedResult({
+        success: false,
+        message: `Erreur lors de la création: ${error instanceof Error ? error.message : 'Erreur inconnue'}`
+      });
+    } finally {
+      setIsTestingAbandoned(false);
+    }
+  };
+
   // Fonction pour sauvegarder les paramètres de la roue et re-vérifier l'éligibilité
   const saveWheelSettings = async (newSettings: any) => {
     if (!isEditMode) return;
@@ -2016,6 +2138,74 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
                   {testEmailResult.message}
                 </div>
               )}
+            </div>
+
+            {/* 🛒 NOUVEAU : Test paniers abandonnés */}
+            <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <h3 className="text-lg font-semibold mb-4 text-orange-800">🛒 Tester les paniers abandonnés</h3>
+              
+              <div className="space-y-4">
+                {/* Sélection du produit */}
+                <div>
+                  <label className="block text-sm font-medium text-orange-700 mb-2">
+                    Produit à ajouter au panier test :
+                  </label>
+                  <select
+                    value={testProductId}
+                    onChange={(e) => setTestProductId(e.target.value)}
+                    className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  >
+                    <option value="">Sélectionner un produit...</option>
+                    {testProducts.map(product => (
+                      <option key={product.id} value={product.id}>
+                        {product.title} - {product.price}€
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Email de test */}
+                <div>
+                  <label className="block text-sm font-medium text-orange-700 mb-2">
+                    Email de test :
+                  </label>
+                  <input
+                    type="email"
+                    value={testAbandonedEmail}
+                    onChange={(e) => setTestAbandonedEmail(e.target.value)}
+                    placeholder="email@test.com"
+                    className="w-full px-3 py-2 border border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  />
+                </div>
+
+                {/* Bouton de test */}
+                <button
+                  onClick={handleTestAbandonedCart}
+                  disabled={!testProductId || !testAbandonedEmail || isTestingAbandoned}
+                  className="w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isTestingAbandoned ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      Création du panier test...
+                    </span>
+                  ) : (
+                    'Créer un panier abandonné test'
+                  )}
+                </button>
+
+                {/* Résultat du test */}
+                {testAbandonedResult && (
+                  <div className={`p-3 rounded-lg ${
+                    testAbandonedResult.success 
+                      ? 'bg-green-100 text-green-800 border border-green-300' 
+                      : 'bg-red-100 text-red-800 border border-red-300'
+                  }`}>
+                    <div className="font-medium">{testAbandonedResult.success ? '✅ Succès' : '❌ Erreur'}</div>
+                    <div className="text-sm mt-1">{testAbandonedResult.message}</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

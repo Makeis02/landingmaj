@@ -1,9 +1,29 @@
 {
+  "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
     "nixpacksPlan": {
       "providers": ["node"]
     }
   },
+  "deploy": {
+    "numReplicas": 1,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  },
+  "environments": {
+    "production": {
+      "variables": {
+        "NODE_ENV": "production"
+      }
+    }
+  },
+  "crons": [
+    {
+      "command": "node run-all.cjs",
+      "schedule": "0 */2 * * *",
+      "timezone": "Europe/Paris"
+    }
+  ],
   "start": "npm run build && npm run preview"
 }

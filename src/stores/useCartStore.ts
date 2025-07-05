@@ -76,6 +76,10 @@ interface CartStore {
   applyPromoCode: (code: string) => Promise<{ success: boolean; message: string }>;
   removePromoCode: () => void;
   getTotalWithPromo: () => { subtotal: number; discount: number; total: number };
+  
+  // 🛒 NOUVELLES FONCTIONS : Paniers abandonnés
+  upsertAbandonedCart: (email?: string) => Promise<void>;
+  markCartAsRecovered: (email?: string) => Promise<void>;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -914,6 +918,92 @@ export const useCartStore = create<CartStore>()(
     const total = Math.max(0, subtotal - discount);
     
     return { subtotal, discount, total };
+  },
+
+  // 🛒 NOUVELLES FONCTIONS : Paniers abandonnés
+  upsertAbandonedCart: async (email?: string) => {
+    try {
+      const { items } = get();
+      const { user } = useUserStore.getState();
+      
+      // Ne pas sauvegarder si le panier est vide
+      if (items.length === 0) return;
+      
+      // Filtrer les items payants (exclure les cadeaux)
+      const payableItems = items.filter(item => !item.is_gift && !item.threshold_gift);
+      if (payableItems.length === 0) return;
+      
+      const cartTotal = payableItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const itemCount = payableItems.reduce((sum, item) => sum + item.quantity, 0);
+      
+      // Déterminer l'email à utiliser
+      const userEmail = email || user?.email;
+      if (!userEmail) {
+        console.log('🛒 [ABANDONED-CART] Pas d\'email disponible pour sauvegarder le panier abandonné');
+        return;
+      }
+      
+      console.log('🛒 [ABANDONED-CART] Sauvegarde du panier abandonné:', {
+        email: userEmail,
+        itemCount,
+        cartTotal,
+        items: payableItems.map(item => ({ id: item.id, title: item.title, quantity: item.quantity }))
+      });
+      
+      // Upsert dans la table abandoned_carts
+      const { error } = await supabase
+        .from('abandoned_carts')
+        .upsert({
+          email: userEmail.toLowerCase().trim(),
+          user_id: user?.id || null,
+          cart_items: payableItems, // Stockage en JSONB
+          cart_total: cartTotal,
+          item_count: itemCount,
+          abandoned_at: new Date().toISOString(),
+          last_activity: new Date().toISOString(),
+          status: 'abandoned'
+        }, {
+          onConflict: 'email' // Mise à jour si l'email existe déjà
+        });
+      
+      if (error) {
+        console.error('❌ [ABANDONED-CART] Erreur sauvegarde:', error);
+      } else {
+        console.log('✅ [ABANDONED-CART] Panier abandonné sauvegardé');
+      }
+    } catch (error) {
+      console.error('❌ [ABANDONED-CART] Erreur upsert:', error);
+    }
+  },
+
+  markCartAsRecovered: async (email?: string) => {
+    try {
+      const { user } = useUserStore.getState();
+      const userEmail = email || user?.email;
+      
+      if (!userEmail) return;
+      
+      console.log('🛒 [ABANDONED-CART] Marquage comme récupéré:', userEmail);
+      
+      // Marquer tous les paniers abandonnés de cet email comme récupérés
+      const { error } = await supabase
+        .from('abandoned_carts')
+        .update({
+          status: 'recovered',
+          recovered_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('email', userEmail.toLowerCase().trim())
+        .eq('status', 'abandoned');
+      
+      if (error) {
+        console.error('❌ [ABANDONED-CART] Erreur marquage récupéré:', error);
+      } else {
+        console.log('✅ [ABANDONED-CART] Panier(s) marqué(s) comme récupéré(s)');
+      }
+    } catch (error) {
+      console.error('❌ [ABANDONED-CART] Erreur marquage récupéré:', error);
+    }
   }
 }),
 {
