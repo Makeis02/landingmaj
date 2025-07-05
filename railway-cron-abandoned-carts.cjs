@@ -154,9 +154,15 @@ async function sendAbandonedCartAlert(fetch) {
           continue;
         }
 
-
-
-        const result = await eventResponse.json();
+        // Parser la réponse JSON depuis le texte déjà lu
+        let result;
+        try {
+          result = JSON.parse(eventText);
+        } catch (parseError) {
+          console.error(`❌ [ABANDONED-CART] Erreur parsing JSON pour ${cart.email}:`, parseError);
+          errorCount++;
+          continue;
+        }
         console.log(`✅ [ABANDONED-CART] Événement envoyé pour ${cart.email}:`, result.eventID);
 
         // 5. Mettre à jour le panier dans Supabase
