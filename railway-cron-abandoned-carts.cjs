@@ -118,7 +118,7 @@ async function sendAbandonedCartAlert(fetch) {
         const eventBody = {
           email: cart.email,
           eventName: 'abandoned_cart_alert',
-          SystemName: 'railway-cron',
+          SystemName: 'abandoned_cart_alert',
           data: {
             cartId: cart.id,
             cartTotal: cart.cart_total,
