@@ -205,15 +205,15 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
 
       {isModalOpen && (
         <Suspense fallback={<div>Chargement de la carte...</div>}>
-          <PointRelaisModal
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onSelect={(point) => {
-              onSelect(point);
-              setIsModalOpen(false);
-            }}
-            codePostal={codePostal}
-          />
+      <PointRelaisModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSelect={(point) => {
+          onSelect(point);
+          setIsModalOpen(false);
+        }}
+        codePostal={codePostal}
+      />
         </Suspense>
       )}
     </div>

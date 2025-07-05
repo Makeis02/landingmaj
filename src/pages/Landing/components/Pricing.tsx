@@ -1163,24 +1163,24 @@ const Pricing = () => {
                     plan.id === "discovery" ? "bg-gradient-to-br from-yellow-50 to-yellow-100" : "bg-white"
                   }`}>
                     <Suspense fallback={<div>Chargement du carrousel...</div>}>
-                      <Carousel
-                        packName={plan.name}
-                        images={currentImages}
-                        speed={carouselSpeed}
-                        isEditMode={isEditMode}
-                        contentKey={plan.imageContentKey}
-                        onImagesUpdate={(newImages) => {
-                          console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
-                          if (plan.id === "basix") {
-                            setBasixImages(newImages);
-                          } else if (plan.id === "premium") {
-                            setPremiumImages(newImages);
-                          } else {
-                            setDiscoveryImages(newImages);
-                          }
-                          refetchImages();
-                        }}
-                      />
+                    <Carousel
+                      packName={plan.name}
+                      images={currentImages}
+                      speed={carouselSpeed}
+                      isEditMode={isEditMode}
+                      contentKey={plan.imageContentKey}
+                      onImagesUpdate={(newImages) => {
+                        console.log(`🔄 Mise à jour des images pour ${plan.imageContentKey}:`, newImages.length);
+                        if (plan.id === "basix") {
+                          setBasixImages(newImages);
+                        } else if (plan.id === "premium") {
+                          setPremiumImages(newImages);
+                        } else {
+                          setDiscoveryImages(newImages);
+                        }
+                        refetchImages();
+                      }}
+                    />
                     </Suspense>
                     {isEditMode && (
                       <div className="flex justify-center mt-4 mb-2">

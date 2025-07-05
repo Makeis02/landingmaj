@@ -97,6 +97,7 @@ import SuccessPage from "@/pages/success";
 import CheckoutSettings from "@/pages/admin/CheckoutSettings";
 import CommandesPage from "@/pages/admin/CommandesPage";
 import OrderConfirmation from "@/pages/OrderConfirmation";
+import WheelDirect from "@/pages/WheelDirect";
 import CookieBanner from "@/components/CookieBanner";
 import LuckyWheelPopup from "@/components/WheelPopup";
 import FloatingWheelButton from "@/components/FloatingWheelButton";
@@ -418,6 +419,8 @@ const App = () => {
         <Route path="/admin/commandes" element={<CommandesPage />} />
 
         <Route path="/order-confirmation" element={<OrderConfirmation />} />
+
+        <Route path="/wheel" element={<WheelDirect />} />
 
         <Route path="/lucky-wheel" element={
           <div className="flex flex-col items-center justify-center min-h-screen">

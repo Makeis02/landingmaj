@@ -105,11 +105,11 @@ export default defineConfig(async ({ mode }) => {
   },
   plugins: [
     react(),
-    sitemap({ 
-      hostname: 'https://aqua-reve.com',
-      dynamicRoutes
-    }),
-    mode === 'development' && componentTagger(),
+      sitemap({ 
+        hostname: 'https://aqua-reve.com',
+        dynamicRoutes
+      }),
+      mode === 'development' && componentTagger(),
     mockApiPlugin(),
   ].filter(Boolean),
   define: {

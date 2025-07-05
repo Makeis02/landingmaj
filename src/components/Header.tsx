@@ -704,7 +704,7 @@ const Header = () => {
 
       {/* CartDrawer monté en permanence, pour que le panier fonctionne toujours */}
       <Suspense fallback={null}>
-        <CartDrawer />
+      <CartDrawer />
       </Suspense>
     </>
   );

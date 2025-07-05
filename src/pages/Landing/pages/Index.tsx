@@ -37,7 +37,7 @@ const LandingPage = () => {
         <Hero />
         <Features />
         <Suspense fallback={<div>Chargement des tarifs...</div>}>
-          <Pricing />
+        <Pricing />
         </Suspense>
         <Testimonials />
         <Cta />

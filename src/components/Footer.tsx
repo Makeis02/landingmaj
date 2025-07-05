@@ -1087,12 +1087,12 @@ const Footer = () => {
       {isEditMode && (
         <Suspense fallback={null}>
           <FooterAdminPanel
-            footerLinks={footerLinks}
-            footerSettings={footerSettings}
-            legalLinks={legalLinks}
-            usefulLinks={usefulLinks}
-            socialLinks={socialLinks}
-          />
+          footerLinks={footerLinks}
+          footerSettings={footerSettings}
+          legalLinks={legalLinks}
+          usefulLinks={usefulLinks}
+          socialLinks={socialLinks}
+        />
         </Suspense>
       )}
     </footer>

@@ -352,7 +352,7 @@ const Index = () => {
         {/* Univers Grid - Dynamique depuis Supabase */}
         <Suspense fallback={<div className="h-64 flex items-center justify-center animate-pulse">Chargement de l'univers...</div>}>
           <Suspense fallback={null}><MotionDiv initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.7, delay: 0.2 }}>
-            <DynamicUniverseGrid />
+          <DynamicUniverseGrid />
           </MotionDiv></Suspense>
         </Suspense>
 
