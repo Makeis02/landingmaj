@@ -11,7 +11,7 @@
     console.error('Erreur lors de l\'alerte Omnisend cadeaux roue:', e);
   }
   try {
-    await require('./railway-cron-abandoned-carts.js');
+    await require('./railway-cron-abandoned-carts.cjs');
   } catch (e) {
     console.error('Erreur lors de l\'alerte Omnisend paniers abandonnés:', e);
   }
