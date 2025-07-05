@@ -1253,27 +1253,33 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
   // 🛒 Fonction pour charger les produits de test
   const loadTestProducts = async () => {
     try {
-      // Récupérer quelques produits depuis Stripe via Supabase
-      const { data: products, error } = await supabase
-        .from('products')
-        .select('shopify_id, title, price')
-        .limit(10)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('❌ Erreur chargement produits test:', error);
+      // Récupérer les produits depuis l'API Stripe (comme dans le reste du code)
+      const baseUrl = window.location.origin;
+      const response = await fetch(`${baseUrl}/api/stripe/products`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data || !Array.isArray(data.products)) {
+        console.error('❌ Format de réponse invalide:', data);
         return;
       }
 
-      if (products && products.length > 0) {
-        setTestProducts(products.map(p => ({
-          id: p.shopify_id,
-          title: p.title,
-          price: p.price
-        })));
-      }
+      // Prendre les 10 premiers produits
+      const limitedProducts = data.products.slice(0, 10);
+      
+      setTestProducts(limitedProducts.map(p => ({
+        id: p.id,
+        title: p.title,
+        price: p.price
+      })));
+
+      console.log('🛒 [TEST] Produits Stripe chargés:', limitedProducts.length);
     } catch (error) {
-      console.error('❌ Erreur chargement produits test:', error);
+      console.error('❌ Erreur chargement produits Stripe test:', error);
     }
   };
 
