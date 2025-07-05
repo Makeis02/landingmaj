@@ -118,13 +118,13 @@ async function sendAbandonedCartAlert(fetch) {
         const eventBody = {
           email: cart.email,
           eventName: 'abandoned_cart_alert',
-          SystemName: 'railway-cron',
+          SystemName: 'abandoned_cart_alert',
           data: {
             cartId: cart.id,
             cartTotal: cart.cart_total,
             itemCount: cart.item_count,
             itemNames: itemNames,
-            recoveryUrl: recoveryUrl,
+            recoveryUrl: recoveryUrl.replace(';', ''), // Enlever le point-virgule en trop
             abandonedAt: cart.abandoned_at,
             emailCount: cart.email_sent_count + 1
           }
@@ -154,16 +154,7 @@ async function sendAbandonedCartAlert(fetch) {
           continue;
         }
 
-        // Parser la réponse JSON depuis le texte déjà lu
-        let result;
-        try {
-          result = JSON.parse(eventText);
-        } catch (parseError) {
-          console.error(`❌ [ABANDONED-CART] Erreur parsing JSON pour ${cart.email}:`, parseError);
-          errorCount++;
-          continue;
-        }
-        console.log(`✅ [ABANDONED-CART] Événement envoyé pour ${cart.email}:`, result.eventID);
+        console.log(`✅ [ABANDONED-CART] Événement envoyé avec succès à ${cart.email}`);
 
         // 5. Mettre à jour le panier dans Supabase
         const { error: updateError } = await supabase
