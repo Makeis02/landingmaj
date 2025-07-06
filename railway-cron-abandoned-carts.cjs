@@ -159,6 +159,12 @@ async function sendAbandonedCartAlert(fetch) {
           promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
         }
         
+        // 🧪 TEST : Forcer la génération d'un code promo pour le premier email (à retirer après test)
+        if (cart.email_sent_count === 0 && cart.email.includes('test')) {
+          console.log(`🎫 [ABANDONED-CART] TEST - génération code promo pour premier email: ${cart.email}`);
+          promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
+        }
+        
         // 5. Mettre à jour le contact et AJOUTER le tag
         const contactBody = {
           email: cart.email,
