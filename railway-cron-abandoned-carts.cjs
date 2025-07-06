@@ -229,7 +229,6 @@ async function sendAbandonedCartAlert(fetch) {
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
             emailCount: cart.email_sent_count + 1,
-            // 🆕 NOUVEAUX CHAMPS POUR LE CODE PROMO
             hasPromoCode: !!promoCodeData,
             promoCode: promoCodeData?.code || '',
             promoDiscount: promoCodeData ? '20%' : '',
@@ -238,8 +237,8 @@ async function sendAbandonedCartAlert(fetch) {
             isThirdEmail: cart.email_sent_count === 2
           }
         };
-
-        console.log('📧 [ABANDONED-CART] Envoi événement Omnisend:', JSON.stringify(eventBody, null, 2));
+        // 🟢 LOG DEBUG : Afficher le body JSON envoyé à Omnisend
+        console.log('EVENT BODY ENVOYÉ À OMNISEND:', JSON.stringify(eventBody, null, 2));
         
         const eventResponse = await fetch('https://api.omnisend.com/v3/events', {
           method: 'POST',
