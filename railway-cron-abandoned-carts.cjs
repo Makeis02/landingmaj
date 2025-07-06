@@ -211,6 +211,9 @@ async function sendAbandonedCartAlert(fetch) {
           });
         } else {
           console.log(`✅ [ABANDONED-CART] Contact mis à jour avec succès pour ${cart.email}`);
+          if (!contactText || contactText.trim() === '') {
+            console.log(`⚠️ [ABANDONED-CART] Réponse contact vide mais status OK pour ${cart.email}`);
+          }
         }
 
         // 6. Envoyer l'événement personnalisé à Omnisend
@@ -263,13 +266,20 @@ async function sendAbandonedCartAlert(fetch) {
         // Parser la réponse JSON depuis le texte déjà lu
         let result;
         try {
-          result = JSON.parse(eventText);
+          // Vérifier que la réponse n'est pas vide
+          if (!eventText || eventText.trim() === '') {
+            console.log(`⚠️ [ABANDONED-CART] Réponse vide d'Omnisend pour ${cart.email}, mais status OK`);
+            result = { eventID: 'no-id-provided' };
+          } else {
+            result = JSON.parse(eventText);
+          }
         } catch (parseError) {
           console.error(`❌ [ABANDONED-CART] Erreur parsing JSON pour ${cart.email}:`, parseError);
+          console.error(`📧 [ABANDONED-CART] Contenu de la réponse: "${eventText}"`);
           errorCount++;
           continue;
         }
-        console.log(`✅ [ABANDONED-CART] Événement envoyé pour ${cart.email}:`, result.eventID);
+        console.log(`✅ [ABANDONED-CART] Événement envoyé pour ${cart.email}:`, result.eventID || 'ID non fourni');
 
         // 7. Mettre à jour le panier dans Supabase
         const { error: updateError } = await supabase
