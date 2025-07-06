@@ -21,6 +21,85 @@ if (!OMNISEND_API_KEY) {
   process.exit(1);
 }
 
+// Fonction pour générer un code promo unique
+async function generateUniquePromoCode(email, cartId) {
+  const baseCode = `RECUP${cartId.slice(-6).toUpperCase()}`;
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const emailHash = email.split('@')[0].slice(0, 3).toUpperCase();
+  
+  let code = `${baseCode}${timestamp}${emailHash}`;
+  
+  // Vérifier que le code n'existe pas déjà
+  let attempts = 0;
+  while (attempts < 10) {
+    const { data: existingCode } = await supabase
+      .from('promo_codes')
+      .select('id')
+      .eq('code', code)
+      .single();
+    
+    if (!existingCode) {
+      return code;
+    }
+    
+    // Si le code existe, générer un nouveau
+    code = `${baseCode}${timestamp}${emailHash}${attempts}`;
+    attempts++;
+  }
+  
+  // Fallback avec timestamp complet
+  return `RECUP${Date.now()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
+}
+
+// Fonction pour créer un code promo de récupération
+async function createRecoveryPromoCode(email, cartId, cartTotal) {
+  try {
+    console.log(`🎫 [ABANDONED-CART] Création code promo pour ${email}`);
+    
+    const promoCode = await generateUniquePromoCode(email, cartId);
+    
+    // Calculer la réduction maximale (20% du panier, max 50€)
+    const maxDiscount = Math.min(cartTotal * 0.2, 50);
+    
+    const promoData = {
+      code: promoCode,
+      description: `Code de récupération panier abandonné - ${email}`,
+      type: 'percentage',
+      value: 20, // 20% de réduction
+      application_type: 'all',
+      product_id: null,
+      product_title: null,
+      category_name: null,
+      minimum_amount: cartTotal * 0.5, // Minimum 50% du panier original
+      maximum_discount: maxDiscount,
+      usage_limit: 1, // Utilisable une seule fois
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Expire dans 7 jours
+      is_active: true,
+      one_time_per_client: true,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    
+    const { data: newPromoCode, error } = await supabase
+      .from('promo_codes')
+      .insert(promoData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error(`❌ [ABANDONED-CART] Erreur création code promo:`, error);
+      return null;
+    }
+    
+    console.log(`✅ [ABANDONED-CART] Code promo créé: ${promoCode}`);
+    return newPromoCode;
+    
+  } catch (error) {
+    console.error(`❌ [ABANDONED-CART] Erreur création code promo:`, error);
+    return null;
+  }
+}
+
 async function sendAbandonedCartAlert(fetch) {
   console.log('🛒 [ABANDONED-CART] Démarrage de l\'alerte paniers abandonnés...');
   
@@ -73,7 +152,14 @@ async function sendAbandonedCartAlert(fetch) {
         // Créer un lien de récupération unique
         const recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
         
-        // 4. Mettre à jour le contact et AJOUTER le tag (comme pour les cadeaux de la roue)
+        // 4. GÉNÉRER UN CODE PROMO POUR LE 3ÈME EMAIL
+        let promoCodeData = null;
+        if (cart.email_sent_count === 2) { // 3ème email (après 2 emails déjà envoyés)
+          console.log(`🎫 [ABANDONED-CART] 3ème email - génération code promo pour ${cart.email}`);
+          promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
+        }
+        
+        // 5. Mettre à jour le contact et AJOUTER le tag
         const contactBody = {
           email: cart.email,
           status: "subscribed",
@@ -86,7 +172,14 @@ async function sendAbandonedCartAlert(fetch) {
             itemNames: itemNames,
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
-            emailCount: cart.email_sent_count + 1
+            emailCount: cart.email_sent_count + 1,
+            // 🆕 NOUVEAUX CHAMPS POUR LE CODE PROMO
+            hasPromoCode: !!promoCodeData,
+            promoCode: promoCodeData?.code || '',
+            promoDiscount: promoCodeData ? '20%' : '',
+            promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
+            promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
+            isThirdEmail: cart.email_sent_count === 2
           }
         };
         
@@ -114,7 +207,7 @@ async function sendAbandonedCartAlert(fetch) {
           console.log(`✅ [ABANDONED-CART] Contact mis à jour avec succès pour ${cart.email}`);
         }
 
-        // 5. Envoyer l'événement personnalisé à Omnisend (comme pour les cadeaux de la roue)
+        // 6. Envoyer l'événement personnalisé à Omnisend
         const eventBody = {
           email: cart.email,
           eventName: 'abandoned_cart_alert',
@@ -126,7 +219,14 @@ async function sendAbandonedCartAlert(fetch) {
             itemNames: itemNames,
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
-            emailCount: cart.email_sent_count + 1
+            emailCount: cart.email_sent_count + 1,
+            // 🆕 NOUVEAUX CHAMPS POUR LE CODE PROMO
+            hasPromoCode: !!promoCodeData,
+            promoCode: promoCodeData?.code || '',
+            promoDiscount: promoCodeData ? '20%' : '',
+            promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
+            promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
+            isThirdEmail: cart.email_sent_count === 2
           }
         };
 
@@ -165,7 +265,7 @@ async function sendAbandonedCartAlert(fetch) {
         }
         console.log(`✅ [ABANDONED-CART] Événement envoyé pour ${cart.email}:`, result.eventID);
 
-        // 5. Mettre à jour le panier dans Supabase
+        // 7. Mettre à jour le panier dans Supabase
         const { error: updateError } = await supabase
           .from('abandoned_carts')
           .update({
@@ -182,7 +282,7 @@ async function sendAbandonedCartAlert(fetch) {
           successCount++;
         }
 
-        // 6. Attendre un peu entre chaque envoi pour éviter le rate limiting
+        // 8. Attendre un peu entre chaque envoi pour éviter le rate limiting
         await new Promise(resolve => setTimeout(resolve, 1000));
 
       } catch (error) {
@@ -191,7 +291,7 @@ async function sendAbandonedCartAlert(fetch) {
       }
     }
 
-    // 7. Résumé final
+    // 9. Résumé final
     console.log(`\n🎉 [ABANDONED-CART] Traitement terminé:`);
     console.log(`   - Succès: ${successCount}`);
     console.log(`   - Erreurs: ${errorCount}`);

@@ -77,7 +77,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
   const [showEmailForm, setShowEmailForm] = useState(true);
   const [testEmail, setTestEmail] = useState("");
   const [testEmailResult, setTestEmailResult] = useState<{ success: boolean; message: string } | null>(null);
-  
+
   // 🛒 États pour le test des paniers abandonnés
   const [testProducts, setTestProducts] = useState<Array<{id: string, title: string, price: number}>>([]);
   const [testProductId, setTestProductId] = useState("");
@@ -2159,7 +2159,7 @@ const LuckyWheelPopup: React.FC<LuckyWheelPopupProps> = ({ isOpen, onClose, onEl
                       </option>
                     ))}
                   </select>
-                </div>
+          </div>
 
                 {/* Email de test */}
                 <div>
