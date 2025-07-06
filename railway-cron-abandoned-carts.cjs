@@ -150,7 +150,9 @@ async function sendAbandonedCartAlert(fetch) {
         const itemNames = cartItems.map(item => item.title).join(', ');
         
         // Créer un lien de récupération unique
-        const recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
+        let recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
+        // S'assurer qu'il n'y a pas de point-virgule parasite
+        if (recoveryUrl.endsWith(';')) recoveryUrl = recoveryUrl.slice(0, -1);
         
         // 4. GÉNÉRER UN CODE PROMO POUR LE 3ÈME EMAIL
         let promoCodeData = null;
