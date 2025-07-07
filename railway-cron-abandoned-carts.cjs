@@ -257,6 +257,7 @@ async function sendAbandonedCartAlert(fetch) {
         const eventBody = {
           email: cart.email,
           eventName: 'abandoned_cart_alert',
+          SystemName: 'abandoned_cart_alert',
           origin: 'api',
           data: eventData
         };
