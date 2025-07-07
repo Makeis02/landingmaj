@@ -219,11 +219,26 @@ async function sendAbandonedCartAlert(fetch) {
         }
 
         // 6. Envoyer l'événement personnalisé à Omnisend
-        const eventBody = {
-          email: cart.email,
-          eventName: 'abandoned_cart_alert',
-          SystemName: 'abandoned_cart_alert',
-          data: {
+        let eventData;
+        if (cart.email.includes('test') || cart.email.includes('trigger')) {
+          // Cas test : forcer tous les champs à une valeur non vide pour le mapping Omnisend
+          eventData = {
+            cartId: 'ABC123',
+            cartTotal: 99.99,
+            itemCount: 3,
+            itemNames: 'Produit Test A, Produit Test B',
+            recoveryUrl: 'https://aqua-reve.com/recoverCart?cart=ABC123',
+            abandonedAt: '2025-07-07T10:00:00Z',
+            emailCount: 1,
+            hasPromoCode: true,
+            promoCode: 'RECUPTEST123',
+            promoDiscount: '20%',
+            promoExpiresAt: '14/07/2025',
+            promoMaxDiscount: '20€',
+            isThirdEmail: false
+          };
+        } else {
+          eventData = {
             cartId: cart.id,
             cartTotal: cart.cart_total,
             itemCount: cart.item_count,
@@ -237,7 +252,12 @@ async function sendAbandonedCartAlert(fetch) {
             promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2
-          }
+          };
+        }
+        const eventBody = {
+          email: cart.email,
+          eventName: 'abandoned_cart_alert',
+          data: eventData
         };
         // 🟢 LOG DEBUG : Afficher le body JSON envoyé à Omnisend
         console.log('EVENT BODY ENVOYÉ À OMNISEND:', JSON.stringify(eventBody, null, 2));
