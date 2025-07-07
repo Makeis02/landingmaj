@@ -258,6 +258,7 @@ async function sendAbandonedCartAlert(fetch) {
           eventName: 'abandoned_cart_alert',
           origin: 'api',
           eventVersion: 'v1',
+          SystemName: 'abandoned_cart_alert',
           contact: { email: cart.email },
           properties: eventData
         };
