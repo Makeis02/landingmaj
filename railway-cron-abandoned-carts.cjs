@@ -258,7 +258,7 @@ async function sendAbandonedCartAlert(fetch) {
           email: cart.email,
           eventName: 'abandoned_cart_alert',
           SystemName: 'abandoned_cart_alert',
-          data: eventData
+          ...eventData // Étale les champs à plat
         };
         // 🟢 LOG DEBUG : Afficher le body JSON envoyé à Omnisend
         console.log('EVENT BODY ENVOYÉ À OMNISEND:', JSON.stringify(eventBody, null, 2));
