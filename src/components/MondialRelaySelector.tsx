@@ -6,16 +6,16 @@ import { MapPin } from "lucide-react";
 // Type pour les points relais
 type PointRelais = {
   Num: string;
-  LgAdr1: string;
-  LgAdr2: string;
+  LgAdr1?: string;
+  LgAdr2?: string;
   LgAdr3?: string;
   LgAdr4?: string;
-  CP: string;
-  Ville: string;
-  Pays: string;
-  Horaires: string;
-  Latitude: string;
-  Longitude: string;
+  CP?: string;
+  Ville?: string;
+  Pays?: string;
+  Horaires?: string;
+  Latitude?: string;
+  Longitude?: string;
   Distance?: string;
   Note?: string;
   Services?: string[];
@@ -47,8 +47,9 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
     if (!codePostal) return;
     setLoading(true);
     setError(null);
-    
     try {
+      // Log de la requête API
+      console.log("Requête vers API Mondial Relay avec :", { codePostal, ville });
       // Appel à la Supabase Edge Function (mondial-relay)
       const res = await fetch("https://btnyenoxsjtuydpzbapq.functions.supabase.co/mondial-relay", {
         method: "POST",
@@ -57,7 +58,20 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
       });
       const json = await res.json();
       if (res.ok) {
-        setPoints(json.points);
+        console.log("Résultat Mondial Relay brut :", json.points);
+        const validPoints = json.points.filter((p: PointRelais) => {
+          const lat = parseFloat(p.Latitude || "");
+          const lng = parseFloat(p.Longitude || "");
+          return (
+            p.Num &&
+            !isNaN(lat) &&
+            !isNaN(lng) &&
+            lat >= -90 && lat <= 90 &&
+            lng >= -180 && lng <= 180
+          );
+        });
+        console.log("Points valides:", validPoints);
+        setPoints(validPoints);
         setIsModalOpen(true);
       } else {
         setError(json.error || "Erreur lors de la recherche.");
