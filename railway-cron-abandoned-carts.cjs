@@ -180,15 +180,24 @@ async function sendAbandonedCartAlert(fetch) {
         let recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
         if (recoveryUrl.endsWith(';')) recoveryUrl = recoveryUrl.slice(0, -1);
         
-        // 4. GÉNÉRER UN CODE PROMO POUR LE 3ÈME EMAIL
+        // 🆕 Préparer le code promo dès le début (si pas déjà généré)
         let promoCodeData = null;
-        if (cart.email_sent_count === 2) {
-          console.log(`🎫 [ABANDONED-CART] 3ème email - génération code promo pour ${cart.email}`);
+        if (!cart.promo_code) {
           promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
-        }
-        if (cart.email_sent_count === 0 && cart.email.includes('test')) {
-          console.log(`🎫 [ABANDONED-CART] TEST - génération code promo pour premier email: ${cart.email}`);
-          promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
+          if (promoCodeData && promoCodeData.code) {
+            await supabase
+              .from('abandoned_carts')
+              .update({
+                promo_code: promoCodeData.code,
+                promo_expires_at: promoCodeData.expires_at
+              })
+              .eq('id', cart.id);
+          }
+        } else {
+          promoCodeData = {
+            code: cart.promo_code,
+            expires_at: cart.promo_expires_at
+          };
         }
         
         // 5. Mettre à jour le contact et AJOUTER le tag
@@ -205,11 +214,11 @@ async function sendAbandonedCartAlert(fetch) {
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
             emailCount: cart.email_sent_count + 1,
-            hasPromoCode: !!promoCodeData,
-            promoCode: promoCodeData?.code || '',
-            promoDiscount: promoCodeData ? '20%' : '',
-            promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
-            promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
+            hasPromoCode: (cart.email_sent_count === 2 && promoCodeData && promoCodeData.code),
+            promoCode: (cart.email_sent_count === 2 && promoCodeData) ? promoCodeData.code : '',
+            promoDiscount: (cart.email_sent_count === 2 && promoCodeData) ? '20%' : '',
+            promoExpiresAt: (cart.email_sent_count === 2 && promoCodeData) ? (promoCodeData.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '') : '',
+            promoMaxDiscount: (cart.email_sent_count === 2 && promoCodeData) ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
@@ -297,11 +306,11 @@ async function sendAbandonedCartAlert(fetch) {
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
             emailCount: cart.email_sent_count + 1,
-            hasPromoCode: !!promoCodeData,
-            promoCode: promoCodeData?.code || '',
-            promoDiscount: promoCodeData ? '20%' : '',
-            promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
-            promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
+            hasPromoCode: (cart.email_sent_count === 2 && promoCodeData && promoCodeData.code),
+            promoCode: (cart.email_sent_count === 2 && promoCodeData) ? promoCodeData.code : '',
+            promoDiscount: (cart.email_sent_count === 2 && promoCodeData) ? '20%' : '',
+            promoExpiresAt: (cart.email_sent_count === 2 && promoCodeData) ? (promoCodeData.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '') : '',
+            promoMaxDiscount: (cart.email_sent_count === 2 && promoCodeData) ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
