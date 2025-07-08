@@ -58,9 +58,7 @@ async function createRecoveryPromoCode(email, cartId, cartTotal) {
     
     const promoCode = await generateUniquePromoCode(email, cartId);
     
-    // Calculer la réduction maximale (20% du panier, max 50€)
-    const maxDiscount = Math.min(cartTotal * 0.2, 50);
-    
+    // SUPPRIME les conditions de plafond et de minimum
     const promoData = {
       code: promoCode,
       description: `Code de récupération panier abandonné - ${email}`,
@@ -70,8 +68,8 @@ async function createRecoveryPromoCode(email, cartId, cartTotal) {
       product_id: null,
       product_title: null,
       category_name: null,
-      minimum_amount: cartTotal * 0.5, // Minimum 50% du panier original
-      maximum_discount: maxDiscount,
+      minimum_amount: null, // <-- plus de minimum
+      maximum_discount: null, // <-- plus de plafond
       usage_limit: 1, // Utilisable une seule fois
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Expire dans 7 jours
       is_active: true,
