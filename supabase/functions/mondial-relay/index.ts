@@ -14,9 +14,9 @@ console.log("  MONDIALRELAY_PRIVATEKEY   =", Deno.env.get("MONDIALRELAY_PRIVATEK
 console.log("  MONDIALRELAY_CODEMARQUE   =", Deno.env.get("MONDIALRELAY_CODEMARQUE"));
 console.log("  MONDIALRELAY_COUNTRY      =", Deno.env.get("MONDIALRELAY_COUNTRY"));
 
-const ENSEIGNE = "BDTEST13";
-const CLE_PRIVEE = "TestAPI1key";
-const PAYS = "FR";
+const ENSEIGNE = Deno.env.get("MONDIALRELAY_CODEENSEIGNE") || "BDTEST13";
+const CLE_PRIVEE = Deno.env.get("MONDIALRELAY_PRIVATEKEY") || "TestAPI1key";
+const PAYS = Deno.env.get("MONDIALRELAY_COUNTRY") || "FR";
 const SOAP_URL = "https://api.mondialrelay.com/Web_Services.asmx";
 const SOAP_ACTION = "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche";
 
