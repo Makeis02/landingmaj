@@ -59,10 +59,15 @@ function getAdresseComplete(point: PointRelais) {
   return adresse || `${point.CP} ${point.Ville}`;
 }
 
+// Utilitaire pour parser les coordonnées, gère le format français (virgule)
+function parseCoord(value: string | undefined): number {
+  return parseFloat((value || "").replace(",", "."));
+}
+
 // Vérifie si les coordonnées sont valides (ni NaN, ni hors limites géographiques)
 function isValidCoordinates(lat: any, lng: any) {
-  const latF = parseFloat(lat);
-  const lngF = parseFloat(lng);
+  const latF = parseCoord(lat);
+  const lngF = parseCoord(lng);
   return !isNaN(latF) && !isNaN(lngF) && latF >= -90 && latF <= 90 && lngF >= -180 && lngF <= 180;
 }
 
@@ -72,8 +77,8 @@ function AutoCenterMap({ points }: { points: PointRelais[] }) {
   useEffect(() => {
     const coords: [number, number][] = points
       .map(p => {
-        const lat = parseFloat(p.Latitude || "");
-        const lng = parseFloat(p.Longitude || "");
+        const lat = parseCoord(p.Latitude);
+        const lng = parseCoord(p.Longitude);
         if (isValidCoordinates(lat, lng)) return [lat, lng];
         console.warn("Point ignoré (coordonnées invalides):", p);
         return null;
@@ -97,8 +102,8 @@ function FlyToPoint({ point }: { point: PointRelais | null }) {
   const map = useMap();
   useReactEffect(() => {
     if (!point) return;
-    const lat = parseFloat(point.Latitude || "");
-    const lng = parseFloat(point.Longitude || "");
+    const lat = parseCoord(point.Latitude);
+    const lng = parseCoord(point.Longitude);
     if (isValidCoordinates(lat, lng)) {
       map.flyTo([lat, lng], 15, { animate: true });
     }
@@ -110,13 +115,16 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
   const [selectedPoint, setSelectedPoint] = useState<PointRelais | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredPoints = points
-    .filter(point =>
-      [point.LgAdr1, point.Ville, point.LgAdr2, point.LgAdr3].some(field =>
-        field?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPoints = [...new Map(
+    points
+      .filter(point =>
+        [point.LgAdr1, point.Ville, point.LgAdr2, point.LgAdr3].some(field =>
+          field?.toLowerCase().includes(searchTerm.toLowerCase())
+        )
       )
-    )
-    .filter(p => isValidCoordinates(p.Latitude, p.Longitude));
+      .filter(p => isValidCoordinates(p.Latitude, p.Longitude))
+      .map(p => [p.Num, p])
+  ).values()];
 
   useEffect(() => {
     if (isOpen) {
@@ -172,8 +180,8 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
               {filteredPoints.map((point) => {
-                const lat = parseFloat(point.Latitude || "");
-                const lng = parseFloat(point.Longitude || "");
+                const lat = parseCoord(point.Latitude);
+                const lng = parseCoord(point.Longitude);
                 if (!isValidCoordinates(lat, lng)) {
                   console.warn("Marker ignoré (coordonnées invalides):", point);
                   return null;
