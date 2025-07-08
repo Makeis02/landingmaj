@@ -162,16 +162,19 @@ async function sendAbandonedCartAlert(fetch) {
         const cartItems = cart.cart_items || [];
         const itemNames = cartItems.map(item => item.title).join(', ');
         
-        // 🆕 Récupérer les images principales des produits du panier
+        // 🆕 Récupérer les images principales des produits du panier + détails
         const itemImages = [];
+        const itemDetails = [];
         for (const item of cartItems) {
-          let imageUrl = null;
-          // Essaye d'abord Supabase
-          imageUrl = await getProductMainImage(item.id);
-          // Fallback sur l'image dans le cart (si présente)
+          const productId = item.product_id || item.id;
+          let imageUrl = await getProductMainImage(productId);
           if (!imageUrl && item.image_url) imageUrl = item.image_url;
           if (!imageUrl && item.image) imageUrl = item.image;
           if (imageUrl) itemImages.push(imageUrl);
+          itemDetails.push({
+            title: item.title,
+            image: imageUrl || ''
+          });
         }
         
         // Créer un lien de récupération unique
@@ -210,7 +213,9 @@ async function sendAbandonedCartAlert(fetch) {
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
-            itemImages: itemImages
+            itemImages: itemImages,
+            // 🆕 Ajoute les détails (titre + image)
+            itemDetails: itemDetails
           }
         };
         
@@ -262,6 +267,11 @@ async function sendAbandonedCartAlert(fetch) {
             itemImages: [
               'https://placehold.co/200x200?text=Produit+1',
               'https://placehold.co/200x200?text=Produit+2'
+            ],
+            // 🆕 Ajoute les détails (titre + image)
+            itemDetails: [
+              { title: 'Produit Test A', image: 'https://placehold.co/200x200?text=Produit+1' },
+              { title: 'Produit Test B', image: 'https://placehold.co/200x200?text=Produit+2' }
             ]
           };
         } else {
@@ -280,7 +290,9 @@ async function sendAbandonedCartAlert(fetch) {
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
-            itemImages: itemImages
+            itemImages: itemImages,
+            // 🆕 Ajoute les détails (titre + image)
+            itemDetails: itemDetails
           };
         }
         const eventBody = {
