@@ -132,7 +132,7 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
     
     try {
       // Appel à la Supabase Edge Function (mondial-relay)
-      const res = await fetch("/functions/v1/mondial-relay", {
+      const res = await fetch("https://btnyenoxsjtuydpzbapq.functions.supabase.co/mondial-relay", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ codePostal, ville })
