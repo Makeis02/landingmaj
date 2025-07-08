@@ -74,18 +74,24 @@ function isValidCoordinates(lat: any, lng: any) {
 // Nouvelle version de formatHoraires :
 function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[] }[] {
   const joursOrdres = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
   const map: Record<string, string[]> = {};
 
   if (horairesRaw) {
     const lignes = horairesRaw.split(";").map(l => l.trim()).filter(Boolean);
     lignes.forEach(line => {
-      const [jour, horairesStr] = line.split(":");
-      if (!jour || !horairesStr) return;
+      const [jourRaw, horairesStr] = line.split(":");
+      if (!jourRaw || !horairesStr) return;
+
+      // Capitalise le jour, ex: "mardi" => "Mardi"
+      const jour = jourRaw.charAt(0).toUpperCase() + jourRaw.slice(1).toLowerCase();
+
       const creneaux = horairesStr.split(",").map(c => {
         const [debut, fin] = c.split("-");
         if (!debut || !fin) return null;
-        return `${debut} - ${fin.replace(":", "h")}`;
+        return `${debut} - ${fin}`;
       }).filter(Boolean) as string[];
+
       map[jour] = creneaux;
     });
   }
@@ -207,6 +213,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
               {filteredPoints.map((point) => {
+                console.log("→ Horaires debug:", point.Horaires); // ← AJOUT
                 const lat = parseCoord(point.Latitude);
                 const lng = parseCoord(point.Longitude);
                 if (!isValidCoordinates(lat, lng)) {
