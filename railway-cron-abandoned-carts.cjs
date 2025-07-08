@@ -148,6 +148,8 @@ async function sendAbandonedCartAlert(fetch) {
         // 3. Préparer les données pour Omnisend
         const cartItems = cart.cart_items || [];
         const itemNames = cartItems.map(item => item.title).join(', ');
+        // 🆕 Récupérer l'image principale du premier produit
+        const firstItemImage = cartItems.find(item => item.image_url)?.image_url || '';
         
         // Créer un lien de récupération unique
         let recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
@@ -235,7 +237,9 @@ async function sendAbandonedCartAlert(fetch) {
             promoDiscount: '20%',
             promoExpiresAt: '14/07/2025',
             promoMaxDiscount: '20€',
-            isThirdEmail: false
+            isThirdEmail: false,
+            // 🆕 Champ image test
+            firstItemImage: 'https://via.placeholder.com/300x300.png?text=Produit+Test'
           };
         } else {
           eventData = {
@@ -251,7 +255,9 @@ async function sendAbandonedCartAlert(fetch) {
             promoDiscount: promoCodeData ? '20%' : '',
             promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
-            isThirdEmail: cart.email_sent_count === 2
+            isThirdEmail: cart.email_sent_count === 2,
+            // 🆕 Champ image principale
+            firstItemImage: firstItemImage
           };
         }
         const eventBody = {
