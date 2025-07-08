@@ -264,6 +264,27 @@ serve(async (req) => {
     const longitudes = extractTags("Longitude");
     const distances = extractTags("Distance");
 
+    // Extraction des horaires par jour
+    const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+    const horairesByDay: Record<string, string[]> = {};
+    for (const jour of jours) {
+      horairesByDay[jour] = extractTags(`Horaires_${jour}`);
+    }
+
+    // Fonction pour formater les horaires d'un point
+    function formatHorairesPoint(i: number) {
+      return jours.map(jour => {
+        // Extraire les <string>...</string> du XML contenu dans horairesByDay[jour][i]
+        const raw = horairesByDay[jour][i] || "";
+        const matches = Array.from(raw.matchAll(/<string>(.*?)<\/string>/g)).map(m => m[1]);
+        if (!Array.isArray(matches) || matches.length < 2) return null;
+        const slots = [];
+        if (matches[0] && matches[1]) slots.push(`${matches[0].slice(0,2)}:${matches[0].slice(2)}-${matches[1].slice(0,2)}:${matches[1].slice(2)}`);
+        if (matches[2] && matches[3]) slots.push(`${matches[2].slice(0,2)}:${matches[2].slice(2)}-${matches[3].slice(0,2)}:${matches[3].slice(2)}`);
+        return slots.length ? `${jour}:${slots.join(",")}` : null;
+      }).filter(Boolean).join(";");
+    }
+
     // LOG des tags extraits
     console.log("🔎 [DEBUG] Tags extraits :", {
       nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, horaires, latitudes, longitudes, distances
@@ -278,7 +299,7 @@ serve(async (req) => {
             CP: cps[i],
             Ville: villes[i],
             Pays: pays[i],
-            Horaires: horaires[i],
+            Horaires: formatHorairesPoint(i),
             Latitude: latitudes[i],
       Longitude: longitudes[i],
       Distance: distances[i],
