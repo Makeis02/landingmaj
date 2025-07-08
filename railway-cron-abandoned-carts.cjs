@@ -221,7 +221,9 @@ async function sendAbandonedCartAlert(fetch) {
             itemImage3: itemImages[2] || '',
             itemTitle1: itemTitles[0] || '',
             itemTitle2: itemTitles[1] || '',
-            itemTitle3: itemTitles[2] || ''
+            itemTitle3: itemTitles[2] || '',
+            // 🆕 Date formatée pour affichage humain
+            abandonedAtFormatted: formatDateFr(cart.abandoned_at)
           }
         };
         
@@ -282,7 +284,9 @@ async function sendAbandonedCartAlert(fetch) {
             itemImage3: '',
             itemTitle1: 'Produit Test A',
             itemTitle2: 'Produit Test B',
-            itemTitle3: ''
+            itemTitle3: '',
+            // 🆕 Date formatée pour affichage humain
+            abandonedAtFormatted: '08 juillet 2025 à 09:26'
           };
         } else {
           eventData = {
@@ -309,7 +313,9 @@ async function sendAbandonedCartAlert(fetch) {
             itemImage3: itemImages[2] || '',
             itemTitle1: itemTitles[0] || '',
             itemTitle2: itemTitles[1] || '',
-            itemTitle3: itemTitles[2] || ''
+            itemTitle3: itemTitles[2] || '',
+            // 🆕 Date formatée pour affichage humain
+            abandonedAtFormatted: formatDateFr(cart.abandoned_at)
           };
         }
         const eventBody = {
@@ -409,4 +415,17 @@ module.exports = sendAbandonedCartAlert;
   const fetch = (await import('node-fetch')).default;
   await sendAbandonedCartAlert(fetch);
   console.log('--- FIN ALERT ABANDONED CARTS ---');
-})(); 
+})();
+
+// 🆕 Formater la date d'abandon pour affichage humain (français)
+function formatDateFr(dateStr) {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = months[date.getMonth()];
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${day} ${month} ${year} à ${hours}:${minutes}`;
+} 
