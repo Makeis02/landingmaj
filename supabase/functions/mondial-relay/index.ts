@@ -264,30 +264,28 @@ serve(async (req) => {
     const longitudes = extractTags("Longitude");
     const distances = extractTags("Distance");
 
-    // Extraction des horaires par jour
-    const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-    const horairesByDay: Record<string, string[]> = {};
-    for (const jour of jours) {
-      horairesByDay[jour] = extractTags(`Horaires_${jour}`);
-    }
-
-    // Fonction pour formater les horaires d'un point
-    function formatHorairesPoint(i: number) {
+    // Fonction pour extraire et formater les horaires d'un point à partir du XML brut
+    function extractHorairesForPoint(xml: string, i: number) {
+      const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
       return jours.map(jour => {
-        // Extraire les <string>...</string> du XML contenu dans horairesByDay[jour][i]
-        const raw = horairesByDay[jour][i] || "";
-        const matches = Array.from(raw.matchAll(/<string>(.*?)<\/string>/g)).map(m => m[1]);
-        if (!Array.isArray(matches) || matches.length < 2) return null;
+        // Cherche la balise <Horaires_Jour>...</Horaires_Jour> pour le point i
+        // On suppose que chaque <Horaires_Jour> contient 0 à 4 balises <string>
+        const regex = new RegExp(`<Horaires_${jour}>((?:.|\n)*?)<\\/Horaires_${jour}>`, 'g');
+        const allMatches = Array.from(xml.matchAll(regex));
+        const match = allMatches[i];
+        if (!match) return null;
+        // Extraire les <string>...</string>
+        const horaires = Array.from(match[1].matchAll(/<string>(.*?)<\\/string>/g)).map(m => m[1]);
         const slots = [];
-        if (matches[0] && matches[1]) slots.push(`${matches[0].slice(0,2)}:${matches[0].slice(2)}-${matches[1].slice(0,2)}:${matches[1].slice(2)}`);
-        if (matches[2] && matches[3]) slots.push(`${matches[2].slice(0,2)}:${matches[2].slice(2)}-${matches[3].slice(0,2)}:${matches[3].slice(2)}`);
+        if (horaires[0] && horaires[1]) slots.push(`${horaires[0].slice(0,2)}:${horaires[0].slice(2)}-${horaires[1].slice(0,2)}:${horaires[1].slice(2)}`);
+        if (horaires[2] && horaires[3]) slots.push(`${horaires[2].slice(0,2)}:${horaires[2].slice(2)}-${horaires[3].slice(0,2)}:${horaires[3].slice(2)}`);
         return slots.length ? `${jour}:${slots.join(",")}` : null;
       }).filter(Boolean).join(";");
     }
 
     // LOG des tags extraits
     console.log("🔎 [DEBUG] Tags extraits :", {
-      nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, horaires, latitudes, longitudes, distances
+      nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, latitudes, longitudes, distances
     });
 
     const result = nums.map((_, i) => ({
@@ -299,7 +297,7 @@ serve(async (req) => {
             CP: cps[i],
             Ville: villes[i],
             Pays: pays[i],
-            Horaires: formatHorairesPoint(i),
+            Horaires: extractHorairesForPoint(xml, i),
             Latitude: latitudes[i],
       Longitude: longitudes[i],
       Distance: distances[i],
