@@ -77,6 +77,13 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
     ? [parseFloat(validFirst.Latitude), parseFloat(validFirst.Longitude)]
     : [48.8566, 2.3522];
 
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedPoint(null);
+      setSearchTerm('');
+    }
+  }, [isOpen, points]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl h-[80vh] p-0">
