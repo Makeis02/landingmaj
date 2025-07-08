@@ -162,13 +162,17 @@ async function sendAbandonedCartAlert(fetch) {
         const cartItems = cart.cart_items || [];
         const itemImages = [];
         const itemNamesArr = [];
+        const itemTitles = [];
         for (const item of cartItems) {
           const productId = item.product_id || item.id;
           let imageUrl = await getProductMainImage(productId);
           if (!imageUrl && item.image_url) imageUrl = item.image_url;
           if (!imageUrl && item.image) imageUrl = item.image;
           if (imageUrl) itemImages.push(imageUrl);
-          if (item.title) itemNamesArr.push(item.title);
+          if (item.title) {
+            itemNamesArr.push(item.title);
+            itemTitles.push(item.title);
+          }
         }
         const itemNames = itemNamesArr.join(', ');
         
@@ -209,7 +213,8 @@ async function sendAbandonedCartAlert(fetch) {
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
-            itemNames: itemNames
+            itemNames: itemNames,
+            itemTitles: itemTitles
           }
         };
         
@@ -262,7 +267,8 @@ async function sendAbandonedCartAlert(fetch) {
               'https://placehold.co/200x200?text=Produit+1',
               'https://placehold.co/200x200?text=Produit+2'
             ],
-            itemNames: 'Produit Test A, Produit Test B'
+            itemNames: 'Produit Test A, Produit Test B',
+            itemTitles: ['Produit Test A', 'Produit Test B']
           };
         } else {
           eventData = {
@@ -281,7 +287,8 @@ async function sendAbandonedCartAlert(fetch) {
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
-            itemNames: itemNames
+            itemNames: itemNames,
+            itemTitles: itemTitles
           };
         }
         const eventBody = {
