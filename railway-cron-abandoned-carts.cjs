@@ -100,6 +100,19 @@ async function createRecoveryPromoCode(email, cartId, cartTotal) {
   }
 }
 
+// 🆕 Fonction utilitaire pour récupérer l'image principale d'un produit
+async function getProductMainImage(productId) {
+  // Cherche d'abord dans Supabase
+  const { data, error } = await supabase
+    .from('editable_content')
+    .select('content')
+    .eq('content_key', `product_${productId}_image_0`)
+    .single();
+  if (data && data.content) return data.content;
+  // Sinon, fallback Stripe (optionnel, si tu as l'info dans le cart)
+  return null;
+}
+
 async function sendAbandonedCartAlert(fetch) {
   console.log('🛒 [ABANDONED-CART] Démarrage de l\'alerte paniers abandonnés...');
   
@@ -148,22 +161,29 @@ async function sendAbandonedCartAlert(fetch) {
         // 3. Préparer les données pour Omnisend
         const cartItems = cart.cart_items || [];
         const itemNames = cartItems.map(item => item.title).join(', ');
-        // 🆕 Récupérer l'image principale du premier produit
-        const firstItemImage = cartItems.find(item => item.image_url)?.image_url || '';
+        
+        // 🆕 Récupérer les images principales des produits du panier
+        const itemImages = [];
+        for (const item of cartItems) {
+          let imageUrl = null;
+          // Essaye d'abord Supabase
+          imageUrl = await getProductMainImage(item.id);
+          // Fallback sur l'image dans le cart (si présente)
+          if (!imageUrl && item.image_url) imageUrl = item.image_url;
+          if (!imageUrl && item.image) imageUrl = item.image;
+          if (imageUrl) itemImages.push(imageUrl);
+        }
         
         // Créer un lien de récupération unique
         let recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
-        // S'assurer qu'il n'y a pas de point-virgule parasite
         if (recoveryUrl.endsWith(';')) recoveryUrl = recoveryUrl.slice(0, -1);
         
         // 4. GÉNÉRER UN CODE PROMO POUR LE 3ÈME EMAIL
         let promoCodeData = null;
-        if (cart.email_sent_count === 2) { // 3ème email (après 2 emails déjà envoyés)
+        if (cart.email_sent_count === 2) {
           console.log(`🎫 [ABANDONED-CART] 3ème email - génération code promo pour ${cart.email}`);
           promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
         }
-        
-        // 🧪 TEST : Forcer la génération d'un code promo pour le premier email (à retirer après test)
         if (cart.email_sent_count === 0 && cart.email.includes('test')) {
           console.log(`🎫 [ABANDONED-CART] TEST - génération code promo pour premier email: ${cart.email}`);
           promoCodeData = await createRecoveryPromoCode(cart.email, cart.id, cart.cart_total);
@@ -183,13 +203,14 @@ async function sendAbandonedCartAlert(fetch) {
             recoveryUrl: recoveryUrl,
             abandonedAt: cart.abandoned_at,
             emailCount: cart.email_sent_count + 1,
-            // 🆕 NOUVEAUX CHAMPS POUR LE CODE PROMO
             hasPromoCode: !!promoCodeData,
             promoCode: promoCodeData?.code || '',
             promoDiscount: promoCodeData ? '20%' : '',
             promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
-            isThirdEmail: cart.email_sent_count === 2
+            isThirdEmail: cart.email_sent_count === 2,
+            // 🆕 Ajoute les images ici
+            itemImages: itemImages
           }
         };
         
@@ -223,7 +244,6 @@ async function sendAbandonedCartAlert(fetch) {
         // 6. Envoyer l'événement personnalisé à Omnisend
         let eventData;
         if (cart.email.includes('test') || cart.email.includes('trigger')) {
-          // Cas test : forcer tous les champs à une valeur non vide pour le mapping Omnisend
           eventData = {
             cartId: 'ABC123',
             cartTotal: 99.99,
@@ -238,8 +258,11 @@ async function sendAbandonedCartAlert(fetch) {
             promoExpiresAt: '14/07/2025',
             promoMaxDiscount: '20€',
             isThirdEmail: false,
-            // 🆕 Champ image test
-            firstItemImage: 'https://via.placeholder.com/300x300.png?text=Produit+Test'
+            // 🆕 Champ test pour mapping Omnisend
+            itemImages: [
+              'https://placehold.co/200x200?text=Produit+1',
+              'https://placehold.co/200x200?text=Produit+2'
+            ]
           };
         } else {
           eventData = {
@@ -256,8 +279,8 @@ async function sendAbandonedCartAlert(fetch) {
             promoExpiresAt: promoCodeData?.expires_at ? new Date(promoCodeData.expires_at).toLocaleDateString('fr-FR') : '',
             promoMaxDiscount: promoCodeData?.maximum_discount ? `${promoCodeData.maximum_discount}€` : '',
             isThirdEmail: cart.email_sent_count === 2,
-            // 🆕 Champ image principale
-            firstItemImage: firstItemImage
+            // 🆕 Ajoute les images ici
+            itemImages: itemImages
           };
         }
         const eventBody = {
