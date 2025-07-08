@@ -73,22 +73,24 @@ function isValidCoordinates(lat: any, lng: any) {
 
 // Nouvelle version de formatHoraires :
 function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[] }[] {
-  const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-  if (!horairesRaw) return jours.map(jour => ({ jour, creneaux: [] }));
+  const joursOrdres = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  const map: Record<string, string[]> = {};
 
-  const lignes = horairesRaw.split(";").map(line => {
-    const [jour, horairesStr] = line.split(":");
-    const horaires = horairesStr?.split(",").map(c => {
-      const [debut, fin] = c.split("-");
-      if (!debut || !fin) return null;
-      return `${debut.replace(":", "h")} - ${fin.replace(":", "h")}`;
-    }).filter(Boolean) as string[];
-    return { jour, creneaux: horaires };
-  });
+  if (horairesRaw) {
+    const lignes = horairesRaw.split(";").map(l => l.trim()).filter(Boolean);
+    lignes.forEach(line => {
+      const [jour, horairesStr] = line.split(":");
+      if (!jour || !horairesStr) return;
+      const creneaux = horairesStr.split(",").map(c => {
+        const [debut, fin] = c.split("-");
+        if (!debut || !fin) return null;
+        return `${debut} - ${fin.replace(":", "h")}`;
+      }).filter(Boolean) as string[];
+      map[jour] = creneaux;
+    });
+  }
 
-  const map = Object.fromEntries(lignes.map(({ jour, creneaux }) => [jour, creneaux]));
-
-  return jours.map(jour => ({
+  return joursOrdres.map(jour => ({
     jour,
     creneaux: map[jour] || []
   }));

@@ -264,10 +264,12 @@ serve(async (req) => {
     const longitudes = extractTags("Longitude");
     const distances = extractTags("Distance");
 
-    // Fonction pour isoler le XML d'un point relais donné
+    // Fonction pour isoler le XML d'un point relais donné (corrigée pour <PointRelais_Details>)
     function extractXmlForPoint(xml: string, i: number): string {
-      const allPointXmls = Array.from(xml.matchAll(/<WSI4_PointRelais_RechercheResult>([\s\S]*?)<\/WSI4_PointRelais_RechercheResult>/g));
-      return allPointXmls[i]?.[1] || "";
+      const matches = Array.from(
+        xml.matchAll(/<PointRelais_Details>([\s\S]*?)<\/PointRelais_Details>/g)
+      );
+      return matches[i]?.[1] || "";
     }
 
     // Fonction pour extraire et formater les horaires d'un point à partir de son bloc XML
@@ -292,6 +294,9 @@ serve(async (req) => {
     console.log("🔎 [DEBUG] Tags extraits :", {
       nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, latitudes, longitudes, distances
     });
+
+    // DEBUG extraction horaires pour le premier point
+    console.log("⏰ Horaires brut exemple (pt 0) :", extractHorairesForPoint(xml, 0));
 
     const result = nums.map((_, i) => ({
             Num: nums[i],
