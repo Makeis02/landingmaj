@@ -78,13 +78,19 @@ function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[
   const map: Record<string, string[]> = {};
 
   if (horairesRaw) {
+    console.log("📅 Parsing horaires bruts:", horairesRaw);
     const lignes = horairesRaw.split(";").map(l => l.trim()).filter(Boolean);
     lignes.forEach(line => {
       const [jourRaw, horairesStr] = line.split(":");
       if (!jourRaw || !horairesStr) return;
 
-      // Capitalise le jour, ex: "mardi" => "Mardi"
-      const jour = jourRaw.charAt(0).toUpperCase() + jourRaw.slice(1).toLowerCase();
+      // Normalisation robuste du nom du jour
+      const jour = jourRaw
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .trim()
+        .toLowerCase()
+        .replace(/^./, c => c.toUpperCase());
 
       const creneaux = horairesStr.split(",").map(c => {
         const [debut, fin] = c.split("-");
@@ -94,6 +100,7 @@ function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[
 
       map[jour] = creneaux;
     });
+    console.log("🧩 Résultat map:", map);
   }
 
   return joursOrdres.map(jour => ({
