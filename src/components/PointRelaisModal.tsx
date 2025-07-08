@@ -60,8 +60,8 @@ function getAdresseComplete(point: PointRelais) {
 }
 
 // Utilitaire pour parser les coordonnées, gère le format français (virgule)
-function parseCoord(value: string | undefined): number {
-  return parseFloat((value || "").replace(",", "."));
+function parseCoord(value: any): number {
+  return parseFloat(String(value ?? "").replace(",", "."));
 }
 
 // Vérifie si les coordonnées sont valides (ni NaN, ni hors limites géographiques)
