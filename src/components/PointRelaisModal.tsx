@@ -18,19 +18,21 @@ L.Icon.Default.mergeOptions({
 
 interface PointRelais {
   Num: string;
-  LgAdr1: string;
-  LgAdr2: string;
-  CP: string;
-  Ville: string;
-  Pays: string;
-  Horaires: string;
-  Latitude: string;
-  Longitude: string;
-  Distance: string;
-  Note: string;
-  Services: string[];
-  Parking: string;
-  Accessibilite: string;
+  LgAdr1?: string;
+  LgAdr2?: string;
+  LgAdr3?: string;
+  LgAdr4?: string;
+  CP?: string;
+  Ville?: string;
+  Pays?: string;
+  Horaires?: string;
+  Latitude?: string;
+  Longitude?: string;
+  Distance?: string;
+  Note?: string;
+  Services?: string[];
+  Parking?: string;
+  Accessibilite?: string;
 }
 
 interface PointRelaisModalProps {
@@ -47,6 +49,24 @@ const formatDistance = (d: string | undefined) => {
   return isNaN(val) ? "Non disponible" : `${(val / 1000).toFixed(1)} km`;
 };
 
+// Composant pour centrer dynamiquement la carte sur le premier point valide
+function AutoCenterMap({ points }: { points: PointRelais[] }) {
+  const map = useMap();
+  useEffect(() => {
+    const firstValid = points.find(p =>
+      !isNaN(parseFloat(p.Latitude || "")) && !isNaN(parseFloat(p.Longitude || ""))
+    );
+    if (firstValid) {
+      const lat = parseFloat(firstValid.Latitude);
+      const lng = parseFloat(firstValid.Longitude);
+      map.setView([lat, lng], 13);
+    } else {
+      map.setView([48.8566, 2.3522], 6); // fallback Paris
+    }
+  }, [points]);
+  return null;
+}
+
 // Composant pour centrer la carte sur le point sélectionné (sécurisé)
 function FlyToPoint({ point }) {
   const map = useMap();
@@ -60,6 +80,17 @@ function FlyToPoint({ point }) {
   return null;
 }
 
+// Assemble l'adresse complète à partir des lignes d'adresse Mondial Relay
+function getAdresseComplete(point: PointRelais) {
+  const lignes = [
+    point.LgAdr3?.trim(),
+    point.LgAdr2?.trim(),
+    point.LgAdr4?.trim()
+  ].filter(Boolean);
+  const adresse = lignes.join(", ");
+  return adresse || `${point.CP} ${point.Ville}`;
+}
+
 export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points }: PointRelaisModalProps) {
   const [selectedPoint, setSelectedPoint] = useState<PointRelais | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,15 +98,9 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
   const filteredPoints = points.filter(point => 
     point.LgAdr1.toLowerCase().includes(searchTerm.toLowerCase()) ||
     point.Ville.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    point.LgAdr2.toLowerCase().includes(searchTerm.toLowerCase())
+    (point.LgAdr2?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
+    (point.LgAdr3?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
   );
-
-  const validFirst = filteredPoints.find(p =>
-    !isNaN(parseFloat(p.Latitude || "")) && !isNaN(parseFloat(p.Longitude || ""))
-  );
-  const center = validFirst
-    ? [parseFloat(validFirst.Latitude), parseFloat(validFirst.Longitude)]
-    : [48.8566, 2.3522];
 
   useEffect(() => {
     if (isOpen) {
@@ -107,10 +132,10 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
           {/* Carte */}
           <div className="w-2/3 h-full">
             <MapContainer
-              center={center as [number, number]}
               zoom={13}
               className="h-full w-full"
             >
+              <AutoCenterMap points={filteredPoints} />
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -129,8 +154,10 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   >
                     <Popup>
                       <div className="p-2">
-                        <h3 className="font-bold">{point.LgAdr1}</h3>
-                        <div className="text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
+                        {point.LgAdr1 && (
+                          <div className="font-bold text-base mb-1">{point.LgAdr1}</div>
+                        )}
+                        <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
                         <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                           <Clock className="h-4 w-4" />
@@ -168,15 +195,19 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     onClick={() => setSelectedPoint(point)}
                   >
                     <div className="flex justify-between items-start">
-                      <h3 className="font-semibold text-lg text-gray-900">{point.LgAdr1}</h3>
+                      <div>
+                        {point.LgAdr1 && (
+                          <div className="font-bold text-lg text-gray-900 mb-1">{point.LgAdr1}</div>
+                        )}
+                        <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
+                        <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
+                      </div>
                       <div className="flex items-center gap-1 text-yellow-500">
                         <Star className="h-4 w-4 fill-current" />
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    <div className="mt-1 text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
-                    <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
                       <Clock className="h-4 w-4" />
                       <span>{point.Horaires}</span>
                     </div>

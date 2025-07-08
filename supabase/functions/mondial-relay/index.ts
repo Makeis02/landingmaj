@@ -254,6 +254,8 @@ serve(async (req) => {
     const nums = extractTags("Num");
     const adrs1 = extractTags("LgAdr1");
     const adrs2 = extractTags("LgAdr2");
+    const adrs3 = extractTags("LgAdr3");
+    const adrs4 = extractTags("LgAdr4");
     const cps = extractTags("CP");
     const villes = extractTags("Ville");
     const pays = extractTags("Pays");
@@ -264,18 +266,20 @@ serve(async (req) => {
 
     // LOG des tags extraits
     console.log("🔎 [DEBUG] Tags extraits :", {
-      nums, adrs1, adrs2, cps, villes, pays, horaires, latitudes, longitudes, distances
+      nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, horaires, latitudes, longitudes, distances
     });
 
     const result = nums.map((_, i) => ({
-            Num: nums[i],
-            LgAdr1: adrs1[i],
-            LgAdr2: adrs2[i],
-            CP: cps[i],
-            Ville: villes[i],
-            Pays: pays[i],
-            Horaires: horaires[i],
-            Latitude: latitudes[i],
+      Num: nums[i],
+      LgAdr1: adrs1[i],
+      LgAdr2: adrs2[i],
+      LgAdr3: adrs3[i],
+      LgAdr4: adrs4[i],
+      CP: cps[i],
+      Ville: villes[i],
+      Pays: pays[i],
+      Horaires: horaires[i],
+      Latitude: latitudes[i],
       Longitude: longitudes[i],
       Distance: distances[i],
     }));
