@@ -160,6 +160,7 @@ async function sendAbandonedCartAlert(fetch) {
         
         // 3. Préparer les données pour Omnisend
         const cartItems = cart.cart_items || [];
+        const itemImages = [];
         const itemNamesArr = [];
         for (const item of cartItems) {
           const productId = item.product_id || item.id;
