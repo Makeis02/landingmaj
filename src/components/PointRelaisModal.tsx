@@ -59,30 +59,41 @@ function getAdresseComplete(point: PointRelais) {
   return adresse || `${point.CP} ${point.Ville}`;
 }
 
+// Vérifie si les coordonnées sont valides (ni NaN, ni hors limites géographiques)
+function isValidCoordinates(lat: any, lng: any) {
+  const latF = parseFloat(lat);
+  const lngF = parseFloat(lng);
+  return !isNaN(latF) && !isNaN(lngF) && latF >= -90 && latF <= 90 && lngF >= -180 && lngF <= 180;
+}
+
 // Composant pour centrer dynamiquement la carte sur tous les points (fitBounds)
 function AutoCenterMap({ points }: { points: PointRelais[] }) {
   const map = useMap();
   useEffect(() => {
-    const bounds = L.latLngBounds(
-      points
-        .map((p) => {
-          const lat = parseFloat(p.Latitude || "");
-          const lng = parseFloat(p.Longitude || "");
-          return !isNaN(lat) && !isNaN(lng) ? [lat, lng] : null;
-        })
-        .filter(Boolean) as [number, number][]
-    );
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [40, 40] });
-    } else {
+    const coords: [number, number][] = points
+      .map(p => {
+        const lat = parseFloat(p.Latitude || "");
+        const lng = parseFloat(p.Longitude || "");
+        if (isValidCoordinates(lat, lng)) return [lat, lng];
+        console.warn("Point ignoré (coordonnées invalides):", p);
+        return null;
+      })
+      .filter(Boolean) as [number, number][];
+
+    if (coords.length === 0) {
       map.setView([48.8566, 2.3522], 6); // fallback Paris
+    } else if (coords.length === 1) {
+      map.setView(coords[0], 14);
+    } else {
+      const bounds = L.latLngBounds(coords);
+      map.fitBounds(bounds, { padding: [40, 40] });
     }
-  }, [points]);
+  }, [points, map]);
   return null;
 }
 
 // Composant pour centrer la carte sur le point sélectionné (sécurisé)
-function FlyToPoint({ point }) {
+function FlyToPoint({ point }: { point: PointRelais | null }) {
   const map = useMap();
   useReactEffect(() => {
     const lat = parseFloat(point?.Latitude || "");
@@ -90,7 +101,7 @@ function FlyToPoint({ point }) {
     if (!isNaN(lat) && !isNaN(lng)) {
       map.setView([lat, lng], 15, { animate: true });
     }
-  }, [point]);
+  }, [point, map]);
   return null;
 }
 
@@ -98,12 +109,13 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
   const [selectedPoint, setSelectedPoint] = useState<PointRelais | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredPoints = points.filter(point => 
-    point.LgAdr1.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    point.Ville.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (point.LgAdr2?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false) ||
-    (point.LgAdr3?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false)
-  );
+  const filteredPoints = points
+    .filter(point =>
+      [point.LgAdr1, point.Ville, point.LgAdr2, point.LgAdr3].some(field =>
+        field?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    )
+    .filter(p => isValidCoordinates(p.Latitude, p.Longitude));
 
   useEffect(() => {
     if (isOpen) {
@@ -146,8 +158,8 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
               {filteredPoints.map((point) => {
                 const lat = parseFloat(point.Latitude || "");
                 const lng = parseFloat(point.Longitude || "");
-                if (isNaN(lat) || isNaN(lng)) {
-                  console.warn(`Point relais invalide ignoré:`, point);
+                if (!isValidCoordinates(lat, lng)) {
+                  console.warn("Marker ignoré (coordonnées invalides):", point);
                   return null;
                 }
                 return (
