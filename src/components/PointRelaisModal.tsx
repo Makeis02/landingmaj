@@ -96,12 +96,13 @@ function AutoCenterMap({ points }: { points: PointRelais[] }) {
 function FlyToPoint({ point }: { point: PointRelais | null }) {
   const map = useMap();
   useReactEffect(() => {
-    const lat = parseFloat(point?.Latitude || "");
-    const lng = parseFloat(point?.Longitude || "");
-    if (!isNaN(lat) && !isNaN(lng)) {
-      map.setView([lat, lng], 15, { animate: true });
+    if (!point) return;
+    const lat = parseFloat(point.Latitude || "");
+    const lng = parseFloat(point.Longitude || "");
+    if (isValidCoordinates(lat, lng)) {
+      map.flyTo([lat, lng], 15, { animate: true });
     }
-  }, [point, map]);
+  }, [point?.Num]);
   return null;
 }
 
@@ -123,6 +124,11 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
       setSearchTerm('');
     }
   }, [isOpen, points]);
+
+  // Debug temporaire : log selectedPoint à chaque changement
+  useEffect(() => {
+    console.log("Selected point:", selectedPoint);
+  }, [selectedPoint]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -147,8 +153,11 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
           {/* Carte */}
           <div className="w-2/3 h-full">
             <MapContainer
+              key="relais-map"
+              center={[48.8566, 2.3522]}
               zoom={13}
               className="h-full w-full"
+              scrollWheelZoom={true}
             >
               <AutoCenterMap points={filteredPoints} />
               <TileLayer
