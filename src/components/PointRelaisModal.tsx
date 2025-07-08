@@ -32,113 +32,17 @@ interface PointRelais {
   Accessibilite: string;
 }
 
-// Données de test pour les points relais
-const TEST_POINTS: PointRelais[] = [
-  {
-    Num: "1",
-    LgAdr1: "AquaShop Express",
-    LgAdr2: "123 rue des Poissons",
-    CP: "75001",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 9h-19h",
-    Latitude: "48.8566",
-    Longitude: "2.3522",
-    Distance: "0.5 km",
-    Note: "4.8",
-    Services: ["Retrait 24/7", "Dépôt de colis"],
-    Parking: "Gratuit",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "2",
-    LgAdr1: "AquaStyle Boutique",
-    LgAdr2: "45 avenue de l'Aquarium",
-    CP: "75002",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Ven: 8h-20h, Sam: 9h-18h",
-    Latitude: "48.8674",
-    Longitude: "2.3622",
-    Distance: "1.2 km",
-    Note: "4.5",
-    Services: ["Retrait express", "Emballage cadeau"],
-    Parking: "Payant",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "3",
-    LgAdr1: "AquaPlus Store",
-    LgAdr2: "78 boulevard de l'Océan",
-    CP: "75003",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 8h30-19h30",
-    Latitude: "48.8648",
-    Longitude: "2.3499",
-    Distance: "1.8 km",
-    Note: "4.7",
-    Services: ["Retrait 24/7", "Point de dépôt"],
-    Parking: "Gratuit",
-    Accessibilite: "Non"
-  },
-  {
-    Num: "4",
-    LgAdr1: "AquaWorld Shop",
-    LgAdr2: "15 rue des Coraux",
-    CP: "75004",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 9h-20h",
-    Latitude: "48.8559",
-    Longitude: "2.3588",
-    Distance: "2.1 km",
-    Note: "4.6",
-    Services: ["Retrait express", "Service client"],
-    Parking: "Gratuit",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "5",
-    LgAdr1: "AquaZone Store",
-    LgAdr2: "92 rue des Poissons",
-    CP: "75005",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Ven: 8h-19h, Sam: 9h-17h",
-    Latitude: "48.8462",
-    Longitude: "2.3437",
-    Distance: "2.5 km",
-    Note: "4.9",
-    Services: ["Retrait 24/7", "Dépôt de colis", "Emballage cadeau"],
-    Parking: "Payant",
-    Accessibilite: "PMR"
-  }
-];
-
 interface PointRelaisModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (point: PointRelais) => void;
   codePostal: string;
+  points: PointRelais[];
 }
 
-export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal }: PointRelaisModalProps) {
-  const [points, setPoints] = useState<PointRelais[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points }: PointRelaisModalProps) {
   const [selectedPoint, setSelectedPoint] = useState<PointRelais | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-
-  useEffect(() => {
-    if (isOpen && codePostal) {
-      // Filtrer les points relais par code postal
-      const filteredPoints = TEST_POINTS.filter(point => 
-        point.CP.startsWith(codePostal.substring(0, 2))
-      );
-      setPoints(filteredPoints);
-    }
-  }, [isOpen, codePostal]);
 
   const filteredPoints = points.filter(point => 
     point.LgAdr1.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -146,8 +50,8 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal }: Poin
     point.LgAdr2.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const center = points.length > 0 
-    ? [parseFloat(points[0].Latitude), parseFloat(points[0].Longitude)]
+  const center = filteredPoints.length > 0 
+    ? [parseFloat(filteredPoints[0].Latitude), parseFloat(filteredPoints[0].Longitude)]
     : [48.8566, 2.3522];
 
   return (
@@ -203,13 +107,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal }: Poin
 
           {/* Liste des points relais */}
           <div className="w-1/3 h-full overflow-y-auto border-l p-4">
-            {loading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : error ? (
-              <div className="text-red-500 p-4">{error}</div>
-            ) : filteredPoints.length === 0 ? (
+            {filteredPoints.length === 0 ? (
               <div className="text-center p-4 text-gray-500">
                 Aucun point relais trouvé
               </div>
