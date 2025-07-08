@@ -143,7 +143,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {point.Services.map((service) => (
+                      {point.Services?.map((service) => (
                         <span
                           key={service}
                           className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs"
