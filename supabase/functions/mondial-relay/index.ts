@@ -216,20 +216,20 @@ serve(async (req) => {
     <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
                    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
                    xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-      <soap:Body>
+        <soap:Body>
         <WSI4_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
           <Enseigne>${ENSEIGNE}</Enseigne>
           <Pays>${PAYS}</Pays>
-          <CP>${codePostal}</CP>
-          ${ville ? `<Ville>${ville}</Ville>` : ""}
+            <CP>${codePostal}</CP>
+            ${ville ? `<Ville>${ville}</Ville>` : ""}
           <Action>${action}</Action>
           <RayonRecherche>${rayon}</RayonRecherche>
           <NombreResultats>${nombre}</NombreResultats>
-          <Security>${security}</Security>
+            <Security>${security}</Security>
         </WSI4_PointRelais_Recherche>
-      </soap:Body>
-    </soap:Envelope>`;
-
+        </soap:Body>
+      </soap:Envelope>`;
+    
     // LOG XML envoyé
     console.log("📤 [DEBUG] XML envoyé à Mondial Relay :\n", body);
 
@@ -268,14 +268,14 @@ serve(async (req) => {
     });
 
     const result = nums.map((_, i) => ({
-      Num: nums[i],
-      LgAdr1: adrs1[i],
-      LgAdr2: adrs2[i],
-      CP: cps[i],
-      Ville: villes[i],
-      Pays: pays[i],
-      Horaires: horaires[i],
-      Latitude: latitudes[i],
+            Num: nums[i],
+            LgAdr1: adrs1[i],
+            LgAdr2: adrs2[i],
+            CP: cps[i],
+            Ville: villes[i],
+            Pays: pays[i],
+            Horaires: horaires[i],
+            Latitude: latitudes[i],
       Longitude: longitudes[i],
       Distance: distances[i],
     }));

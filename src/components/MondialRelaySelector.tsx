@@ -29,90 +29,6 @@ interface MondialRelaySelectorProps {
   autoSearch?: boolean;
 }
 
-// Données génériques pour les points relais
-const GENERIC_POINTS: PointRelais[] = [
-  {
-    Num: "1",
-    LgAdr1: "AquaShop Express",
-    LgAdr2: "123 rue des Poissons",
-    CP: "75001",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 9h-19h",
-    Latitude: "48.8566",
-    Longitude: "2.3522",
-    Distance: "0.5 km",
-    Note: "4.8",
-    Services: ["Retrait 24/7", "Dépôt de colis"],
-    Parking: "Gratuit",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "2",
-    LgAdr1: "AquaStyle Boutique",
-    LgAdr2: "45 avenue de l'Aquarium",
-    CP: "75002",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Ven: 8h-20h, Sam: 9h-18h",
-    Latitude: "48.8674",
-    Longitude: "2.3622",
-    Distance: "1.2 km",
-    Note: "4.5",
-    Services: ["Retrait express", "Emballage cadeau"],
-    Parking: "Payant",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "3",
-    LgAdr1: "AquaPlus Store",
-    LgAdr2: "78 boulevard de l'Océan",
-    CP: "75003",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 8h30-19h30",
-    Latitude: "48.8648",
-    Longitude: "2.3499",
-    Distance: "1.8 km",
-    Note: "4.7",
-    Services: ["Retrait 24/7", "Point de dépôt"],
-    Parking: "Gratuit",
-    Accessibilite: "Non"
-  },
-  {
-    Num: "4",
-    LgAdr1: "AquaWorld Shop",
-    LgAdr2: "15 rue des Coraux",
-    CP: "75004",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Sam: 9h-20h",
-    Latitude: "48.8559",
-    Longitude: "2.3588",
-    Distance: "2.1 km",
-    Note: "4.6",
-    Services: ["Retrait express", "Service client"],
-    Parking: "Gratuit",
-    Accessibilite: "PMR"
-  },
-  {
-    Num: "5",
-    LgAdr1: "AquaZone Store",
-    LgAdr2: "92 rue des Poissons",
-    CP: "75005",
-    Ville: "Paris",
-    Pays: "France",
-    Horaires: "Lun-Ven: 8h-19h, Sam: 9h-17h",
-    Latitude: "48.8462",
-    Longitude: "2.3437",
-    Distance: "2.5 km",
-    Note: "4.9",
-    Services: ["Retrait 24/7", "Dépôt de colis", "Emballage cadeau"],
-    Parking: "Payant",
-    Accessibilite: "PMR"
-  }
-];
-
 const PointRelaisModal = lazy(() => import('./PointRelaisModal').then(mod => ({ default: mod.PointRelaisModal })));
 
 const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
@@ -216,6 +132,7 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
           setIsModalOpen(false);
         }}
         codePostal={codePostal}
+        points={points}
       />
         </Suspense>
       )}
