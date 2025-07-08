@@ -259,30 +259,58 @@ serve(async (req) => {
     const cps = extractTags("CP");
     const villes = extractTags("Ville");
     const pays = extractTags("Pays");
-    const horaires = extractTags("Horaires");
     const latitudes = extractTags("Latitude");
     const longitudes = extractTags("Longitude");
     const distances = extractTags("Distance");
 
-    // LOG des tags extraits
-    console.log("🔎 [DEBUG] Tags extraits :", {
-      nums, adrs1, adrs2, adrs3, adrs4, cps, villes, pays, horaires, latitudes, longitudes, distances
-    });
+    // Extraction détaillée des horaires par jour
+    const jours = [
+      "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
+    ];
+    function extractHoraires(jour, idx) {
+      // Ex: <Horaires_Lundi><string>0800</string><string>1200</string><string>1400</string><string>1800</string></Horaires_Lundi>
+      const regex = new RegExp(`<Horaires_${jour}>((?:<string>.*?<\\/string>){4})<\\/Horaires_${jour}>`, "g");
+      let match;
+      let count = 0;
+      while ((match = regex.exec(xml)) !== null) {
+        if (count === idx) {
+          const strings = Array.from(match[1].matchAll(/<string>(.*?)<\/string>/g)).map(m => m[1]);
+          if (strings.every(s => !s)) return null; // fermé
+          if (strings[0] && strings[1]) {
+            let res = `${strings[0].replace(/(\d{2})(\d{2})/, '$1h$2')}-${strings[1].replace(/(\d{2})(\d{2})/, '$1h$2')}`;
+            if (strings[2] && strings[3]) {
+              res += ` / ${strings[2].replace(/(\d{2})(\d{2})/, '$1h$2')}-${strings[3].replace(/(\d{2})(\d{2})/, '$1h$2')}`;
+            }
+            return res;
+          }
+          return null;
+        }
+        count++;
+      }
+      return null;
+    }
 
-    const result = nums.map((_, i) => ({
-            Num: nums[i],
-            LgAdr1: adrs1[i],
-            LgAdr2: adrs2[i],
-      LgAdr3: adrs3[i],
-      LgAdr4: adrs4[i],
-            CP: cps[i],
-            Ville: villes[i],
-            Pays: pays[i],
-            Horaires: horaires[i],
-            Latitude: latitudes[i],
-      Longitude: longitudes[i],
-      Distance: distances[i],
-          }));
+    const result = nums.map((_, i) => {
+      // Horaires par jour pour ce point
+      const horaires = {};
+      for (const jour of jours) {
+        horaires[jour] = extractHoraires(jour, i);
+      }
+      return {
+        Num: nums[i],
+        LgAdr1: adrs1[i],
+        LgAdr2: adrs2[i],
+        LgAdr3: adrs3[i],
+        LgAdr4: adrs4[i],
+        CP: cps[i],
+        Ville: villes[i],
+        Pays: pays[i],
+        Horaires: horaires,
+        Latitude: latitudes[i],
+        Longitude: longitudes[i],
+        Distance: distances[i],
+      };
+    });
     console.log(`✅ ${result.length} points relais trouvés`);
     return new Response(JSON.stringify({ points: result }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }

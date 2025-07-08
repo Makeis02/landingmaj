@@ -201,10 +201,21 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <div className="font-bold text-base mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
                         <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
                         <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
-                          <Clock className="h-4 w-4" />
-                          <span>{point.Horaires}</span>
-                        </div>
+                        {point.Horaires && typeof point.Horaires === 'object' && (
+                          <div className="mt-2 text-xs text-gray-700">
+                            <div className="flex items-start gap-2">
+                              <Clock className="h-4 w-4 mt-0.5" />
+                              <div>
+                                {Object.entries(point.Horaires).map(([jour, horaires]) =>
+                                  <div key={jour}>
+                                    <span className="font-semibold">{jour.slice(0,3)} :</span>{' '}
+                                    {horaires ? horaires : <span className="text-gray-400">Fermé</span>}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                           <MapPin className="h-4 w-4" />
                           <span>Distance : {formatDistance(point.Distance)}</span>
@@ -247,10 +258,21 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
-                      <Clock className="h-4 w-4" />
-                      <span>{point.Horaires}</span>
-                    </div>
+                    {point.Horaires && typeof point.Horaires === 'object' && (
+                      <div className="mt-2 text-xs text-gray-700">
+                        <div className="flex items-start gap-2">
+                          <Clock className="h-4 w-4 mt-0.5" />
+                          <div>
+                            {Object.entries(point.Horaires).map(([jour, horaires]) =>
+                              <div key={jour}>
+                                <span className="font-semibold">{jour.slice(0,3)} :</span>{' '}
+                                {horaires ? horaires : <span className="text-gray-400">Fermé</span>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                       <MapPin className="h-4 w-4" />
                       <span>Distance : {formatDistance(point.Distance)}</span>
