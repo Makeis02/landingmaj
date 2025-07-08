@@ -105,12 +105,12 @@ function FlyToPoint({ point }: { point: PointRelais | null }) {
     const lat = parseCoord(point.Latitude);
     const lng = parseCoord(point.Longitude);
     if (isValidCoordinates(lat, lng)) {
+      console.log("→ flyTo", lat, lng);
       setTimeout(() => {
-        console.log("→ flyTo", lat, lng);
         map.flyTo([lat, lng], 15, { animate: true });
       }, 100);
     }
-  }, [point, map]);
+  }, [point?.Num]);
   return null;
 }
 
@@ -214,7 +214,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   </Marker>
                 );
               })}
-              {selectedPoint && <FlyToPoint point={selectedPoint} />}
+              {selectedPoint && <FlyToPoint key={selectedPoint.Num} point={selectedPoint} />}
             </MapContainer>
           </div>
 
