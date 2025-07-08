@@ -131,18 +131,21 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
     setError(null);
     
     try {
-      // Simuler un délai de chargement
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filtrer les points relais génériques par code postal
-      const filteredPoints = GENERIC_POINTS.filter(point => 
-        point.CP.startsWith(codePostal.substring(0, 2))
-      );
-      
-      setPoints(filteredPoints);
-      setIsModalOpen(true);
+      // Appel à la Supabase Edge Function (mondial-relay)
+      const res = await fetch("/functions/v1/mondial-relay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codePostal, ville })
+      });
+      const json = await res.json();
+      if (res.ok) {
+        setPoints(json.points);
+        setIsModalOpen(true);
+      } else {
+        setError(json.error || "Erreur lors de la recherche.");
+      }
     } catch (err) {
-      setError("Erreur lors de la recherche des points relais");
+      setError("Erreur lors de l'appel à Mondial Relay");
     } finally {
       setLoading(false);
     }

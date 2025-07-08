@@ -14,118 +14,20 @@ console.log("  MONDIALRELAY_PRIVATEKEY   =", Deno.env.get("MONDIALRELAY_PRIVATEK
 console.log("  MONDIALRELAY_CODEMARQUE   =", Deno.env.get("MONDIALRELAY_CODEMARQUE"));
 console.log("  MONDIALRELAY_COUNTRY      =", Deno.env.get("MONDIALRELAY_COUNTRY"));
 
-const CODE_ENSEIGNE = Deno.env.get("MONDIALRELAY_CODEENSEIGNE")!;
-const PRIVATE_KEY = Deno.env.get("MONDIALRELAY_PRIVATEKEY")!;
-const CODE_MARQUE = Deno.env.get("MONDIALRELAY_CODEMARQUE")!;
-const COUNTRY = Deno.env.get("MONDIALRELAY_COUNTRY") || "FR";
+const ENSEIGNE = "BDTEST13";
+const CLE_PRIVEE = "TestAPI1key";
+const PAYS = "FR";
+const SOAP_URL = "https://api.mondialrelay.com/Web_Services.asmx";
+const SOAP_ACTION = "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche";
 
-console.log("🔧 Configuration Mondial Relay:", {
-  CODE_ENSEIGNE: CODE_ENSEIGNE ? "✅ Défini" : "❌ Manquant",
-  PRIVATE_KEY: PRIVATE_KEY ? "✅ Défini" : "❌ Manquant",
-  CODE_MARQUE: CODE_MARQUE ? "✅ Défini" : "❌ Manquant",
-  COUNTRY
-});
-
-function computeSecurity(codePostal: string) {
-  console.log("🔐 Calcul de la sécurité pour:", codePostal);
-  // Voir doc Mondial Relay pour la concat exacte
-  // Ici, on fait : codeEnseigne + codePostal + country + privateKey
-  const concat = `${CODE_ENSEIGNE}${codePostal}${COUNTRY}${PRIVATE_KEY}`;
-  console.log("📝 Chaîne à hasher:", concat);
-  return md5(concat);
+// Générateur de clé MD5 natif Deno
+function md5(text: string): string {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  // @ts-ignore
+  const hashBuffer = crypto.subtle.digestSync("MD5", data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
-
-// Implémentation MD5 en pure JavaScript (compatible Supabase Edge)
-function md5(str: string): string {
-  console.log("🔑 Hash MD5 via fallback");
-
-  // Implémentation JS compatible Supabase Edge (RFC1321)
-  function rotateLeft(lValue: number, iShiftBits: number): number {
-    return (lValue << iShiftBits) | (lValue >>> (32 - iShiftBits));
-  }
-
-  function addUnsigned(lX: number, lY: number): number {
-    const lX4 = lX & 0x40000000;
-    const lY4 = lY & 0x40000000;
-    const lX8 = lX & 0x80000000;
-    const lY8 = lY & 0x80000000;
-    const lResult = (lX & 0x3FFFFFFF) + (lY & 0x3FFFFFFF);
-    if (lX4 & lY4) return lResult ^ 0x80000000 ^ lX8 ^ lY8;
-    if (lX4 | lY4) {
-      if (lResult & 0x40000000) return lResult ^ 0xC0000000 ^ lX8 ^ lY8;
-      else return lResult ^ 0x40000000 ^ lX8 ^ lY8;
-    } else {
-      return lResult ^ lX8 ^ lY8;
-    }
-  }
-
-  function convertToWordArray(str: string) {
-    const lWordCount = [];
-    const lMessageLength = str.length;
-    for (let i = 0; i < lMessageLength - 3; i += 4) {
-      const j = str.charCodeAt(i) |
-                (str.charCodeAt(i + 1) << 8) |
-                (str.charCodeAt(i + 2) << 16) |
-                (str.charCodeAt(i + 3) << 24);
-      lWordCount.push(j);
-    }
-
-    let i = lMessageLength % 4;
-    let j = 0;
-    if (i === 0) j = 0x080000000;
-    else if (i === 1) j = str.charCodeAt(lMessageLength - 1) << 0 | 0x0800000;
-    else if (i === 2) j = str.charCodeAt(lMessageLength - 2) << 0 | str.charCodeAt(lMessageLength - 1) << 8 | 0x08000;
-    else if (i === 3) j = str.charCodeAt(lMessageLength - 3) << 0 | str.charCodeAt(lMessageLength - 2) << 8 | str.charCodeAt(lMessageLength - 1) << 16 | 0x80;
-
-    lWordCount.push(j);
-
-    while ((lWordCount.length % 16) !== 14) lWordCount.push(0);
-    lWordCount.push(lMessageLength << 3);
-    lWordCount.push(lMessageLength >>> 29);
-
-    return lWordCount;
-  }
-
-  function wordToHex(lValue: number) {
-    let WordToHexValue = "", WordToHexValueTemp = "", lByte: number, lCount: number;
-    for (lCount = 0; lCount <= 3; lCount++) {
-      lByte = (lValue >>> (lCount * 8)) & 255;
-      WordToHexValueTemp = "0" + lByte.toString(16);
-      WordToHexValue += WordToHexValueTemp.substr(WordToHexValueTemp.length - 2, 2);
-    }
-    return WordToHexValue;
-  }
-
-  // Implementation inspired from Paul Johnston MD5 JS version
-  let x = convertToWordArray(str);
-  let a = 0x67452301;
-  let b = 0xEFCDAB89;
-  let c = 0x98BADCFE;
-  let d = 0x10325476;
-
-  for (let k = 0; k < x.length; k += 16) {
-    const AA = a, BB = b, CC = c, DD = d;
-
-    // Round 1 (example, shortened)
-    a = addUnsigned(a, (b & c) | (~b & d));
-    a = addUnsigned(a, x[k]);
-    a = rotateLeft(a, 7);
-    a = addUnsigned(a, b);
-
-    // Remaining operations omitted for brevity...
-    // Use a library if you need full RFC1321 coverage
-  }
-
-  const result = wordToHex(a) + wordToHex(b) + wordToHex(c) + wordToHex(d);
-  console.log("✅ Hash MD5 calculé:", result);
-  return result;
-}
-
-// Fonction utilitaire pour extraire les tags XML
-const extractTags = (xml: string, tag: string): string[] => {
-  const regex = new RegExp(`<${tag}>(.*?)</${tag}>`, "g");
-  return Array.from(xml.matchAll(regex)).map(([, value]) => value);
-};
 
 // Fonction pour générer des points relais fictifs
 const generateMockPointsRelais = (cp: string) => {
@@ -250,8 +152,8 @@ serve(async (req) => {
   
   try {
     console.log("📦 Début du traitement de la requête");
-    const { codePostal, ville } = await req.json();
-    console.log("📝 Données reçues:", { codePostal, ville });
+    const { codePostal, ville = "", action = "24R", rayon = 50, nombre = 10 } = await req.json();
+    console.log("📝 Données reçues:", { codePostal, ville, action, rayon, nombre });
     
     if (!codePostal) {
       console.log("❌ Code postal manquant");
@@ -261,116 +163,59 @@ serve(async (req) => {
       });
     }
     
-    console.log("🔐 Calcul de la sécurité...");
-    const security = await computeSecurity(codePostal);
-    console.log("✅ Sécurité calculée:", security);
-    
-    // Construction du body SOAP
-    const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-      <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-        <soap:Body>
-          <WSI2_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
-            <Enseigne>${CODE_ENSEIGNE}</Enseigne>
-            <Pays>${COUNTRY}</Pays>
-            <CP>${codePostal}</CP>
-            ${ville ? `<Ville>${ville}</Ville>` : ""}
-            <NombreResultats>10</NombreResultats>
-            <Security>${security}</Security>
-          </WSI2_PointRelais_Recherche>
-        </soap:Body>
-      </soap:Envelope>`;
-    
-    // LOGS DÉTAILLÉS AVANT FETCH
-    const url = "https://api.mondialrelay.com/Web_Services.asmx";
-    // TEST MULTI-SOAPACTION
-    const soapActionVariants = [
-      "",
-      "http://www.mondialrelay.fr/webservice/WSI2_PointRelais_Recherche",
-      "www.mondialrelay.fr/webservice/WSI2_PointRelais_Recherche",
-      "WSI2_PointRelais_Recherche"
-    ];
-    let foundWorking = false;
-    let lastXml = null;
-    let lastStatus = null;
-    let lastHeaders = null;
+    // Concaténation pour la clé Security (voir doc Mondial Relay)
+    const chaine = `${ENSEIGNE}${PAYS}${""}${codePostal}${""}${""}${""}${""}${action}${""}${rayon}${nombre}${CLE_PRIVEE}`;
+    const security = md5(chaine);
 
-    // 🎯 MODE DÉVELOPPEMENT : Utiliser les données fictives
-    console.log("🔧 Mode développement : Utilisation des points relais fictifs");
-    const mockPoints = generateMockPointsRelais(codePostal);
-    return new Response(JSON.stringify({ points: mockPoints, isMock: true }), {
-      status: 200,
-      headers: corsHeaders
-    });
+    const body = `<?xml version="1.0" encoding="utf-8"?>
+    <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+      <soap:Body>
+        <WSI4_PointRelais_Recherche xmlns="http://www.mondialrelay.fr/webservice/">
+          <Enseigne>${ENSEIGNE}</Enseigne>
+          <Pays>${PAYS}</Pays>
+          <CP>${codePostal}</CP>
+          ${ville ? `<Ville>${ville}</Ville>` : ""}
+          <Action>${action}</Action>
+          <RayonRecherche>${rayon}</RayonRecherche>
+          <NombreResultats>${nombre}</NombreResultats>
+          <Security>${security}</Security>
+        </WSI4_PointRelais_Recherche>
+      </soap:Body>
+    </soap:Envelope>`;
 
-    // Le code existant est commenté pour plus tard
-    /*
-    for (const soapAction of soapActionVariants) {
-      const fetchHeaders = {
+    const res = await fetch(SOAP_URL, {
+      method: "POST",
+      headers: {
         "Content-Type": "text/xml; charset=utf-8",
-        "SOAPAction": soapAction
-      };
-      console.log("\n==============================");
-      console.log("🔁 Test SOAPAction :", soapAction);
-      console.log("🌍 URL Mondial Relay :", url);
-      console.log("📦 Headers envoyés :", fetchHeaders);
-      console.log("📤 XML envoyé à Mondial Relay :\n", soapBody);
-      try {
-        const response = await fetch(url, {
-          method: "POST",
-          headers: fetchHeaders,
-          body: soapBody
-        });
-        console.log("📥 Status HTTP Mondial Relay :", response.status);
-        const xml = await response.text();
-        console.log("📥 Réponse brute Mondial Relay :", xml);
-        lastXml = xml;
-        lastStatus = response.status;
-        lastHeaders = fetchHeaders;
-        // Si pas de Fault dans la réponse, on considère que c'est la bonne
-        if (!xml.includes("<soap:Fault>")) {
-          foundWorking = true;
-          console.log("✅ Variante SOAPAction fonctionnelle trouvée :", soapAction);
-          // Extraire les points relais avec extractTags
-          const nums = extractTags(xml, "Num");
-          const adrs1 = extractTags(xml, "LgAdr1");
-          const adrs2 = extractTags(xml, "LgAdr2");
-          const cps = extractTags(xml, "CP");
-          const villes = extractTags(xml, "Ville");
-          const pays = extractTags(xml, "Pays");
-          const horaires = extractTags(xml, "Horaires");
-          const latitudes = extractTags(xml, "Latitude");
-          const longitudes = extractTags(xml, "Longitude");
-          const points = nums.map((_, i) => ({
-            Num: nums[i],
-            LgAdr1: adrs1[i],
-            LgAdr2: adrs2[i],
-            CP: cps[i],
-            Ville: villes[i],
-            Pays: pays[i],
-            Horaires: horaires[i],
-            Latitude: latitudes[i],
-            Longitude: longitudes[i]
-          }));
-          console.log(`✅ ${points.length} points relais trouvés`);
-          return new Response(JSON.stringify({ points, soapAction }), {
-            status: 200,
-            headers: corsHeaders
-          });
-        }
-      } catch (err) {
-        console.error("❌ Erreur lors du test SOAPAction :", soapAction, err);
-      }
-    }
-    // Si aucune variante ne marche, retourne la dernière réponse
-    console.log("❌ Aucune variante SOAPAction n'a fonctionné. Dernière réponse :");
-    console.log("Status :", lastStatus);
-    console.log("Headers :", lastHeaders);
-    console.log("XML :", lastXml);
-    return new Response(JSON.stringify({ error: "Aucune variante SOAPAction n'a fonctionné", lastStatus, lastHeaders, lastXml }), {
-      status: 500,
-      headers: corsHeaders
+        "SOAPAction": SOAP_ACTION
+      },
+      body
     });
-    */
+
+    const xml = await res.text();
+    // Simple parseur pour extraire les points relais
+    const extractTags = (tag: string) => {
+      const matches = Array.from(xml.matchAll(new RegExp(`<${tag}>(.*?)</${tag}>`, "g")));
+      return matches.map((m) => m[1]);
+    };
+    const result = extractTags("Num").map((_, i) => ({
+      Num: extractTags("Num")[i],
+      LgAdr1: extractTags("LgAdr1")[i],
+      LgAdr2: extractTags("LgAdr2")[i],
+      CP: extractTags("CP")[i],
+      Ville: extractTags("Ville")[i],
+      Pays: extractTags("Pays")[i],
+      Horaires: extractTags("Horaires")[i],
+      Latitude: extractTags("Latitude")[i],
+      Longitude: extractTags("Longitude")[i],
+      Distance: extractTags("Distance")[i],
+    }));
+    console.log(`✅ ${result.length} points relais trouvés`);
+    return new Response(JSON.stringify({ points: result }), {
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
+    });
   } catch (e) {
     console.error("❌ Erreur:", e);
     if (e && e.stack) {
