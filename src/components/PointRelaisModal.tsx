@@ -3,9 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Clock, Star, Car, Accessibility, Package, X } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { useEffect as useReactEffect } from 'react';
 
 // Fix pour les icônes Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -38,6 +39,17 @@ interface PointRelaisModalProps {
   onSelect: (point: PointRelais) => void;
   codePostal: string;
   points: PointRelais[];
+}
+
+// Composant pour centrer la carte sur le point sélectionné
+function FlyToPoint({ point }) {
+  const map = useMap();
+  useReactEffect(() => {
+    if (point) {
+      map.setView([parseFloat(point.Latitude), parseFloat(point.Longitude)], 15, { animate: true });
+    }
+  }, [point]);
+  return null;
 }
 
 export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points }: PointRelaisModalProps) {
@@ -96,12 +108,17 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   <Popup>
                     <div className="p-2">
                       <h3 className="font-bold">{point.LgAdr1}</h3>
-                      <p>{point.LgAdr2}</p>
-                      <p>{point.CP} {point.Ville}</p>
+                      <div className="text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
+                      <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                        <Clock className="h-4 w-4" />
+                        <span>{point.Horaires}</span>
+                      </div>
                     </div>
                   </Popup>
                 </Marker>
               ))}
+              {selectedPoint && <FlyToPoint point={selectedPoint} />}
             </MapContainer>
           </div>
 
@@ -124,24 +141,22 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     onClick={() => setSelectedPoint(point)}
                   >
                     <div className="flex justify-between items-start">
-                      <h3 className="font-semibold">{point.LgAdr1}</h3>
+                      <h3 className="font-semibold text-lg text-gray-900">{point.LgAdr1}</h3>
                       <div className="flex items-center gap-1 text-yellow-500">
                         <Star className="h-4 w-4 fill-current" />
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    
-                    <div className="mt-2 space-y-1 text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        <span>{point.LgAdr2}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        <span>{point.Horaires}</span>
-                      </div>
+                    <div className="mt-1 text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
+                    <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{point.Horaires}</span>
                     </div>
-
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                      <MapPin className="h-4 w-4" />
+                      <span>Distance : {point.Distance}</span>
+                    </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {point.Services?.map((service) => (
                         <span
@@ -164,9 +179,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         </span>
                       )}
                     </div>
-
                     <div className="mt-3 flex justify-between items-center">
-                      <span className="text-sm text-gray-500">{point.Distance}</span>
                       <Button
                         size="sm"
                         onClick={(e) => {
