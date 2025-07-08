@@ -102,7 +102,7 @@ function FlyToPoint({ point }: { point: PointRelais | null }) {
     if (isValidCoordinates(lat, lng)) {
       map.flyTo([lat, lng], 15, { animate: true });
     }
-  }, [point?.Num]);
+  }, [point, map]);
   return null;
 }
 
@@ -125,6 +125,13 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
     }
   }, [isOpen, points]);
 
+  // Auto-sélection du premier point valide au chargement
+  useEffect(() => {
+    if (!selectedPoint && filteredPoints.length > 0) {
+      setSelectedPoint(filteredPoints[0]);
+    }
+  }, [filteredPoints, selectedPoint]);
+
   // Debug temporaire : log selectedPoint à chaque changement
   useEffect(() => {
     console.log("Selected point:", selectedPoint);
@@ -132,7 +139,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[80vh] p-0">
+      <DialogContent className="max-w-6xl h-[80vh] p-0" aria-describedby="">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-2xl font-bold">Choisissez votre point relais</DialogTitle>
           <div className="flex items-center gap-4 mt-4">
@@ -153,7 +160,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
           {/* Carte */}
           <div className="w-2/3 h-full">
             <MapContainer
-              key="relais-map"
+              key={`map-${codePostal}`}
               center={[48.8566, 2.3522]}
               zoom={13}
               className="h-full w-full"
