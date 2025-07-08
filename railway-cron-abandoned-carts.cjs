@@ -160,22 +160,16 @@ async function sendAbandonedCartAlert(fetch) {
         
         // 3. Préparer les données pour Omnisend
         const cartItems = cart.cart_items || [];
-        const itemNames = cartItems.map(item => item.title).join(', ');
-        
-        // 🆕 Récupérer les images principales des produits du panier + détails
-        const itemImages = [];
-        const itemDetails = [];
+        const itemNamesArr = [];
         for (const item of cartItems) {
           const productId = item.product_id || item.id;
           let imageUrl = await getProductMainImage(productId);
           if (!imageUrl && item.image_url) imageUrl = item.image_url;
           if (!imageUrl && item.image) imageUrl = item.image;
           if (imageUrl) itemImages.push(imageUrl);
-          itemDetails.push({
-            title: item.title,
-            image: imageUrl || ''
-          });
+          if (item.title) itemNamesArr.push(item.title);
         }
+        const itemNames = itemNamesArr.join(', ');
         
         // Créer un lien de récupération unique
         let recoveryUrl = `${process.env.SITE_URL || 'https://aqua-reve.com'}?recoverCart=${cart.id}`;
@@ -214,8 +208,7 @@ async function sendAbandonedCartAlert(fetch) {
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
-            // 🆕 Ajoute les détails (titre + image)
-            itemDetails: itemDetails
+            itemNames: itemNames
           }
         };
         
@@ -268,11 +261,7 @@ async function sendAbandonedCartAlert(fetch) {
               'https://placehold.co/200x200?text=Produit+1',
               'https://placehold.co/200x200?text=Produit+2'
             ],
-            // 🆕 Ajoute les détails (titre + image)
-            itemDetails: [
-              { title: 'Produit Test A', image: 'https://placehold.co/200x200?text=Produit+1' },
-              { title: 'Produit Test B', image: 'https://placehold.co/200x200?text=Produit+2' }
-            ]
+            itemNames: 'Produit Test A, Produit Test B'
           };
         } else {
           eventData = {
@@ -291,8 +280,7 @@ async function sendAbandonedCartAlert(fetch) {
             isThirdEmail: cart.email_sent_count === 2,
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
-            // 🆕 Ajoute les détails (titre + image)
-            itemDetails: itemDetails
+            itemNames: itemNames
           };
         }
         const eventBody = {
