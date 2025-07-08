@@ -71,16 +71,20 @@ function isValidCoordinates(lat: any, lng: any) {
   return !isNaN(latF) && !isNaN(lngF) && latF >= -90 && latF <= 90 && lngF >= -180 && lngF <= 180;
 }
 
-// Formateur d'horaires (ex: "Lundi:08:30-12:30,14:00-19:00;...") → ["Lundi : 08:30-12:30 / 14:00-19:00", ...]
-function formatHoraires(horairesRaw?: string): string[] {
-  if (!horairesRaw) return [];
-  return horairesRaw.split(";")
-    .map((line) => {
+// Nouvelle version de formatHoraires :
+function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[] }[] {
+  const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+  if (!horairesRaw) return jours.map(jour => ({ jour, creneaux: [] }));
+  const map = Object.fromEntries(
+    horairesRaw.split(";").map(line => {
       const [jour, horaires] = line.split(":");
-      if (!jour || !horaires) return "";
-      return `${jour} : ${horaires.replaceAll(",", " / ")}`;
+      return [jour, horaires ? horaires.split(",") : []];
     })
-    .filter(Boolean);
+  );
+  return jours.map(jour => ({
+    jour,
+    creneaux: map[jour] || []
+  }));
 }
 
 // Composant pour centrer dynamiquement la carte sur tous les points (fitBounds)
@@ -213,13 +217,19 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <div className="font-bold text-base mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
                         <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
                         <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
-                          <Clock className="h-4 w-4" />
-                          <div className="flex flex-col gap-0.5">
-                            {formatHoraires(point.Horaires).map((line, i) => (
-                              <div key={i}>{line}</div>
-                            ))}
-                          </div>
+                        <div className="mt-2">
+                          <table className="text-xs w-full">
+                            <tbody>
+                              {formatHoraires(point.Horaires).map(({ jour, creneaux }) => (
+                                <tr key={jour}>
+                                  <td className="pr-2 font-medium text-gray-700">{jour} :</td>
+                                  <td className="text-gray-600">
+                                    {creneaux.length > 0 ? creneaux.join(" / ") : <span className="text-gray-400">Fermé</span>}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                           <MapPin className="h-4 w-4" />
@@ -263,13 +273,19 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
-                      <Clock className="h-4 w-4" />
-                      <div className="flex flex-col gap-0.5">
-                        {formatHoraires(point.Horaires).map((line, i) => (
-                          <div key={i}>{line}</div>
-                        ))}
-                      </div>
+                    <div className="mt-2">
+                      <table className="text-xs w-full">
+                        <tbody>
+                          {formatHoraires(point.Horaires).map(({ jour, creneaux }) => (
+                            <tr key={jour}>
+                              <td className="pr-2 font-medium text-gray-700">{jour} :</td>
+                              <td className="text-gray-600">
+                                {creneaux.length > 0 ? creneaux.join(" / ") : <span className="text-gray-400">Fermé</span>}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                       <MapPin className="h-4 w-4" />
