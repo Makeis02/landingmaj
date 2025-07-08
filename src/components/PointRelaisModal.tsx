@@ -71,6 +71,18 @@ function isValidCoordinates(lat: any, lng: any) {
   return !isNaN(latF) && !isNaN(lngF) && latF >= -90 && latF <= 90 && lngF >= -180 && lngF <= 180;
 }
 
+// Formateur d'horaires (ex: "Lundi:08:30-12:30,14:00-19:00;...") → ["Lundi : 08:30-12:30 / 14:00-19:00", ...]
+function formatHoraires(horairesRaw?: string): string[] {
+  if (!horairesRaw) return [];
+  return horairesRaw.split(";")
+    .map((line) => {
+      const [jour, horaires] = line.split(":");
+      if (!jour || !horaires) return "";
+      return `${jour} : ${horaires.replaceAll(",", " / ")}`;
+    })
+    .filter(Boolean);
+}
+
 // Composant pour centrer dynamiquement la carte sur tous les points (fitBounds)
 function AutoCenterMap({ points }: { points: PointRelais[] }) {
   const map = useMap();
@@ -203,7 +215,11 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
                           <Clock className="h-4 w-4" />
-                          <span>{point.Horaires}</span>
+                          <div className="flex flex-col gap-0.5">
+                            {formatHoraires(point.Horaires).map((line, i) => (
+                              <div key={i}>{line}</div>
+                            ))}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                           <MapPin className="h-4 w-4" />
@@ -249,7 +265,11 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
                       <Clock className="h-4 w-4" />
-                      <span>{point.Horaires}</span>
+                      <div className="flex flex-col gap-0.5">
+                        {formatHoraires(point.Horaires).map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                       <MapPin className="h-4 w-4" />
