@@ -275,7 +275,7 @@ serve(async (req) => {
         const match = allMatches[i];
         if (!match) return null;
         // Extraire les <string>...</string>
-        const horaires = Array.from(match[1].matchAll(/<string>(.*?)<\\/string>/g)).map(m => m[1]);
+        const horaires = Array.from(match[1].matchAll(/<string>(.*?)<\/string>/g)).map(m => m[1]);
         const slots = [];
         if (horaires[0] && horaires[1]) slots.push(`${horaires[0].slice(0,2)}:${horaires[0].slice(2)}-${horaires[1].slice(0,2)}:${horaires[1].slice(2)}`);
         if (horaires[2] && horaires[3]) slots.push(`${horaires[2].slice(0,2)}:${horaires[2].slice(2)}-${horaires[3].slice(0,2)}:${horaires[3].slice(2)}`);

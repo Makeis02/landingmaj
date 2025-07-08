@@ -75,12 +75,19 @@ function isValidCoordinates(lat: any, lng: any) {
 function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[] }[] {
   const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
   if (!horairesRaw) return jours.map(jour => ({ jour, creneaux: [] }));
-  const map = Object.fromEntries(
-    horairesRaw.split(";").map(line => {
-      const [jour, horaires] = line.split(":");
-      return [jour, horaires ? horaires.split(",") : []];
-    })
-  );
+
+  const lignes = horairesRaw.split(";").map(line => {
+    const [jour, horairesStr] = line.split(":");
+    const horaires = horairesStr?.split(",").map(c => {
+      const [debut, fin] = c.split("-");
+      if (!debut || !fin) return null;
+      return `${debut.replace(":", "h")} - ${fin.replace(":", "h")}`;
+    }).filter(Boolean) as string[];
+    return { jour, creneaux: horaires };
+  });
+
+  const map = Object.fromEntries(lignes.map(({ jour, creneaux }) => [jour, creneaux]));
+
   return jours.map(jour => ({
     jour,
     creneaux: map[jour] || []
