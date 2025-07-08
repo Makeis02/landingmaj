@@ -41,12 +41,20 @@ interface PointRelaisModalProps {
   points: PointRelais[];
 }
 
-// Composant pour centrer la carte sur le point sélectionné
+// Formateur de distance (mètres -> km, fallback)
+const formatDistance = (d: string | undefined) => {
+  const val = parseFloat(d || "");
+  return isNaN(val) ? "Non disponible" : `${(val / 1000).toFixed(1)} km`;
+};
+
+// Composant pour centrer la carte sur le point sélectionné (sécurisé)
 function FlyToPoint({ point }) {
   const map = useMap();
   useReactEffect(() => {
-    if (point) {
-      map.setView([parseFloat(point.Latitude), parseFloat(point.Longitude)], 15, { animate: true });
+    const lat = parseFloat(point?.Latitude || "");
+    const lng = parseFloat(point?.Longitude || "");
+    if (!isNaN(lat) && !isNaN(lng)) {
+      map.setView([lat, lng], 15, { animate: true });
     }
   }, [point]);
   return null;
@@ -62,8 +70,11 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
     point.LgAdr2.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const center = filteredPoints.length > 0 
-    ? [parseFloat(filteredPoints[0].Latitude), parseFloat(filteredPoints[0].Longitude)]
+  const validFirst = filteredPoints.find(p =>
+    !isNaN(parseFloat(p.Latitude || "")) && !isNaN(parseFloat(p.Longitude || ""))
+  );
+  const center = validFirst
+    ? [parseFloat(validFirst.Latitude), parseFloat(validFirst.Longitude)]
     : [48.8566, 2.3522];
 
   return (
@@ -97,27 +108,36 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
-              {filteredPoints.map((point) => (
-                <Marker
-                  key={point.Num}
-                  position={[parseFloat(point.Latitude), parseFloat(point.Longitude)]}
-                  eventHandlers={{
-                    click: () => setSelectedPoint(point)
-                  }}
-                >
-                  <Popup>
-                    <div className="p-2">
-                      <h3 className="font-bold">{point.LgAdr1}</h3>
-                      <div className="text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
-                      <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
-                      <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{point.Horaires}</span>
+              {filteredPoints.map((point) => {
+                const lat = parseFloat(point.Latitude || "");
+                const lng = parseFloat(point.Longitude || "");
+                if (isNaN(lat) || isNaN(lng)) return null;
+                return (
+                  <Marker
+                    key={point.Num}
+                    position={[lat, lng]}
+                    eventHandlers={{
+                      click: () => setSelectedPoint(point)
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-2">
+                        <h3 className="font-bold">{point.LgAdr1}</h3>
+                        <div className="text-sm text-gray-700 font-medium">{point.LgAdr2}</div>
+                        <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                          <Clock className="h-4 w-4" />
+                          <span>{point.Horaires}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                          <MapPin className="h-4 w-4" />
+                          <span>Distance : {formatDistance(point.Distance)}</span>
+                        </div>
                       </div>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
+                    </Popup>
+                  </Marker>
+                );
+              })}
               {selectedPoint && <FlyToPoint point={selectedPoint} />}
             </MapContainer>
           </div>
@@ -155,7 +175,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
                       <MapPin className="h-4 w-4" />
-                      <span>Distance : {point.Distance}</span>
+                      <span>Distance : {formatDistance(point.Distance)}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
                       {point.Services?.map((service) => (
