@@ -214,7 +214,14 @@ async function sendAbandonedCartAlert(fetch) {
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
             itemNames: itemNames,
-            itemTitles: itemTitles
+            itemTitles: itemTitles,
+            // 🆕 Champs individuels pour Omnisend
+            itemImage1: itemImages[0] || '',
+            itemImage2: itemImages[1] || '',
+            itemImage3: itemImages[2] || '',
+            itemTitle1: itemTitles[0] || '',
+            itemTitle2: itemTitles[1] || '',
+            itemTitle3: itemTitles[2] || ''
           }
         };
         
@@ -268,7 +275,14 @@ async function sendAbandonedCartAlert(fetch) {
               'https://placehold.co/200x200?text=Produit+2'
             ],
             itemNames: 'Produit Test A, Produit Test B',
-            itemTitles: ['Produit Test A', 'Produit Test B']
+            itemTitles: ['Produit Test A', 'Produit Test B'],
+            // 🆕 Champs individuels pour Omnisend
+            itemImage1: 'https://placehold.co/200x200?text=Produit+1',
+            itemImage2: 'https://placehold.co/200x200?text=Produit+2',
+            itemImage3: '',
+            itemTitle1: 'Produit Test A',
+            itemTitle2: 'Produit Test B',
+            itemTitle3: ''
           };
         } else {
           eventData = {
@@ -288,7 +302,14 @@ async function sendAbandonedCartAlert(fetch) {
             // 🆕 Ajoute les images ici
             itemImages: itemImages,
             itemNames: itemNames,
-            itemTitles: itemTitles
+            itemTitles: itemTitles,
+            // 🆕 Champs individuels pour Omnisend
+            itemImage1: itemImages[0] || '',
+            itemImage2: itemImages[1] || '',
+            itemImage3: itemImages[2] || '',
+            itemTitle1: itemTitles[0] || '',
+            itemTitle2: itemTitles[1] || '',
+            itemTitle3: itemTitles[2] || ''
           };
         }
         const eventBody = {
