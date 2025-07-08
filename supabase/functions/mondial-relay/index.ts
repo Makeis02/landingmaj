@@ -21,11 +21,11 @@ const SOAP_URL = "https://api.mondialrelay.com/Web_Services.asmx";
 const SOAP_ACTION = "http://www.mondialrelay.fr/webservice/WSI4_PointRelais_Recherche";
 
 // Générateur de clé MD5 natif Deno
-function md5(text: string): string {
+async function md5(text: string): Promise<string> {
   const encoder = new TextEncoder();
   const data = encoder.encode(text);
   // @ts-ignore
-  const hashBuffer = crypto.subtle.digestSync("MD5", data);
+  const hashBuffer = await crypto.subtle.digest("MD5", data);
   return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
@@ -165,7 +165,7 @@ serve(async (req) => {
     
     // Concaténation pour la clé Security (voir doc Mondial Relay)
     const chaine = `${ENSEIGNE}${PAYS}${""}${codePostal}${""}${""}${""}${""}${action}${""}${rayon}${nombre}${CLE_PRIVEE}`;
-    const security = md5(chaine);
+    const security = await md5(chaine);
 
     const body = `<?xml version="1.0" encoding="utf-8"?>
     <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
