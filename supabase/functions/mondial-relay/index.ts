@@ -264,17 +264,22 @@ serve(async (req) => {
     const longitudes = extractTags("Longitude");
     const distances = extractTags("Distance");
 
-    // Fonction pour extraire et formater les horaires d'un point à partir du XML brut
+    // Fonction pour isoler le XML d'un point relais donné
+    function extractXmlForPoint(xml: string, i: number): string {
+      const allPointXmls = Array.from(xml.matchAll(/<WSI4_PointRelais_RechercheResult>([\s\S]*?)<\/WSI4_PointRelais_RechercheResult>/g));
+      return allPointXmls[i]?.[1] || "";
+    }
+
+    // Fonction pour extraire et formater les horaires d'un point à partir de son bloc XML
     function extractHorairesForPoint(xml: string, i: number) {
+      const pointXml = extractXmlForPoint(xml, i); // <-- important
       const jours = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
       return jours.map(jour => {
-        // Cherche la balise <Horaires_Jour>...</Horaires_Jour> pour le point i
-        // On suppose que chaque <Horaires_Jour> contient 0 à 4 balises <string>
-        const regex = new RegExp(`<Horaires_${jour}>((?:.|\n)*?)<\\/Horaires_${jour}>`, 'g');
-        const allMatches = Array.from(xml.matchAll(regex));
-        const match = allMatches[i];
+        const regex = new RegExp(`<Horaires_${jour}>((?:.|\n)*?)<\/Horaires_${jour}>`, 'g');
+        const match = regex.exec(pointXml);
         if (!match) return null;
-        // Extraire les <string>...</string>
+
         const horaires = Array.from(match[1].matchAll(/<string>(.*?)<\/string>/g)).map(m => m[1]);
         const slots = [];
         if (horaires[0] && horaires[1]) slots.push(`${horaires[0].slice(0,2)}:${horaires[0].slice(2)}-${horaires[1].slice(0,2)}:${horaires[1].slice(2)}`);
