@@ -37,7 +37,7 @@ function md5(s: string) {
   }
   function ii(a: number, b: number, c: number, d: number, x: number, s: number, t: number) {
     return cmn(c ^ (b | ~d), a, b, x, s, t);
-  }
+    }
   function md5cycle(x: number[], k: number[]) {
     let a = x[0], b = x[1], c = x[2], d = x[3];
     a = ff(a, b, c, d, k[0], 7, -680876936);
@@ -270,19 +270,19 @@ serve(async (req) => {
     });
 
     const result = nums.map((_, i) => ({
-      Num: nums[i],
-      LgAdr1: adrs1[i],
-      LgAdr2: adrs2[i],
+            Num: nums[i],
+            LgAdr1: adrs1[i],
+            LgAdr2: adrs2[i],
       LgAdr3: adrs3[i],
       LgAdr4: adrs4[i],
-      CP: cps[i],
-      Ville: villes[i],
-      Pays: pays[i],
-      Horaires: horaires[i],
-      Latitude: latitudes[i],
+            CP: cps[i],
+            Ville: villes[i],
+            Pays: pays[i],
+            Horaires: horaires[i],
+            Latitude: latitudes[i],
       Longitude: longitudes[i],
       Distance: distances[i],
-    }));
+          }));
     console.log(`✅ ${result.length} points relais trouvés`);
     return new Response(JSON.stringify({ points: result }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }

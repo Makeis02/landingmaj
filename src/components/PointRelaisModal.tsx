@@ -49,17 +49,31 @@ const formatDistance = (d: string | undefined) => {
   return isNaN(val) ? "Non disponible" : `${(val / 1000).toFixed(1)} km`;
 };
 
-// Composant pour centrer dynamiquement la carte sur le premier point valide
+// Assemble l'adresse complète à partir de LgAdr3 (rue) et LgAdr4 (complément)
+function getAdresseComplete(point: PointRelais) {
+  const lignes = [
+    point.LgAdr3?.trim(), // Rue
+    point.LgAdr4?.trim(), // Complément
+  ].filter(Boolean);
+  const adresse = lignes.join(", ");
+  return adresse || `${point.CP} ${point.Ville}`;
+}
+
+// Composant pour centrer dynamiquement la carte sur tous les points (fitBounds)
 function AutoCenterMap({ points }: { points: PointRelais[] }) {
   const map = useMap();
   useEffect(() => {
-    const firstValid = points.find(p =>
-      !isNaN(parseFloat(p.Latitude || "")) && !isNaN(parseFloat(p.Longitude || ""))
+    const bounds = L.latLngBounds(
+      points
+        .map((p) => {
+          const lat = parseFloat(p.Latitude || "");
+          const lng = parseFloat(p.Longitude || "");
+          return !isNaN(lat) && !isNaN(lng) ? [lat, lng] : null;
+        })
+        .filter(Boolean) as [number, number][]
     );
-    if (firstValid) {
-      const lat = parseFloat(firstValid.Latitude);
-      const lng = parseFloat(firstValid.Longitude);
-      map.setView([lat, lng], 13);
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40] });
     } else {
       map.setView([48.8566, 2.3522], 6); // fallback Paris
     }
@@ -78,17 +92,6 @@ function FlyToPoint({ point }) {
     }
   }, [point]);
   return null;
-}
-
-// Assemble l'adresse complète à partir des lignes d'adresse Mondial Relay
-function getAdresseComplete(point: PointRelais) {
-  const lignes = [
-    point.LgAdr3?.trim(),
-    point.LgAdr2?.trim(),
-    point.LgAdr4?.trim()
-  ].filter(Boolean);
-  const adresse = lignes.join(", ");
-  return adresse || `${point.CP} ${point.Ville}`;
 }
 
 export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points }: PointRelaisModalProps) {
@@ -143,7 +146,10 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
               {filteredPoints.map((point) => {
                 const lat = parseFloat(point.Latitude || "");
                 const lng = parseFloat(point.Longitude || "");
-                if (isNaN(lat) || isNaN(lng)) return null;
+                if (isNaN(lat) || isNaN(lng)) {
+                  console.warn(`Point relais invalide ignoré:`, point);
+                  return null;
+                }
                 return (
                   <Marker
                     key={point.Num}
@@ -154,12 +160,10 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   >
                     <Popup>
                       <div className="p-2">
-                        {point.LgAdr1 && (
-                          <div className="font-bold text-base mb-1">{point.LgAdr1}</div>
-                        )}
+                        <div className="font-bold text-base mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
                         <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
-                        <div className="text-xs text-gray-500 mb-1">{point.CP} {point.Ville}</div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                        <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
+                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1 mt-2">
                           <Clock className="h-4 w-4" />
                           <span>{point.Horaires}</span>
                         </div>
@@ -196,9 +200,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   >
                     <div className="flex justify-between items-start">
                       <div>
-                        {point.LgAdr1 && (
-                          <div className="font-bold text-lg text-gray-900 mb-1">{point.LgAdr1}</div>
-                        )}
+                        <div className="font-bold text-lg text-gray-900 mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
                         <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
                         <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
                       </div>
