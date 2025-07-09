@@ -31,20 +31,25 @@ const FinalCTA = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-          <Button 
+          <Button
+            asChild
             size="lg"
             className="bg-white text-ocean hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
           >
-            Créer un compte
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <a href="/account/signup">
+              Créer un compte
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </a>
           </Button>
-          
-          <Button 
+          <Button
+            asChild
             variant="outline"
             size="lg"
             className="border-2 border-white text-white hover:bg-white hover:text-ocean px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105"
           >
-            Me connecter
+            <a href="/account/login">
+              Me connecter
+            </a>
           </Button>
         </div>
 
