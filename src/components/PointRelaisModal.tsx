@@ -259,7 +259,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                             </tbody>
                           </table>
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                        <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 mb-1">
                           <MapPin className="h-4 w-4" />
                           <span>Distance : {formatDistance(point.Distance)}</span>
                         </div>
@@ -316,7 +316,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         </tbody>
                       </table>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-500 mb-1">
                       <MapPin className="h-4 w-4" />
                       <span>Distance : {formatDistance(point.Distance)}</span>
                     </div>
