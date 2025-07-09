@@ -55,22 +55,43 @@ const SimpleRules = () => {
         </div>
 
         {/* Règles principales */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {rules.map((rule, index) => (
-            <div key={index} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start space-x-4">
-                <rule.icon className={`h-6 w-6 mt-1 ${rule.color}`} />
-                <div>
-                  <h3 className="font-bold text-slate-800 mb-2">
-                    {rule.title}
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    {rule.description}
-                  </p>
+        <div className="mb-16">
+          {/* Ligne du haut : 3 cartes */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            {rules.slice(0,3).map((rule, index) => (
+              <div key={index} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300">
+                <div className="flex items-start space-x-4">
+                  <rule.icon className={`h-6 w-6 mt-1 ${rule.color}`} />
+                  <div>
+                    <h3 className="font-bold text-slate-800 mb-2">
+                      {rule.title}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {rule.description}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          {/* Ligne du bas : 2 cartes centrées */}
+          <div className="flex flex-col md:flex-row justify-center gap-6">
+            {rules.slice(3).map((rule, index) => (
+              <div key={index+3} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 min-w-[260px] max-w-xs w-full">
+                <div className="flex items-start space-x-4">
+                  <rule.icon className={`h-6 w-6 mt-1 ${rule.color}`} />
+                  <div>
+                    <h3 className="font-bold text-slate-800 mb-2">
+                      {rule.title}
+                    </h3>
+                    <p className="text-sm text-slate-600">
+                      {rule.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Exemples de simulation */}
