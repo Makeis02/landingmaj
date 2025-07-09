@@ -193,30 +193,30 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl h-[80vh] p-0" aria-describedby="">
+      <DialogContent className="max-w-6xl h-[80vh] md:h-[80vh] sm:h-[90vh] p-0" aria-describedby="">
         <DialogHeader className="p-6 pb-0">
           <DialogTitle className="text-2xl font-bold">Choisissez votre point relais</DialogTitle>
-          <div className="flex items-center gap-4 mt-4">
+          <div className="flex flex-col sm:flex-row items-center gap-4 mt-4">
             <Input
               placeholder="Rechercher un point relais..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-md"
+              className="max-w-md w-full"
             />
-            <Button variant="outline" onClick={onClose}>
+            <Button variant="outline" onClick={onClose} className="w-full sm:w-auto">
               <X className="h-4 w-4 mr-2" />
               Fermer
             </Button>
           </div>
         </DialogHeader>
 
-        <div className="flex h-[calc(80vh-8rem)]">
+        <div className="flex flex-col md:flex-row h-[calc(80vh-8rem)] sm:h-[calc(90vh-8rem)]">
           {/* Carte */}
-          <div className="w-2/3 h-full">
+          <div className="w-full md:w-2/3 h-64 md:h-full p-2 md:p-0">
             <MapContainer
               center={[48.8566, 2.3522]}
               zoom={13}
-              className="h-full w-full"
+              className="h-full w-full rounded-lg shadow-sm"
               scrollWheelZoom={true}
             >
               <AutoCenterMap points={filteredPoints} />
@@ -273,7 +273,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
           </div>
 
           {/* Liste des points relais */}
-          <div className="w-1/3 h-full overflow-y-auto border-l p-4">
+          <div className="w-full md:w-1/3 h-full overflow-y-auto border-t md:border-t-0 md:border-l p-2 md:p-4 bg-white">
             {filteredPoints.length === 0 ? (
               <div className="text-center p-4 text-gray-500">
                 Aucun point relais trouvé
@@ -284,30 +284,30 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                   console.log("→ Horaires bruts pour", point.Num, ":", point.Horaires),
                   <div
                     key={point.Num}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                    className={`p-3 md:p-4 rounded-lg border cursor-pointer transition-all ${
                       selectedPoint?.Num === point.Num
                         ? 'border-primary bg-primary/5'
                         : 'hover:border-primary/50'
                     }`}
                     onClick={() => setSelectedPoint(point)}
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 md:gap-0">
                       <div>
-                        <div className="font-bold text-lg text-gray-900 mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
+                        <div className="font-bold text-base md:text-lg text-gray-900 mb-1">{point.LgAdr1 || "Nom indisponible"}</div>
                         <div className="text-sm text-gray-700 font-medium">{getAdresseComplete(point)}</div>
                         <div className="text-xs text-gray-500">{point.CP} {point.Ville}</div>
                       </div>
-                      <div className="flex items-center gap-1 text-yellow-500">
+                      <div className="flex items-center gap-1 text-yellow-500 mt-2 md:mt-0">
                         <Star className="h-4 w-4 fill-current" />
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    <div className="mt-2">
-                      <table className="text-xs w-full">
+                    <div className="mt-2 overflow-x-auto">
+                      <table className="text-xs w-full min-w-[320px]">
                         <tbody>
                           {formatHoraires(point.Horaires).map(({ jour, creneaux }) => (
                             <tr key={jour}>
-                              <td className="pr-2 font-medium text-gray-700">{jour} :</td>
+                              <td className="pr-2 font-medium text-gray-700 whitespace-nowrap">{jour} :</td>
                               <td className="text-gray-600">
                                 {creneaux.length > 0 ? creneaux.join(" / ") : <span className="text-gray-400">Fermé</span>}
                               </td>
@@ -345,6 +345,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                     <div className="mt-3 flex justify-between items-center">
                       <Button
                         size="sm"
+                        className="w-full md:w-auto"
                         onClick={(e) => {
                           e.stopPropagation();
                           onSelect(point);

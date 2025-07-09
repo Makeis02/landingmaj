@@ -119,6 +119,8 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
           <div className="font-semibold text-green-800 mb-1">Point relais sélectionné</div>
           <div className="text-sm">
             <div className="font-medium">{selected.LgAdr1}</div>
+            {selected.LgAdr3 && <div className="text-gray-600">{selected.LgAdr3}</div>}
+            {selected.LgAdr4 && <div className="text-gray-600">{selected.LgAdr4}</div>}
             {selected.LgAdr2 && <div className="text-gray-600">{selected.LgAdr2}</div>}
             <div className="text-gray-600">{selected.CP} {selected.Ville}</div>
 
