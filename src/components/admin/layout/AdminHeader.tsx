@@ -1,4 +1,4 @@
-import { LogOut, Home, Settings, FolderTree, Package, Percent } from "lucide-react";
+import { LogOut, Home, Settings, FolderTree, Package, Percent, Star } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +61,13 @@ export const AdminHeader = () => {
             >
               <Package className="w-4 h-4 mr-2" />
               Commandes
+            </Link>
+            <Link
+              to="/admin/points"
+              className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Star className="w-4 h-4 mr-2" />
+              Points
             </Link>
             <Button onClick={handleGoToSite} variant="outline">
               <Home className="w-4 h-4 mr-2" />

@@ -1,4 +1,5 @@
 import CategoriesForm from "@/components/admin/CategoriesForm";
+import PointsPage from './PointsPage';
 
 export default function CategoriesPage() {
   return (
