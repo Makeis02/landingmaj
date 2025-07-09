@@ -1,5 +1,6 @@
 
 import React from 'react';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import RevePointsHero from '@/components/revepoints/RevePointsHero';
@@ -11,8 +12,9 @@ import FinalCTA from '@/components/revepoints/FinalCTA';
 const RevePointsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-50 to-blue-50">
+      <AnnouncementBanner />
       <Header />
-      <main className="pt-8">
+      <main className="pt-0">
         <div className="animate-fade-in-up duration-700">
           <RevePointsHero />
         </div>
