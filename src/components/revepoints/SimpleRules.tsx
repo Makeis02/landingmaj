@@ -55,22 +55,36 @@ const SimpleRules = () => {
         </div>
 
         {/* Règles principales */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-          {rules.map((rule, index) => (
-            <div key={index} className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300">
-              <div className="flex items-start space-x-4">
-                <rule.icon className={`h-6 w-6 mt-1 ${rule.color}`} />
-                <div>
-                  <h3 className="font-bold text-slate-800 mb-2">
-                    {rule.title}
-                  </h3>
-                  <p className="text-sm text-slate-600">
-                    {rule.description}
-                  </p>
-                </div>
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+          {/* Première ligne : 3 règles */}
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
+            <span className="text-3xl mb-2 text-green-600">€</span>
+            <div className="font-bold text-lg mb-1">1 € = 1 Rêve Point</div>
+            <div className="text-gray-500 text-sm">Simple et transparent</div>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
+            <span className="text-3xl mb-2 text-blue-600">📦</span>
+            <div className="font-bold text-lg mb-1">200 points = 5 € de remise</div>
+            <div className="text-gray-500 text-sm">Échangez vos points facilement</div>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
+            <span className="text-3xl mb-2 text-purple-600">📦</span>
+            <div className="font-bold text-lg mb-1">Utilisables sur commandes entre 35 € et 100 €</div>
+            <div className="text-gray-500 text-sm">Pour la plupart de vos achats</div>
+          </div>
+        </div>
+        {/* Deuxième ligne : 2 règles centrées */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-4">
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center md:col-start-2">
+            <span className="text-3xl mb-2 text-orange-500">��</span>
+            <div className="font-bold text-lg mb-1">Jusqu'à 20 % de votre panier déductible</div>
+            <div className="text-gray-500 text-sm">Économies maximales garanties</div>
+          </div>
+          <div className="bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
+            <span className="text-3xl mb-2 text-red-500">❌</span>
+            <div className="font-bold text-lg mb-1">Non utilisables sur produits soldés ou promos</div>
+            <div className="text-gray-500 text-sm">Pour maintenir des prix équitables</div>
+          </div>
         </div>
 
         {/* Exemples de simulation */}

@@ -30,11 +30,19 @@ const FinalCTA = () => {
           Vos achats méritent plus. Rejoignez le programme Rêve Points dès maintenant.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-          <a href="/account/signup" className="inline-block px-8 py-3 rounded-full bg-[#0074b3] text-white font-bold text-lg shadow hover:bg-[#005f8e] transition">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+          <a 
+            href="/account/signup"
+            className="bg-white text-ocean hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
+            style={{ minWidth: 180, textAlign: 'center' }}
+          >
             Je m'inscris
           </a>
-          <a href="/account/login" className="inline-block px-8 py-3 rounded-full bg-white text-[#0074b3] font-bold text-lg shadow border border-[#0074b3] hover:bg-[#e6f4fa] transition">
+          <a 
+            href="/account/login"
+            className="border-2 border-white text-white hover:bg-white hover:text-ocean px-8 py-4 text-lg font-semibold rounded-full transition-all duration-300 transform hover:scale-105"
+            style={{ minWidth: 180, textAlign: 'center' }}
+          >
             J'ai déjà un compte
           </a>
         </div>
