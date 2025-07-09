@@ -71,24 +71,30 @@ function isValidCoordinates(lat: any, lng: any) {
   return !isNaN(latF) && !isNaN(lngF) && latF >= -90 && latF <= 90 && lngF >= -180 && lngF <= 180;
 }
 
-// Nouvelle version de formatHoraires :
+// Nouvelle version robuste de formatHoraires :
+/**
+ * Formate la chaîne d'horaires brute Mondial Relay en tableau par jour.
+ * Utilise un regex pour extraire le nom du jour (tolère accents, espaces, etc).
+ * Nettoie les accents et force la casse pour correspondre à l'ordre des jours.
+ * @param horairesRaw Chaîne brute (ex: "Mardi:09:00-12:00,14:00-18:00;...")
+ */
 function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[] }[] {
   const joursOrdres = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-
   const map: Record<string, string[]> = {};
 
   if (horairesRaw) {
-    console.log("📅 Parsing horaires bruts:", horairesRaw);
     const lignes = horairesRaw.split(";").map(l => l.trim()).filter(Boolean);
-    lignes.forEach(line => {
-      const [jourRaw, horairesStr] = line.split(":");
-      if (!jourRaw || !horairesStr) return;
 
-      // Normalisation robuste du nom du jour
+    lignes.forEach(line => {
+      const match = line.match(/^([^:]+):(.+)$/);
+      if (!match) return;
+
+      let jourRaw = match[1].trim();
+      const horairesStr = match[2].trim();
+
       const jour = jourRaw
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .trim()
+        .replace(/[\u0300-\u036f]/g, "") // supprime les accents
         .toLowerCase()
         .replace(/^./, c => c.toUpperCase());
 
@@ -100,7 +106,6 @@ function formatHoraires(horairesRaw?: string): { jour: string, creneaux: string[
 
       map[jour] = creneaux;
     });
-    console.log("🧩 Résultat map:", map);
   }
 
   return joursOrdres.map(jour => ({
