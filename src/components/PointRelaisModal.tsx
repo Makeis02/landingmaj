@@ -302,8 +302,8 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                         <span>{point.Note}</span>
                       </div>
                     </div>
-                    <div className="mt-2 overflow-x-auto">
-                      <table className="text-xs w-full min-w-[320px]">
+                    <div className="mt-2 overflow-x-auto md:overflow-visible">
+                      <table className="text-xs w-full min-w-[320px] md:min-w-0">
                         <tbody>
                           {formatHoraires(point.Horaires).map(({ jour, creneaux }) => (
                             <tr key={jour}>
