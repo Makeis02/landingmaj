@@ -220,7 +220,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               />
               {filteredPoints.map((point) => {
-                console.log("→ Horaires debug:", point.Horaires); // ← AJOUT
+                console.log("→ Horaires bruts pour", point.Num, ":", point.Horaires);
                 const lat = parseCoord(point.Latitude);
                 const lng = parseCoord(point.Longitude);
                 if (!isValidCoordinates(lat, lng)) {
@@ -276,6 +276,7 @@ export function PointRelaisModal({ isOpen, onClose, onSelect, codePostal, points
             ) : (
               <div className="space-y-4">
                 {filteredPoints.map((point) => (
+                  console.log("→ Horaires bruts pour", point.Num, ":", point.Horaires),
                   <div
                     key={point.Num}
                     className={`p-4 rounded-lg border cursor-pointer transition-all ${

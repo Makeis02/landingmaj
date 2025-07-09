@@ -266,8 +266,9 @@ serve(async (req) => {
 
     // Fonction pour isoler le XML d'un point relais donné (corrigée pour <PointRelais_Details>)
     function extractXmlForPoint(xml: string, i: number): string {
+      // Correction : flag 's' (dotAll) pour matcher sur plusieurs lignes
       const matches = Array.from(
-        xml.matchAll(/<PointRelais_Details>([\s\S]*?)<\/PointRelais_Details>/g)
+        xml.matchAll(/<PointRelais_Details>(.*?)<\/PointRelais_Details>/gs)
       );
       return matches[i]?.[1] || "";
     }
@@ -312,6 +313,8 @@ serve(async (req) => {
       Longitude: longitudes[i],
       Distance: distances[i],
           }));
+    // Ajout du log du résultat envoyé au frontend (premier point pour vérif)
+    console.log("✅ Résultat envoyé au frontend:", result.slice(0, 1));
     console.log(`✅ ${result.length} points relais trouvés`);
     return new Response(JSON.stringify({ points: result }), {
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" }
