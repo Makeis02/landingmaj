@@ -108,6 +108,7 @@ import { supabase } from "@/integrations/supabase/client";
 import React from "react";
 import { useCartStore } from "@/stores/useCartStore";
 import { useAbandonedCart } from "@/hooks/useAbandonedCart";
+import RevePointsPage from "@/pages/RevePointsPage";
 
 const queryClient = new QueryClient();
 
@@ -441,6 +442,7 @@ const App = () => {
           </div>
         } />
 
+        <Route path="/reve-points" element={<RevePointsPage />} />
         <Route path="*" element={<NotFound />} />
         </Routes>
       {/* Boutons admin pour les tests en mode édition */}
