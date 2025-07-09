@@ -119,11 +119,56 @@ const MondialRelaySelector: React.FC<MondialRelaySelectorProps> = ({
           <div className="font-semibold text-green-800 mb-1">Point relais sélectionné</div>
           <div className="text-sm">
             <div className="font-medium">{selected.LgAdr1}</div>
-            <div className="text-gray-600">{selected.LgAdr2}</div>
+            {selected.LgAdr2 && <div className="text-gray-600">{selected.LgAdr2}</div>}
             <div className="text-gray-600">{selected.CP} {selected.Ville}</div>
-            <div className="text-gray-600 text-xs mt-1">Horaires: {selected.Horaires}</div>
+
+            {/* Horaires sous forme de tableau lisible */}
+            {selected.Horaires && (
+              <div className="mt-3">
+                <div className="text-xs font-semibold text-gray-700 mb-1">Horaires :</div>
+                <table className="text-xs w-full mb-2">
+                  <tbody>
+                    {(() => {
+                      // Copie locale de formatHoraires (identique à PointRelaisModal)
+                      const joursOrdres = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+                      const map = {};
+                      const horairesRaw = selected.Horaires;
+                      if (horairesRaw) {
+                        const lignes = horairesRaw.split(";").map(l => l.trim()).filter(Boolean);
+                        lignes.forEach(line => {
+                          const match = line.match(/^([^:]+):(.+)$/);
+                          if (!match) return;
+                          let jourRaw = match[1].trim();
+                          const horairesStr = match[2].trim();
+                          const jour = jourRaw
+                            .normalize("NFD")
+                            .replace(/[\u0300-\u036f]/g, "")
+                            .toLowerCase()
+                            .replace(/^./, c => c.toUpperCase());
+                          const creneaux = horairesStr.split(",").map(c => {
+                            const [debut, fin] = c.split("-");
+                            if (!debut || !fin) return null;
+                            return `${debut} - ${fin}`;
+                          }).filter(Boolean);
+                          map[jour] = creneaux;
+                        });
+                      }
+                      return joursOrdres.map(jour => (
+                        <tr key={jour}>
+                          <td className="pr-2 font-medium text-gray-700">{jour} :</td>
+                          <td className="text-gray-600">
+                            {map[jour] && map[jour].length > 0 ? map[jour].join(" / ") : <span className="text-gray-400">Fermé</span>}
+                          </td>
+                        </tr>
+                      ));
+                    })()}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {selected.Distance && (
-              <div className="text-gray-600 text-xs">Distance: {selected.Distance}</div>
+              <div className="text-gray-600 text-xs mt-2">Distance : {selected.Distance} m</div>
             )}
             {selected.Services && selected.Services.length > 0 && (
               <div className="flex gap-1 mt-1">
