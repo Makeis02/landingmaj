@@ -401,6 +401,11 @@ const Checkout = () => {
     } else {
       await updateQuantity(productId, newQuantity);
     }
+
+    // PATCH : Recalcule le code promo si présent
+    if (appliedPromoCode) {
+      await applyPromoCode(appliedPromoCode.code);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
