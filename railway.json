@@ -25,5 +25,5 @@
       "timezone": "Europe/Paris"
     }
   ],
-  "start": "npm run build && npm run preview"
+  "start": "node start-railway.js"
 }

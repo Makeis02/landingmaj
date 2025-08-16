@@ -50,18 +50,56 @@ console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini
 
 // 🛠️ Middleware essentiels
 app.use(bodyParser.json());
+
+// Configuration CORS plus permissive pour résoudre les problèmes cross-origin
 app.use(cors({
-  origin: [
-    'https://aqua-reve.com',
-    'https://majemsiteteste.netlify.app',
-    'https://landingmaj-production.up.railway.app',
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ],
+  origin: function (origin, callback) {
+    // Autoriser les requêtes sans origine (comme les apps mobiles)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'https://aqua-reve.com',
+      'https://www.aqua-reve.com',
+      'https://majemsiteteste.netlify.app',
+      'https://landingmaj-production.up.railway.app',
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'http://localhost:8080'
+    ];
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('🚫 Origine bloquée par CORS:', origin);
+      callback(null, true); // Temporairement autoriser toutes les origines
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Content-Length', 'X-Requested-With'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Middleware pour gérer les requêtes OPTIONS (preflight CORS)
+app.options('*', cors());
+
+// Middleware pour ajouter des en-têtes de sécurité
+app.use((req, res, next) => {
+  // En-têtes de sécurité
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // En-têtes CORS supplémentaires
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  
+  next();
+});
 
 // 🚀 Démarrage WebSocket
 const wss = new WebSocketServer({ port: WS_PORT });
@@ -178,6 +216,14 @@ app.get('/api/shopify/products', async (req, res) => {
 
 // 💳 **API Stripe pour les produits**
 app.get('/api/stripe/products', async (req, res) => {
+  // Log de la requête pour debug
+  console.log('🔍 Requête reçue sur /api/stripe/products:', {
+    method: req.method,
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']
+  });
+
+  // Vérifier la clé Stripe
   if (!process.env.STRIPE_SECRET_KEY) {
     console.error('❌ Variable d\'environnement STRIPE_SECRET_KEY manquante');
     return res.status(500).json({ 
@@ -269,6 +315,16 @@ app.get('/api/stripe/products', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// 🧪 **Endpoint de test pour vérifier que l'API fonctionne**
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    cors: 'enabled'
+  });
 });
 
 // 💳 **API Stripe pour créer une session de checkout**
