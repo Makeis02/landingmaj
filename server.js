@@ -51,7 +51,7 @@ console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini
 // 🛠️ Middleware essentiels
 app.use(bodyParser.json());
 
-// Configuration CORS plus permissive pour résoudre les problèmes cross-origin
+// Configuration CORS simplifiée - PATCH MINIMAL
 app.use(cors({
   origin: function (origin, callback) {
     // Autoriser les requêtes sans origine (comme les apps mobiles)
@@ -76,7 +76,7 @@ app.use(cors({
       callback(null, true); // Temporairement autoriser toutes les origines
     }
   },
-  credentials: true,
+  credentials: false, // Retiré pour éviter le conflit avec Access-Control-Allow-Origin: *
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'x-client-info', 'apikey'],
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
@@ -84,39 +84,8 @@ app.use(cors({
   optionsSuccessStatus: 204
 }));
 
-// Middleware pour gérer les requêtes OPTIONS (preflight CORS)
-app.options('*', cors());
-
-// Middleware pour ajouter des en-têtes de sécurité et CORS
-app.use((req, res, next) => {
-  // En-têtes de sécurité
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // En-têtes CORS supplémentaires - IMPORTANT pour Railway
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Gérer les requêtes OPTIONS
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-  
-  next();
-});
-
-// Middleware pour gérer les requêtes OPTIONS (preflight CORS)
-app.options('*', cors());
+// Middleware pour gérer les requêtes OPTIONS (preflight CORS) - PATCH MINIMAL
+app.options('/api/*', cors());
 
 // Middleware pour ajouter des en-têtes de sécurité
 app.use((req, res, next) => {
@@ -125,11 +94,6 @@ app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
-  // En-têtes CORS supplémentaires
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
   
   next();
 });
@@ -249,17 +213,6 @@ app.get('/api/shopify/products', async (req, res) => {
 
 // 💳 **API Stripe pour les produits**
 app.get('/api/stripe/products', async (req, res) => {
-  // 🔧 CORRECTION CORS SPÉCIFIQUE POUR STRIPE
-  const origin = req.headers.origin;
-  if (origin) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-  }
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
   // Log de la requête pour debug
   console.log('🔍 Requête reçue sur /api/stripe/products:', {
     method: req.method,
