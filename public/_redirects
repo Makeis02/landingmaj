@@ -1,2 +1,32 @@
-# Fichier _redirects laissé vide pour éviter les conflits sur Railway.
-# Les règles de redirection sont désormais gérées dans netlify.toml.
+# Redirections Netlify
+
+# Redirection de l'API vers Railway
+/api/* https://landingmaj-production.up.railway.app/api/:splat 200
+
+# Redirection des pages de catégories
+/categories/* /categories/:splat 200
+
+# Redirection des pages de produits
+/produits/* /produits/:splat 200
+
+# Redirection des pages de politique
+/politiques/* /politiques/:splat 200
+
+# Redirection de la page de points de révélation
+/revepoints /revepoints 200
+
+# Redirection de la page de roue des cadeaux
+/roue /roue 200
+
+# Redirection de la page de compte
+/compte/* /compte/:splat 200
+
+# Redirection de la page d'administration
+/admin/* /admin/:splat 200
+
+# Redirection des pages d'erreur
+/404 /404 404
+/500 /500 500
+
+# Redirection par défaut (SPA)
+/* /index.html 200

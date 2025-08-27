@@ -3,7 +3,6 @@
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import fs from 'fs';
 
 // Obtenir le chemin du répertoire courant
 const __filename = fileURLToPath(import.meta.url);
@@ -48,31 +47,6 @@ try {
 
 } catch (error) {
   console.error('❌ Erreur lors du chargement des variables d\'environnement:', error);
-}
-
-// Supprimer les fichiers de redirections Netlify dans l'environnement Railway
-// afin d'éviter que des middlewares interprètent des patterns d'URL complets
-// qui provoquent des erreurs path-to-regexp.
-try {
-  const redirectCandidates = [
-    join(__dirname, 'public', '_redirects'),
-    join(process.cwd(), 'public', '_redirects'),
-    join(__dirname, 'dist', '_redirects'),
-    join(process.cwd(), 'dist', '_redirects')
-  ];
-
-  for (const candidate of redirectCandidates) {
-    if (fs.existsSync(candidate)) {
-      try {
-        fs.unlinkSync(candidate);
-        console.log(`🧹 Fichier _redirects supprimé: ${candidate}`);
-      } catch (e) {
-        console.warn(`⚠️ Impossible de supprimer ${candidate}:`, e.message);
-      }
-    }
-  }
-} catch (cleanupError) {
-  console.warn('⚠️ Nettoyage _redirects ignoré:', cleanupError.message);
 }
 
 // Importer et démarrer le serveur
