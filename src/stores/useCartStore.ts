@@ -677,7 +677,6 @@ export const useCartStore = create<CartStore>()(
       
       if (!session) return; // Ne rien faire si non connecté
 
-      // 🔧 CORRECTION : Utiliser une approche sécurisée sans les colonnes manquantes
       const { data, error } = await supabase
         .from("cart_items")
         .select(`
@@ -685,6 +684,12 @@ export const useCartStore = create<CartStore>()(
           quantity,
           is_gift,
           threshold_gift,
+          variant,
+          price_id,
+          discount_price_id,
+          original_price,
+          discount_percentage,
+          has_discount,
           products (
             title,
             price,
@@ -695,29 +700,58 @@ export const useCartStore = create<CartStore>()(
 
       if (error) throw error;
 
-      // 🔧 CORRECTION : Simplifier le mapping pour éviter les erreurs de colonnes manquantes
-      const mappedItems: CartItem[] = data.map((item) => {
+      // Enrichir chaque article avec les prix réduits
+      const mappedItems: CartItem[] = await Promise.all(data.map(async (item) => {
         const basePrice = (item.products as any)?.price || 0;
         const title = (item.products as any)?.title || "Produit inconnu";
         const image_url = (item.products as any)?.image_url;
         
+        // Récupérer le prix actuel avec les éventuelles promotions
+        const priceInfo = await get().getDiscountedPrice(item.product_id, item.variant);
+        
+        let finalPrice = basePrice;
+        let originalPrice = item.original_price;
+        let discountPercentage = item.discount_percentage;
+        let hasDiscount = item.has_discount || false;
+        let stripePriceId = item.price_id;
+        let stripeDiscountPriceId = item.discount_price_id;
+        
+        if (priceInfo) {
+          finalPrice = priceInfo.price;
+          
+          if (priceInfo.discount_percentage && priceInfo.stripe_discount_price_id) {
+            // Il y a une promotion active
+            originalPrice = priceInfo.original_price;
+            discountPercentage = priceInfo.discount_percentage;
+            hasDiscount = true;
+            stripeDiscountPriceId = priceInfo.stripe_discount_price_id;
+            
+            console.log(`🎯 [SYNC] Promotion détectée pour ${item.product_id}: ${originalPrice}€ -> ${finalPrice}€`);
+          } else {
+            // Pas de promotion
+            hasDiscount = false;
+            originalPrice = undefined;
+            discountPercentage = undefined;
+            stripeDiscountPriceId = undefined;
+          }
+        }
+        
         return {
           id: item.product_id,
           quantity: item.quantity,
-          price: basePrice,
+          price: finalPrice, // Utiliser le prix avec promotion si applicable
           title,
           image_url,
           is_gift: item.is_gift || false,
           threshold_gift: item.threshold_gift || false,
-          // 🔧 Colonnes temporairement désactivées jusqu'à ce que la migration SQL soit appliquée
-          variant: undefined,
-          stripe_price_id: undefined,
-          stripe_discount_price_id: undefined,
-          original_price: undefined,
-          discount_percentage: undefined,
-          has_discount: false
+          variant: item.variant,
+          stripe_price_id: stripePriceId,
+          stripe_discount_price_id: stripeDiscountPriceId,
+          original_price: originalPrice,
+          discount_percentage: discountPercentage,
+          has_discount: hasDiscount
         };
-      });
+      }));
 
       set({ items: mappedItems });
       

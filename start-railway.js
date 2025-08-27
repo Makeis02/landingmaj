@@ -49,16 +49,17 @@ try {
   console.error('❌ Erreur lors du chargement des variables d\'environnement:', error);
 }
 
-// 🔧 CORRECTION : Démarrer directement le serveur Express
+// Importer et démarrer le serveur
 try {
-  console.log('🚀 Démarrage du serveur Express...');
+  console.log('🚀 Import du serveur principal...');
+  const { default: startServer } = await import('./server.js');
   
-  // Le serveur se démarre automatiquement dans server.js
-  // On importe juste pour déclencher l'exécution
-  await import('./server.js');
-  
-  console.log('✅ Serveur Express démarré avec succès');
-  
+  if (typeof startServer === 'function') {
+    startServer();
+  } else {
+    console.log('📡 Démarrage du serveur Express...');
+    // Le serveur se démarre automatiquement dans server.js
+  }
 } catch (error) {
   console.error('❌ Erreur lors du démarrage du serveur:', error);
   process.exit(1);
