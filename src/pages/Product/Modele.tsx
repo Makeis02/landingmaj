@@ -119,6 +119,11 @@ const getProductIdFromQuery = () => {
 
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
+  // Forcer l'URL Railway pour résoudre le problème de produits
+  return "https://landingmaj-production.up.railway.app";
+  
+  // Code original commenté pour référence
+  /*
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
@@ -130,6 +135,7 @@ const getApiBaseUrl = () => {
     return window.location.origin;
   }
   return '';
+  */
 };
 
 // Fonction utilitaire pour générer des clés de contenu cohérentes
