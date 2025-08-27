@@ -1407,11 +1407,11 @@ app.get('*', (req, res) => {
 });
 
 // **🚀 Démarrage du serveur**
-app.listen(PORT, () => {
-    console.log(`🚀 Serveur webhook en ligne sur http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Serveur webhook en ligne sur http://0.0.0.0:${PORT}`);
     console.log(`🔌 WebSocket en écoute sur le port ${WS_PORT}`);
-    console.log(`📝 API de génération: POST http://localhost:${PORT}/api/products/create-page`);
-    console.log(`🗑️ API de suppression: POST http://localhost:${PORT}/api/products/delete-page`);
+    console.log(`📝 API de génération: POST http://0.0.0.0:${PORT}/api/products/create-page`);
+    console.log(`🗑️ API de suppression: POST http://0.0.0.0:${PORT}/api/products/delete-page`);
 }).on('error', (error) => {
     console.error('❌ Erreur de démarrage du serveur:', error);
     process.exit(1);
