@@ -7,15 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 // Get API base URL from environment variables with fallback
 const getApiBaseUrl = () => {
   // Use environment variable if available
-  // Forcer l'URL Railway pour résoudre le problème de produits
-  return "https://landingmaj-production.up.railway.app";
-  
-  // Code original commenté pour référence
-  /*
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  */
   
   // Fallback to current origin if in browser
   if (typeof window !== 'undefined') {
