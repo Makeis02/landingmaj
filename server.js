@@ -849,7 +849,7 @@ app.get('/api/products/check-pages', async (req, res) => {
 // ==========================================
 
 // Route pour servir le frontend React (doit être en dernier)
-app.get('/*', (req, res) => {
+app.get('*', (req, res) => {
   console.log(`🌐 Requête frontend pour: ${req.path}`);
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
