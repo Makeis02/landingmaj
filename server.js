@@ -26,6 +26,29 @@ try {
 }
 
 const app = express();
+
+// DEBUG: log every route registration to find invalid patterns in prod
+try {
+  const methods = ['use', 'get', 'post', 'put', 'delete'];
+  methods.forEach((method) => {
+    const original = app[method].bind(app);
+    app[method] = (pathArg, ...rest) => {
+      try {
+        if (typeof pathArg === 'string') {
+          console.log(`🛣️ Registering route [${method.toUpperCase()}] -> "${pathArg}"`);
+        } else if (pathArg instanceof RegExp) {
+          console.log(`🛣️ Registering route [${method.toUpperCase()}] -> RegExp(${pathArg})`);
+        } else {
+          console.log(`🛣️ Registering route [${method.toUpperCase()}] ->`, pathArg);
+        }
+      } catch {}
+      return original(pathArg, ...rest);
+    };
+  });
+} catch (e) {
+  console.warn('⚠️ Route registration logger not applied:', e?.message);
+}
+
 const PORT = process.env.PORT || 3000;
 const WS_PORT = process.env.WS_PORT || 8081;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "MON_TOKEN_SECRET";
