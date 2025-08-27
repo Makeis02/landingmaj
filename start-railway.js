@@ -45,15 +45,18 @@ try {
     // Le serveur se démarre automatiquement via server.js
   }
 } catch (error) {
-  console.error('❌ Erreur lors du démarrage du serveur:', error);
+  console.error('❌ Erreur lors du démarrage du serveur principal:', error);
   
-  // Fallback : démarrer directement le serveur
+  // Fallback : démarrer le serveur de test
   try {
-    console.log('🔄 Tentative de démarrage en mode fallback...');
-    await import('./server.js');
+    console.log('🔄 Tentative de démarrage avec le serveur de test...');
+    await import('./test-server.js');
   } catch (fallbackError) {
-    console.error('❌ Échec du démarrage en mode fallback:', fallbackError);
-    process.exit(1);
+    console.error('❌ Échec du démarrage avec le serveur de test:', fallbackError);
+    
+    // Dernier recours : démarrer un serveur minimal
+    console.log('🆘 Démarrage d\'un serveur minimal d\'urgence...');
+    await import('./emergency-server.js');
   }
 }
 
