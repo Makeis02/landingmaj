@@ -92,7 +92,7 @@ export default defineConfig(async ({ mode }) => {
   console.log(`Sitemap: Found ${dynamicRoutes.length} dynamic routes to generate.`);
 
   return {
-    server: {
+  server: {
     host: "::",
     port: 8080,
     proxy: {

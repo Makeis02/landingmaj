@@ -1,81 +1,66 @@
 #!/usr/bin/env node
 
 import dotenv from 'dotenv';
-import path from 'path';
 import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 
-// 📂 Obtenir le chemin du répertoire courant
+// Obtenir le chemin du répertoire courant
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = dirname(__filename);
 
-// 🔧 Charger les variables d'environnement
-console.log('🚀 Démarrage de l\'application Railway...');
-console.log('📂 Chargement du fichier .env:', path.join(__dirname, '.env'));
+// Charger les variables d'environnement
+console.log('🚀 Démarrage du serveur Railway...');
+console.log('📂 Répertoire de travail:', process.cwd());
+console.log('🔧 Chargement des variables d\'environnement...');
 
 try {
-  dotenv.config({ path: path.join(__dirname, '.env') });
-  console.log('✅ Variables d\'environnement chargées avec succès');
+  // Essayer de charger .env depuis différents emplacements
+  const envPaths = [
+    join(__dirname, '.env'),
+    join(process.cwd(), '.env'),
+    join(process.cwd(), '.env.local'),
+    join(process.cwd(), '.env.production')
+  ];
+
+  let envLoaded = false;
+  for (const envPath of envPaths) {
+    try {
+      dotenv.config({ path: envPath });
+      console.log(`✅ Variables d'environnement chargées depuis: ${envPath}`);
+      envLoaded = true;
+      break;
+    } catch (error) {
+      console.log(`⚠️ Impossible de charger: ${envPath}`);
+    }
+  }
+
+  if (!envLoaded) {
+    console.log('⚠️ Aucun fichier .env trouvé, utilisation des variables système');
+  }
+
+  // Afficher les variables importantes
+  console.log('🔑 Configuration:');
+  console.log('- NODE_ENV:', process.env.NODE_ENV || 'non défini');
+  console.log('- PORT:', process.env.PORT || '3000');
+  console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini' : '❌ Manquant');
+  console.log('- VITE_SUPABASE_URL:', process.env.VITE_SUPABASE_URL ? '✅ Défini' : '❌ Manquant');
+
 } catch (error) {
   console.error('❌ Erreur lors du chargement des variables d\'environnement:', error);
 }
 
-// Vérifier les variables critiques
-const requiredVars = [
-  'VERIFY_TOKEN',
-  'PAGE_ACCESS_TOKEN',
-  'STRIPE_SECRET_KEY'
-];
-
-const missingVars = requiredVars.filter(varName => !process.env[varName]);
-
-if (missingVars.length > 0) {
-  console.warn('⚠️ Variables d\'environnement manquantes:', missingVars.join(', '));
-  console.warn('🔄 L\'application continuera avec des valeurs par défaut');
-}
-
-// Démarrer avec le serveur hybride (stabilité + fonctionnalités)
+// Importer et démarrer le serveur
 try {
-  console.log('🚀 Démarrage avec le serveur hybride...');
-  await import('./hybrid-server.js');
-  console.log('✅ Serveur hybride démarré avec succès');
-} catch (error) {
-  console.error('❌ Erreur avec le serveur hybride:', error);
+  console.log('🚀 Import du serveur principal...');
+  const { default: startServer } = await import('./server.js');
   
-  // Fallback : essayer le serveur ultra-minimal
-  try {
-    console.log('🔄 Tentative avec le serveur ultra-minimal...');
-    await import('./ultra-minimal-server.js');
-  } catch (fallbackError) {
-    console.error('❌ Échec avec le serveur ultra-minimal:', fallbackError);
-    
-    // Dernier recours : serveur d'urgence
-    try {
-      console.log('🆘 Démarrage du serveur d\'urgence...');
-      await import('./emergency-server.js');
-    } catch (emergencyError) {
-      console.error('❌ Échec critique de tous les serveurs:', emergencyError);
-      process.exit(1);
-    }
+  if (typeof startServer === 'function') {
+    startServer();
+  } else {
+    console.log('📡 Démarrage du serveur Express...');
+    // Le serveur se démarre automatiquement dans server.js
   }
-}
-
-// Gestion des signaux d'arrêt
-process.on('SIGTERM', () => {
-  console.log('🛑 Signal SIGTERM reçu, arrêt gracieux...');
-  process.exit(0);
-});
-
-process.on('SIGINT', () => {
-  console.log('🛑 Signal SIGINT reçu, arrêt gracieux...');
-  process.exit(0);
-});
-
-process.on('uncaughtException', (error) => {
-  console.error('💥 Exception non capturée:', error);
-  // Ne pas quitter, laisser le serveur continuer
-});
-
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Promesse rejetée non gérée:', reason);
-  // Ne pas quitter, laisser le serveur continuer
-}); 
+} catch (error) {
+  console.error('❌ Erreur lors du démarrage du serveur:', error);
+  process.exit(1);
+} 
