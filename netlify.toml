@@ -1,13 +1,24 @@
 [build]
-  command = "npm install --legacy-peer-deps && npm run build" # Installation propre avant build
-  functions = "functions"  # Dossier où sont stockées les fonctions Netlify
-  node_bundler = "esbuild"  # Assure une meilleure compatibilité
+  command = "chmod +x netlify-build.sh && ./netlify-build.sh"
+  publish = "dist"
+  functions = "functions"
+  node_bundler = "esbuild"
+
+[build.environment]
+  NODE_VERSION = "18"
+  NPM_FLAGS = "--legacy-peer-deps"
 
 [functions]
-  included_files = ["functions/**"]  # Force l'inclusion des fichiers
-  external_node_modules = ["axios"]  # Inclut axios dans les dépendances Netlify
+  included_files = ["functions/**"]
+  external_node_modules = ["axios"]
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/webhook"
   to = "/.netlify/functions/webhook"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
   status = 200
