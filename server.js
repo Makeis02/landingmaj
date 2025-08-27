@@ -1395,7 +1395,12 @@ const sendMessageToMessenger = async (recipientId, messageText) => {
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Route par défaut qui retourne index.html pour toutes les requêtes qui ne correspondent pas à une API
-app.get(/^\/(?!api\/).*/, (req, res) => {
+app.get('*', (req, res) => {
+    // Vérifier si c'est une route API
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).send('API endpoint not found');
+    }
+    
     console.log(`🌐 Requête frontend pour: ${req.path}`);
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
