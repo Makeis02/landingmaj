@@ -849,8 +849,27 @@ app.get('/api/products/check-pages', async (req, res) => {
 // ==========================================
 
 // Route pour servir le frontend React (doit être en dernier)
-app.get('*', (req, res) => {
+// Route spécifique pour servir le frontend React
+app.get('/', (req, res) => {
   console.log(`🌐 Requête frontend pour: ${req.path}`);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Route pour les pages de catégories
+app.get('/categories/:slug', (req, res) => {
+  console.log(`🌐 Requête catégorie pour: ${req.path}`);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Route pour les pages produits
+app.get('/produits/:slug', (req, res) => {
+  console.log(`🌐 Requête produit pour: ${req.path}`);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// Route pour les autres pages (catch-all plus spécifique)
+app.get('/:page', (req, res) => {
+  console.log(`🌐 Requête page pour: ${req.path}`);
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
