@@ -1395,7 +1395,13 @@ const sendMessageToMessenger = async (recipientId, messageText) => {
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Route par défaut qui retourne index.html pour toutes les requêtes qui ne correspondent pas à une API
-app.get(/^\/(?!api\/).*/, (req, res) => {
+app.get('*', (req, res) => {
+    // Vérifier si c'est une route API
+    if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    
+    // Pour toutes les autres routes, servir index.html (SPA routing)
     console.log(`🌐 Requête frontend pour: ${req.path}`);
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
@@ -1409,4 +1415,26 @@ app.listen(PORT, () => {
 }).on('error', (error) => {
     console.error('❌ Erreur de démarrage du serveur:', error);
     process.exit(1);
+});
+
+// Middleware de gestion d'erreur Express 5 compatible
+app.use((err, req, res, next) => {
+    console.error('❌ Erreur serveur:', err);
+    
+    // Vérifier si la réponse a déjà été envoyée
+    if (res.headersSent) {
+        return next(err);
+    }
+    
+    // Déterminer le type d'erreur
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Erreur interne du serveur';
+    
+    // Envoyer la réponse d'erreur
+    res.status(statusCode).json({
+        error: true,
+        message: message,
+        statusCode: statusCode,
+        timestamp: new Date().toISOString()
+    });
 });
