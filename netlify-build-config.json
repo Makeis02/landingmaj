@@ -1,0 +1,36 @@
+{
+  "build": {
+    "command": "npm ci --legacy-peer-deps && npm run build",
+    "publish": "dist",
+    "functions": "functions",
+    "environment": {
+      "NODE_VERSION": "18",
+      "NPM_CONFIG_LOGLEVEL": "verbose",
+      "NETLIFY_EXTENSIONS": "false",
+      "NETLIFY_PLUGINS": "false",
+      "NETLIFY_USE_YARN": "false"
+    }
+  },
+  "functions": {
+    "included_files": ["functions/**"],
+    "external_node_modules": ["axios"],
+    "node_bundler": "esbuild"
+  },
+  "redirects": [
+    {
+      "from": "/webhook",
+      "to": "/.netlify/functions/webhook",
+      "status": 200
+    },
+    {
+      "from": "/*",
+      "to": "/index.html",
+      "status": 200
+    }
+  ],
+  "build_settings": {
+    "skip_processing": true,
+    "ignore_extensions": true,
+    "ignore_plugins": true
+  }
+}

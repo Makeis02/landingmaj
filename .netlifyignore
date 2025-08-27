@@ -5,6 +5,11 @@ node_modules/
 .vscode/
 .idea/
 
+# Extensions et plugins Netlify problématiques
+.netlify/
+.netlify/plugins/
+.netlify/extensions/
+
 # Fichiers de logs
 *.log
 npm-debug.log*
