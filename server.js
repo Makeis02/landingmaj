@@ -67,20 +67,53 @@ app.use(cors({
       'http://localhost:8080'
     ];
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Vérifier si l'origine est autorisée
+    if (allowedOrigins.includes(origin) || !origin) {
       callback(null, true);
+      console.log('🌐 Origine autorisée par CORS:', origin);
     } else {
-      console.log('🚫 Origine bloquée par CORS:', origin);
+      console.log('⚠️ Origine non autorisée par CORS:', origin);
       callback(null, true); // Temporairement autoriser toutes les origines
     }
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'x-client-info', 'apikey'],
   exposedHeaders: ['Content-Length', 'X-Requested-With'],
   preflightContinue: false,
   optionsSuccessStatus: 204
 }));
+
+// Middleware pour gérer les requêtes OPTIONS (preflight CORS)
+app.options('*', cors());
+
+// Middleware pour ajouter des en-têtes de sécurité et CORS
+app.use((req, res, next) => {
+  // En-têtes de sécurité
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  
+  // En-têtes CORS supplémentaires - IMPORTANT pour Railway
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Gérer les requêtes OPTIONS
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  
+  next();
+});
 
 // Middleware pour gérer les requêtes OPTIONS (preflight CORS)
 app.options('*', cors());
@@ -216,6 +249,17 @@ app.get('/api/shopify/products', async (req, res) => {
 
 // 💳 **API Stripe pour les produits**
 app.get('/api/stripe/products', async (req, res) => {
+  // 🔧 CORRECTION CORS SPÉCIFIQUE POUR STRIPE
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
   // Log de la requête pour debug
   console.log('🔍 Requête reçue sur /api/stripe/products:', {
     method: req.method,
