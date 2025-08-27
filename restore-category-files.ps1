@@ -125,4 +125,4 @@ Write-Host "Resume:"
 Write-Host "  - Fichier de reference: $referenceFile"
 Write-Host "  - Fichiers restaures: $($filesToRestore.Count)"
 Write-Host ""
-Write-Host "Vous pouvez maintenant redemarrer votre serveur de developpement." -ForegroundColor Cyan 
+Write-Host "Vous pouvez maintenant redemarrer votre serveur de developpement." -ForegroundColor Cyan jgjgj
