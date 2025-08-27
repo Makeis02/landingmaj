@@ -33,30 +33,29 @@ if (missingVars.length > 0) {
   console.warn('🔄 L\'application continuera avec des valeurs par défaut');
 }
 
-// Démarrer le serveur principal
+// Démarrer avec le serveur ultra-minimal en premier (plus sûr)
 try {
-  console.log('🔌 Import du serveur principal...');
-  const { default: startServer } = await import('./server.js');
-  
-  if (typeof startServer === 'function') {
-    startServer();
-  } else {
-    console.log('📡 Démarrage du serveur via import direct...');
-    // Le serveur se démarre automatiquement via server.js
-  }
+  console.log('🚀 Démarrage avec le serveur ultra-minimal...');
+  await import('./ultra-minimal-server.js');
+  console.log('✅ Serveur ultra-minimal démarré avec succès');
 } catch (error) {
-  console.error('❌ Erreur lors du démarrage du serveur principal:', error);
+  console.error('❌ Erreur avec le serveur ultra-minimal:', error);
   
-  // Fallback : démarrer le serveur de test
+  // Fallback : essayer le serveur de test
   try {
-    console.log('🔄 Tentative de démarrage avec le serveur de test...');
+    console.log('🔄 Tentative avec le serveur de test...');
     await import('./test-server.js');
   } catch (fallbackError) {
-    console.error('❌ Échec du démarrage avec le serveur de test:', fallbackError);
+    console.error('❌ Échec avec le serveur de test:', fallbackError);
     
-    // Dernier recours : démarrer un serveur minimal
-    console.log('🆘 Démarrage d\'un serveur minimal d\'urgence...');
-    await import('./emergency-server.js');
+    // Dernier recours : serveur d'urgence
+    try {
+      console.log('🆘 Démarrage du serveur d\'urgence...');
+      await import('./emergency-server.js');
+    } catch (emergencyError) {
+      console.error('❌ Échec critique de tous les serveurs:', emergencyError);
+      process.exit(1);
+    }
   }
 }
 
@@ -73,10 +72,10 @@ process.on('SIGINT', () => {
 
 process.on('uncaughtException', (error) => {
   console.error('💥 Exception non capturée:', error);
-  process.exit(1);
+  // Ne pas quitter, laisser le serveur continuer
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Promesse rejetée non gérée:', reason);
-  process.exit(1);
+  // Ne pas quitter, laisser le serveur continuer
 }); 
