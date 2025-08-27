@@ -728,3 +728,150 @@ async function generateProductPage(product) {
     if (!pageContent.includes(`export default ${componentName};`)) {
       // Ajouter l'export default à la fin du fichier si nécessaire
       pageContent = pageContent + `
+export default ${componentName};`;
+    }
+
+    // Écrire le fichier
+    await fs.writeFile(outputPath, pageContent, "utf8");
+    
+    console.log(`✅ Page produit générée: ${outputPath}`);
+    return { 
+      success: true, 
+      message: `Page ${slug}.tsx créée avec succès`,
+      slug,
+      path: outputPath
+    };
+  } catch (error) {
+    console.error("❌ Erreur lors de la génération de la page:", error);
+    return { 
+      success: false, 
+      message: `Erreur: ${error.message}` 
+    };
+  }
+}
+
+/**
+ * Crée une page produit via l'API
+ */
+app.post('/api/products/create-page', async (req, res) => {
+  try {
+    const product = req.body;
+    
+    if (!product || !product.title) {
+      return res.status(400).json({ 
+        error: "Données invalides", 
+        message: "Le titre du produit est obligatoire" 
+      });
+    }
+
+    console.log(`🏗️ Création de page pour: ${product.title}`);
+    const result = await generateProductPage(product);
+    
+    if (result.success) {
+      res.json(result);
+    } else {
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    console.error("❌ Erreur lors de la création de page:", error);
+    res.status(500).json({ 
+      error: "Erreur serveur", 
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Supprime une page produit
+ */
+app.delete('/api/products/delete-page/:slug', async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const pagesDir = path.join(__dirname, "src", "pages", "products");
+    const filePath = path.join(pagesDir, `${slug}.tsx`);
+
+    if (await fs.pathExists(filePath)) {
+      await fs.remove(filePath);
+      console.log(`🗑️ Page supprimée: ${filePath}`);
+      res.json({ 
+        success: true, 
+        message: `Page ${slug}.tsx supprimée` 
+      });
+    } else {
+      res.status(404).json({ 
+        error: "Page non trouvée", 
+        message: `La page ${slug}.tsx n'existe pas` 
+      });
+    }
+  } catch (error) {
+    console.error("❌ Erreur lors de la suppression:", error);
+    res.status(500).json({ 
+      error: "Erreur serveur", 
+      message: error.message 
+    });
+  }
+});
+
+/**
+ * Vérifie l'état des pages produits
+ */
+app.get('/api/products/check-pages', async (req, res) => {
+  try {
+    const pagesDir = path.join(__dirname, "src", "pages", "products");
+    
+    if (!(await fs.pathExists(pagesDir))) {
+      return res.json({ 
+        pages: [], 
+        count: 0, 
+        directory: "N'existe pas" 
+      });
+    }
+
+    const files = await fs.readdir(pagesDir);
+    const pages = files.filter(file => file.endsWith('.tsx'));
+    
+    res.json({ 
+      pages, 
+      count: pages.length, 
+      directory: pagesDir 
+    });
+  } catch (error) {
+    console.error("❌ Erreur lors de la vérification:", error);
+    res.status(500).json({ 
+      error: "Erreur serveur", 
+      message: error.message 
+    });
+  }
+});
+
+// ==========================================
+// 🌐 ROUTE CATCH-ALL POUR LE FRONTEND
+// ==========================================
+
+// Route pour servir le frontend React (doit être en dernier)
+app.get('/*', (req, res) => {
+  console.log(`🌐 Requête frontend pour: ${req.path}`);
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+// ==========================================
+// 🚀 DÉMARRAGE DU SERVEUR
+// ==========================================
+
+app.listen(PORT, () => {
+  console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+  console.log(`🔌 WebSocket démarré sur le port ${WS_PORT}`);
+  console.log(`🌐 Frontend accessible sur: http://localhost:${PORT}`);
+  console.log(`📡 API accessible sur: http://localhost:${PORT}/api`);
+});
+
+// Gestion des erreurs non capturées
+process.on('uncaughtException', (error) => {
+  console.error('❌ Erreur non capturée:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Promesse rejetée non gérée:', reason);
+  process.exit(1);
+});
