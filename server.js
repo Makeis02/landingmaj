@@ -1395,7 +1395,8 @@ const sendMessageToMessenger = async (recipientId, messageText) => {
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // Route par défaut qui retourne index.html pour toutes les requêtes qui ne correspondent pas à une API
-app.get(/^\/(?!api\/).*/, (req, res) => {
+app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
     console.log(`🌐 Requête frontend pour: ${req.path}`);
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
