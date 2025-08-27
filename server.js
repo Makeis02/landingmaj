@@ -72,57 +72,62 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 console.log('- STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY ? '✅ Défini' : '❌ Manquant');
 
 // 🛠️ Middleware essentiels
-app.use(bodyParser.json());
-
-// Configuration CORS plus permissive pour résoudre les problèmes cross-origin
-app.use(cors({
-  origin: function (origin, callback) {
-    // Autoriser les requêtes sans origine (comme les apps mobiles)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      'https://aqua-reve.com',
-      'https://www.aqua-reve.com',
-      'https://majemsiteteste.netlify.app',
-      'https://landingmaj-production.up.railway.app',
-      'http://localhost:5173',
-      'http://localhost:3000',
-      'http://localhost:8080'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('🚫 Origine bloquée par CORS:', origin);
-      callback(null, true); // Temporairement autoriser toutes les origines
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  exposedHeaders: ['Content-Length', 'X-Requested-With'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204
-}));
-
-// Middleware pour gérer les requêtes OPTIONS (preflight CORS)
-app.options('*', cors());
-
-// Middleware pour ajouter des en-têtes de sécurité
-app.use((req, res, next) => {
-  // En-têtes de sécurité
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+try {
+  app.use(bodyParser.json());
   
-  // En-têtes CORS supplémentaires
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+  // Configuration CORS plus permissive pour résoudre les problèmes cross-origin
+  app.use(cors({
+    origin: function (origin, callback) {
+      // Autoriser les requêtes sans origine (comme les apps mobiles)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        'https://aqua-reve.com',
+        'https://www.aqua-reve.com',
+        'https://majemsiteteste.netlify.app',
+        'https://landingmaj-production.up.railway.app',
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'http://localhost:8080'
+      ];
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('🚫 Origine bloquée par CORS:', origin);
+        callback(null, true); // Temporairement autoriser toutes les origines
+      }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'HEAD'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+    exposedHeaders: ['Content-Length', 'X-Requested-With'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+  }));
   
-  next();
-});
+  // Middleware pour gérer les requêtes OPTIONS (preflight CORS)
+  app.options('*', cors());
+  
+  // Middleware pour ajouter des en-têtes de sécurité
+  app.use((req, res, next) => {
+    // En-têtes de sécurité
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    
+    // En-têtes CORS supplémentaires
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, HEAD');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Accept, Origin, X-Requested-With');
+    
+    next();
+  });
+} catch (error) {
+  console.error('❌ Erreur lors de la configuration des middlewares:', error);
+  throw error;
+}
 
 // 🚀 Démarrage WebSocket
 const wss = new WebSocketServer({ port: WS_PORT });
