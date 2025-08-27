@@ -33,20 +33,20 @@ if (missingVars.length > 0) {
   console.warn('🔄 L\'application continuera avec des valeurs par défaut');
 }
 
-// Démarrer avec le serveur ultra-minimal en premier (plus sûr)
+// Démarrer avec le serveur hybride (stabilité + fonctionnalités)
 try {
-  console.log('🚀 Démarrage avec le serveur ultra-minimal...');
-  await import('./ultra-minimal-server.js');
-  console.log('✅ Serveur ultra-minimal démarré avec succès');
+  console.log('🚀 Démarrage avec le serveur hybride...');
+  await import('./hybrid-server.js');
+  console.log('✅ Serveur hybride démarré avec succès');
 } catch (error) {
-  console.error('❌ Erreur avec le serveur ultra-minimal:', error);
+  console.error('❌ Erreur avec le serveur hybride:', error);
   
-  // Fallback : essayer le serveur de test
+  // Fallback : essayer le serveur ultra-minimal
   try {
-    console.log('🔄 Tentative avec le serveur de test...');
-    await import('./test-server.js');
+    console.log('🔄 Tentative avec le serveur ultra-minimal...');
+    await import('./ultra-minimal-server.js');
   } catch (fallbackError) {
-    console.error('❌ Échec avec le serveur de test:', fallbackError);
+    console.error('❌ Échec avec le serveur ultra-minimal:', fallbackError);
     
     // Dernier recours : serveur d'urgence
     try {
